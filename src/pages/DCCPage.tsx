@@ -7,7 +7,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Wallet, Eye, Users, Plus, FileText,
   LayoutGrid, List, Table2, Calendar,
-  MessageSquare, Send, X, Loader2,
+  MessageSquare, Send, X, Loader2, LogOut,
   CalendarDays, Landmark, Gauge, CircleUser as UserCircle,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { ROLE_LABELS } from '../constants/roles';
 import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
 import type {
   DccTile, DccTrackerSummary,
   DccDemandType, DccObjectOwner, DccObject, DccDemandChat,
@@ -97,7 +98,9 @@ const DemandTile: React.FC<{
 }> = ({ tile, onPay, onViewDetails, onChat, onShowDuePayment, isChatActive }) => {
   const [expanded, setExpanded] = useState(false);
   const st = DCC_STATUS[tile.status];
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const { openProfileDrawer } = useUIStore();
+  const handleLogout = async () => { await logout(); navigate(ROUTES.LOGIN); };
   const canRecordPayment = user?.role === 'manager' || user?.role === 'admin';
   const canPay = (tile.status === 'DUE' || tile.status === 'OVERDUE') && canRecordPayment;
   const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
@@ -916,16 +919,29 @@ export const DCCPage: React.FC = () => {
           <p className="text-[10px] text-slate-400">Enterprise demand tracking and collection management</p>
         </div>
 
-        {/* User context */}
+        {/* User context — click to open profile */}
         {user && (
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-blue-900/40 border border-blue-700/40 shrink-0">
-            <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="text-left leading-tight hidden sm:block">
-              <div className="text-[11px] font-semibold text-white whitespace-nowrap">{user.fullName || user.email}</div>
-              <div className="text-[9px] text-emerald-300 font-medium whitespace-nowrap">{ROLE_LABELS[user.role]}</div>
-            </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => openProfileDrawer()}
+              title="View Profile"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-blue-900/40 border border-blue-700/40 hover:bg-blue-900/60 hover:border-emerald-500/50 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="text-left leading-tight hidden sm:block">
+                <div className="text-[11px] font-semibold text-white whitespace-nowrap">{user.fullName || user.email}</div>
+                <div className="text-[9px] text-emerald-300 font-medium whitespace-nowrap">{ROLE_LABELS[user.role]}</div>
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:bg-red-500/20 hover:text-red-300 transition-colors shrink-0"
+            >
+              <LogOut size={15} />
+            </button>
           </div>
         )}
         {/* Tab bar — icon-only with hover tooltips */}

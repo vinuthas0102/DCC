@@ -33,6 +33,72 @@ const IROWS = 'dcc_installment_rows';
 const CHATS = 'dcc_demand_chats';
 const SCHEDULES = 'dcc_report_schedules';
 
+// ── Demo data (used when database tables don't exist) ─────────────────────────
+const DEMO_DEMAND_TYPES: DccDemandType[] = [
+  { id: 'dt-rent', code: 'RENT', label: 'Rent', description: 'Monthly rent', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-sd', code: 'SD', label: 'Security Deposit', description: 'Security deposit', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-advance', code: 'ADVANCE', label: 'Advance', description: 'Advance payment', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-loan', code: 'LOAN', label: 'Loan', description: 'Loan repayment', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-tax', code: 'PROPERTY_TAX', label: 'Property Tax', description: 'Annual property tax', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-insurance', code: 'INSURANCE', label: 'Insurance', description: 'Insurance premium', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+  { id: 'dt-maint', code: 'MAINT', label: 'Maintenance', description: 'Maintenance charges', is_active: true, created_at: '2026-08-01T00:00:00Z' },
+];
+
+const DEMO_OWNERS: DccObjectOwner[] = [
+  { id: 'own-1', name: 'Rajesh Kumar', owner_type: 'PERSON', contact_number: '9876543210', email: 'rajesh@example.com', address: '123 MG Road', city: 'Bangalore', state: 'Karnataka', pincode: '560001', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'own-2', name: 'Priya Sharma', owner_type: 'PERSON', contact_number: '9876543211', email: 'priya@example.com', address: '45 Park Street', city: 'Kolkata', state: 'West Bengal', pincode: '700001', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'own-3', name: 'Toyota Motors Ltd', owner_type: 'ORGANIZATION', contact_number: '9876543212', email: 'fleet@toyota.example.com', address: 'Industrial Area', city: 'Pune', state: 'Maharashtra', pincode: '411001', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'own-4', name: 'State Bank of India', owner_type: 'ORGANIZATION', contact_number: '9876543213', email: 'loans@sbi.example.com', address: 'Bank Street', city: 'Mumbai', state: 'Maharashtra', pincode: '400001', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'own-5', name: 'Anil Singh', owner_type: 'PERSON', contact_number: '9876543214', email: 'anil@example.com', address: '78 Civil Lines', city: 'Delhi', state: 'Delhi', pincode: '110001', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+];
+
+const DEMO_OBJECTS: DccObject[] = [
+  { id: 'obj-1', owner_id: 'own-1', object_type: 'PROPERTY', object_ref: 'SEC-14-A-301', description: 'Sector 14, Apt A-301', details: { bhk: 3, area: 1450 }, region: 'South', group_name: 'Sector 14', subgroup: 'Block A', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'obj-2', owner_id: 'own-2', object_type: 'PROPERTY', object_ref: 'SEC-14-B-102', description: 'Sector 14, Apt B-102', details: { bhk: 2, area: 1100 }, region: 'South', group_name: 'Sector 14', subgroup: 'Block B', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'obj-3', owner_id: 'own-3', object_type: 'CAR', object_ref: 'KA-01-AB-1234', description: 'Toyota Innova Crysta', details: { model: 'Innova Crysta', year: 2024, fuel: 'Diesel' }, region: 'South', group_name: 'Fleet', subgroup: 'SUV', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'obj-4', owner_id: 'own-4', object_type: 'LOAN', object_ref: 'LN-2026-001', description: 'Home Loan Rs 25,00,000', details: { principal: 2500000, tenure_months: 240, rate_pct: 8.5 }, region: 'West', group_name: 'Home Loans', subgroup: 'SBI', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'obj-5', owner_id: 'own-5', object_type: 'PROPERTY', object_ref: 'DL-CL-45', description: 'Civil Lines House No 45', details: { type: 'Independent House', area: 2200 }, region: 'North', group_name: 'Civil Lines', subgroup: 'Delhi', is_active: true, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+];
+
+function buildDemoDemands(): DccDemand[] {
+  const today = new Date();
+  const daysFromNow = (n: number) => { const d = new Date(today); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
+  const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
+  return [
+    { id: 'dem-1', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysFromNow(5), amount: 25000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-2', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-sd', criteria_id: null, demand_run_date: daysAgo(30), due_date: daysAgo(5), amount: 50000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', created_at: daysAgo(30)+'T00:00:00Z', updated_at: daysAgo(30)+'T00:00:00Z' },
+    { id: 'dem-3', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(8), due_date: daysFromNow(2), amount: 18000, amount_paid: 18000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(8)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-4', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(15), due_date: daysFromNow(10), amount: 8500, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'TPA', created_at: daysAgo(15)+'T00:00:00Z', updated_at: daysAgo(15)+'T00:00:00Z' },
+    { id: 'dem-5', object_id: 'obj-4', owner_id: 'own-4', demand_type_id: 'dt-loan', criteria_id: null, demand_run_date: daysAgo(20), due_date: daysAgo(2), amount: 22000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(20)+'T00:00:00Z', updated_at: daysAgo(20)+'T00:00:00Z' },
+    { id: 'dem-6', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-tax', criteria_id: null, demand_run_date: daysAgo(5), due_date: daysFromNow(25), amount: 45000, amount_paid: 20000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'EXCEL', created_at: daysAgo(5)+'T00:00:00Z', updated_at: daysAgo(2)+'T00:00:00Z' },
+    { id: 'dem-7', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-insurance', criteria_id: null, demand_run_date: daysAgo(12), due_date: daysFromNow(18), amount: 12000, amount_paid: 12000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(12)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+    { id: 'dem-8', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-advance', criteria_id: null, demand_run_date: daysAgo(3), due_date: daysFromNow(7), amount: 15000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', created_at: daysAgo(3)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-9', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysAgo(1), amount: 3200, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-10', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(7), due_date: daysFromNow(3), amount: 30000, amount_paid: 15000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(7)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+  ];
+}
+
+function filterDemoDemands(demands: DccDemand[], filters?: DccDemandFilters): DccDemand[] {
+  if (!filters) return demands;
+  let r = demands;
+  if (filters.object_id) r = r.filter(d => d.object_id === filters.object_id);
+  if (filters.owner_id) r = r.filter(d => d.owner_id === filters.owner_id);
+  if (filters.demand_type_code) { const dt = DEMO_DEMAND_TYPES.find(t => t.code === filters.demand_type_code); if (dt) r = r.filter(d => d.demand_type_id === dt.id); }
+  if (filters.region) r = r.filter(d => { const o = DEMO_OBJECTS.find(o => o.id === d.object_id); return o?.region === filters.region; });
+  if (filters.group_name) r = r.filter(d => { const o = DEMO_OBJECTS.find(o => o.id === d.object_id); return o?.group_name === filters.group_name; });
+  if (filters.subgroup) r = r.filter(d => { const o = DEMO_OBJECTS.find(o => o.id === d.object_id); return o?.subgroup === filters.subgroup; });
+  if (filters.run_date_from) r = r.filter(d => d.demand_run_date >= filters.run_date_from!);
+  if (filters.run_date_to) r = r.filter(d => d.demand_run_date <= filters.run_date_to!);
+  if (filters.status) r = r.filter(d => d.status === filters.status);
+  return r;
+}
+
+function isTableMissingError(error: { code?: string; message?: string }): boolean {
+  const msg = error?.message ?? '';
+  const code = error?.code ?? '';
+  return code === '42P01' || (msg.includes('relation') && msg.includes('does not exist')) || msg.includes('Could not find the table') || msg.includes('does not exist');
+}
+
 export const dccService = {
   // ── Reference data ──────────────────────────────────────────────────────────
   async listDemandTypes(): Promise<DccDemandType[]> {
@@ -40,7 +106,10 @@ export const dccService = {
       .from(DTYPES)
       .select('*')
       .order('label', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return DEMO_DEMAND_TYPES;
+      throw error;
+    }
     return (data ?? []) as DccDemandType[];
   },
 
@@ -49,7 +118,10 @@ export const dccService = {
       .from(OWNERS)
       .select('*')
       .order('name', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return DEMO_OWNERS;
+      throw error;
+    }
     return (data ?? []) as DccObjectOwner[];
   },
 
@@ -57,7 +129,14 @@ export const dccService = {
     let q = supabase.from(OBJECTS).select('*, owner:owner_id(*)').order('object_ref');
     if (ownerId) q = q.eq('owner_id', ownerId);
     const { data, error } = await q;
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) {
+        let objs = DEMO_OBJECTS;
+        if (ownerId) objs = objs.filter(o => o.owner_id === ownerId);
+        return objs;
+      }
+      throw error;
+    }
     return (data ?? []) as DccObject[];
   },
 
@@ -86,7 +165,10 @@ export const dccService = {
     if (filters?.status) q = q.eq('status', filters.status);
 
     const { data, error } = await q;
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return filterDemoDemands(buildDemoDemands(), filters);
+      throw error;
+    }
     return (data ?? []) as DccDemand[];
   },
 
@@ -97,7 +179,7 @@ export const dccService = {
     // Fetch last payment per demand
     const demandIds = demands.map((d) => d.id);
     let lastPayments: Record<string, { date: string; amount: number }> = {};
-    if (demandIds.length > 0) {
+    if (demandIds.length > 0 && !demandIds[0]?.startsWith('dem-')) {
       const { data: pays } = await supabase
         .from(PAYMENTS)
         .select('demand_id, payment_date, amount')
@@ -187,7 +269,10 @@ export const dccService = {
       .select('*')
       .eq('demand_id', demandId)
       .order('payment_date', { ascending: false });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
     return (data ?? []) as DccPayment[];
   },
 
@@ -239,7 +324,10 @@ export const dccService = {
       .from(RUNLOG)
       .select('*, demand_type:demand_type_id(*)')
       .order('run_date', { ascending: false });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
     return (data ?? []) as DccDemandRunLog[];
   },
 
@@ -399,7 +487,10 @@ export const dccService = {
       .select('*')
       .eq('demand_id', demandId)
       .maybeSingle();
-    if (planErr) throw planErr;
+    if (planErr) {
+      if (isTableMissingError(planErr)) return { plan: null, rows: [] };
+      throw planErr;
+    }
     if (!plan) return { plan: null, rows: [] };
     const { data: rows, error: rowErr } = await supabase
       .from(IROWS)
@@ -662,7 +753,10 @@ export const dccService = {
       .select('*')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
     return (data ?? []) as DccDemandChat[];
   },
 
@@ -692,7 +786,10 @@ export const dccService = {
       .from(SCHEDULES)
       .select('*')
       .order('next_run_at', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
     return (data ?? []) as DccReportSchedule[];
   },
 
