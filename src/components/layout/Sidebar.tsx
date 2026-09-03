@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, IndianRupee, LogOut, Pencil, Wallet } from 'lucide-react';
+import { Landmark, LogOut, Pencil } from 'lucide-react';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -9,10 +9,7 @@ import { ROLE_LABELS } from '../../constants/roles';
 import { ROUTES } from '../../constants/routes';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
-  Building2:   <Building2 size={22} strokeWidth={1.75} />,
-  Home:        <Home size={22} strokeWidth={1.75} />,
-  IndianRupee: <IndianRupee size={22} strokeWidth={1.75} />,
-  Wallet:      <Wallet size={22} strokeWidth={1.75} />,
+  Landmark: <Landmark size={22} strokeWidth={1.75} />,
 };
 
 interface ModuleButtonProps {
@@ -52,16 +49,6 @@ const ModuleButton: React.FC<ModuleButtonProps> = ({ tab, isActive, onClick }) =
 );
 
 function isTabActive(tab: ModuleTab, pathname: string): boolean {
-  if (tab.activePrefix === '/dcc') {
-    return pathname === '/dcc' || pathname.startsWith('/dcc/');
-  }
-  if (tab.activePrefix === '/quarters/rent') {
-    return pathname === '/quarters/rent';
-  }
-  if (tab.activePrefix === '/quarters') {
-    if (pathname === '/dcc' || pathname.startsWith('/dcc/')) return false;
-    if (pathname === '/quarters/rent') return false;
-  }
   return pathname === tab.activePrefix || pathname.startsWith(tab.activePrefix + '/');
 }
 
@@ -81,18 +68,18 @@ const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
 
   return (
     <aside className="w-20 h-full flex flex-col bg-white border-r border-gray-100" style={{ boxShadow: '1px 0 0 0 rgba(0,0,0,0.05)' }}>
-      {/* ── Logo ── */}
+      {/* Logo */}
       <div className="flex items-center justify-center h-[60px] border-b border-gray-100 flex-shrink-0">
         <button
           onClick={() => { navigate(ROUTES.HOME); onNavigate?.(); }}
           className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-          title="FMS Portal"
+          title="DCC Portal"
         >
-          <Building2 size={17} className="text-white" strokeWidth={2} />
+          <Landmark size={17} className="text-white" strokeWidth={2} />
         </button>
       </div>
 
-      {/* ── User avatar — click to open profile drawer ── */}
+      {/* User avatar */}
       {user && (
         <div className="flex items-center justify-center py-3 border-b border-gray-100 flex-shrink-0">
           <button
@@ -103,7 +90,6 @@ const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white group-hover:ring-blue-300 transition-all duration-150">
               {initials}
             </div>
-            {/* Pencil badge appears on hover */}
             <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white border border-gray-200 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-sm">
               <Pencil size={8} className="text-blue-600" />
             </span>
@@ -111,7 +97,7 @@ const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* ── Module tabs ── */}
+      {/* Module tabs */}
       <nav className="flex flex-col pt-1 flex-shrink-0">
         {tabs.map((tab) => (
           <ModuleButton
@@ -123,13 +109,13 @@ const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
         ))}
       </nav>
 
-      {/* ── Spacer ── */}
+      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* ── Divider ── */}
+      {/* Divider */}
       <div className="mx-4 border-t border-gray-100 flex-shrink-0" />
 
-      {/* ── Logout ── */}
+      {/* Logout */}
       <div className="flex items-center justify-center py-4 flex-shrink-0">
         <button
           onClick={handleLogout}
@@ -148,12 +134,12 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* Desktop: fixed left rail, always visible */}
+      {/* Desktop: fixed left rail */}
       <div className="hidden md:block fixed left-0 top-0 bottom-0 z-40 w-20">
         <RailContent />
       </div>
 
-      {/* Mobile: slide-in drawer with backdrop */}
+      {/* Mobile: slide-in drawer */}
       {isMobileOpen && (
         <>
           <div

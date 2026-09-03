@@ -36,7 +36,7 @@ import type { ViewMode } from '../components/ui/ViewSwitcher';
 import SplitLayout from '../components/ui/SplitLayout';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 import { ChatDeliveryModePicker } from '../components/ui/ChatDeliveryModePicker';
-import type { ChatDeliveryMode } from '../types/quarters';
+import type { ChatDeliveryMode } from '../types/dcc';
 import {
   DCC_STATUS,
   fmtINR, fmtINRShort, fmtDate, fmtDateShort,

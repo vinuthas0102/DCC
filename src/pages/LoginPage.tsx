@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Mail, Lock, LogIn, Users, Shield, Home } from 'lucide-react';
+import { Landmark, Mail, Lock, LogIn, Users, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { Button } from '../components/ui/Button';
@@ -60,15 +60,7 @@ export const LoginPage: React.FC = () => {
       await login(email, password, selectedRole);
       try { localStorage.removeItem('dccView'); } catch { /* ignore */ }
       addToast('Login successful', 'success');
-      if (selectedRole === 'admin') {
-        navigate(ROUTES.PROPERTIES);
-      } else if (selectedRole === 'manager') {
-        navigate(ROUTES.QUARTERS_REQUESTS);
-      } else if (selectedRole === 'govt_official') {
-        navigate(ROUTES.QUARTERS_REQUESTS);
-      } else {
-        navigate(ROUTES.DASHBOARD);
-      }
+      navigate(ROUTES.DASHBOARD);
     } catch (error: any) {
       addToast(error.message || 'Login failed', 'error');
     } finally {
@@ -81,10 +73,10 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-fadeIn">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-xl mb-4">
-            <Building2 size={32} />
+            <Landmark size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Facilities Management</h1>
-          <p className="text-gray-600">Sign in to access your dashboard</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Demand & Collection Center</h1>
+          <p className="text-gray-600">Sign in to access the DCC portal</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 animate-slideUp">
@@ -134,10 +126,10 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Govt / Quarters */}
+          {/* Govt */}
           <div className="mb-3">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-              <Home size={11} /> Government / Quarters
+              <Shield size={11} /> Government
             </div>
             <div className="space-y-1.5">
               {(['govt_official'] as UserRole[]).map((role) => (

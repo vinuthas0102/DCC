@@ -266,6 +266,8 @@ export interface DccReportScheduleInput {
 
 // ── Demand chat ────────────────────────────────────────────────────────────────
 
+export type ChatDeliveryMode = 'IN_APP' | 'EMAIL' | 'SMS' | 'WA';
+
 export interface DccDemandChat {
   id: string;
   demand_id: string;

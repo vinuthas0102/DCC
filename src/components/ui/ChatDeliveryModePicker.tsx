@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell, Mail, MessageSquare, Phone } from 'lucide-react';
-import type { ChatDeliveryMode } from '../../types/quarters';
+import type { ChatDeliveryMode } from '../../types/dcc';
 
 interface Props {
   value: ChatDeliveryMode[];

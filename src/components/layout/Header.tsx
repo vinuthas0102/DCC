@@ -1,16 +1,14 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Building2, Bell, LogOut, UserCheck, Calendar, Settings,
-  Wrench, Link as LinkIcon, Shield, ChevronLeft, ChevronRight,
-  LayoutDashboard, Download, CircleUser as UserCircle, Pencil,
+  Landmark, Bell, LogOut, ChevronLeft, ChevronRight,
+  CircleUser as UserCircle, Pencil,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { Button } from '../ui/Button';
 import { ROLE_LABELS } from '../../constants/roles';
 import { ROUTES } from '../../constants/routes';
-import { downloadPageAsHtml } from '../../utils/downloadHtml';
 
 interface NavItem {
   route: string;
@@ -30,70 +28,15 @@ export const Header: React.FC = () => {
   const { openProfileDrawer } = useUIStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate(ROUTES.LOGIN);
   };
 
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
-  const isAdmin = user?.role === 'admin';
-  const isRegularUser = user && !isManager;
-
-  const checkScroll = () => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    setShowLeftArrow(el.scrollLeft > 8);
-    setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
-  };
-
-  useEffect(() => {
-    checkScroll();
-    const el = scrollContainerRef.current;
-    if (el) el.addEventListener('scroll', checkScroll);
-    window.addEventListener('resize', checkScroll);
-    return () => {
-      if (el) el.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
-    };
-  }, [isManager, isAdmin]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    el.scrollTo({
-      left: el.scrollLeft + (direction === 'left' ? -240 : 240),
-      behavior: 'smooth',
-    });
-  };
-
-  const regularUserNavItems: NavItem[] = [
-    { route: ROUTES.DASHBOARD, label: 'My Dashboard', icon: <LayoutDashboard size={17} /> },
-    { route: ROUTES.BOOKINGS, label: 'My Bookings', icon: <Calendar size={17} /> },
+  const navItems: NavItem[] = [
+    { route: ROUTES.DASHBOARD, label: 'DCC Dashboard', icon: <Landmark size={17} /> },
   ];
-
-  const managerNavItems: NavItem[] = [
-    { route: ROUTES.BOOKINGS, label: 'Bookings', icon: <Calendar size={17} /> },
-    { route: ROUTES.PROPERTIES, label: 'Properties', icon: <Building2 size={17} /> },
-    { route: ROUTES.CHECK_IN, label: 'Check-In', icon: <UserCheck size={17} /> },
-    { route: ROUTES.MANAGER, label: 'Manager', icon: <Settings size={17} /> },
-    { route: ROUTES.MAINTENANCE, label: 'Maintenance', icon: <Wrench size={17} /> },
-    { route: '/ad-hoc-links', label: 'Links', icon: <LinkIcon size={17} /> },
-  ];
-
-  const adminNavItems: NavItem[] = [
-    { route: ROUTES.ADMIN, label: 'Admin', icon: <Shield size={17} /> },
-  ];
-
-  const navItems = isRegularUser
-    ? regularUserNavItems
-    : [
-        ...managerNavItems,
-        ...(isAdmin ? adminNavItems : []),
-      ];
 
   const initials = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
 
@@ -108,9 +51,9 @@ export const Header: React.FC = () => {
             className="flex items-center gap-2.5 flex-shrink-0 group"
           >
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm group-hover:bg-blue-700 transition-colors duration-150">
-              <Building2 size={19} className="text-white" />
+              <Landmark size={19} className="text-white" />
             </div>
-            <span className="text-[17px] font-bold text-gray-900 tracking-tight">FMS</span>
+            <span className="text-[17px] font-bold text-gray-900 tracking-tight">DCC</span>
           </Link>
 
           {isAuthenticated && user ? (
@@ -120,18 +63,7 @@ export const Header: React.FC = () => {
 
               {/* Scrollable nav strip */}
               <div className="relative flex items-stretch flex-1 min-w-0 self-stretch">
-                {showLeftArrow && (
-                  <button
-                    onClick={() => scroll('left')}
-                    className="nav-arrow-btn"
-                    aria-label="Scroll left"
-                  >
-                    <ChevronLeft size={15} />
-                  </button>
-                )}
-
                 <div
-                  ref={scrollContainerRef}
                   className="flex items-stretch overflow-x-auto scrollbar-hide flex-1"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
@@ -152,16 +84,6 @@ export const Header: React.FC = () => {
                     );
                   })}
                 </div>
-
-                {showRightArrow && (
-                  <button
-                    onClick={() => scroll('right')}
-                    className="nav-arrow-btn"
-                    aria-label="Scroll right"
-                  >
-                    <ChevronRight size={15} />
-                  </button>
-                )}
               </div>
 
               {/* Right actions */}
@@ -170,16 +92,6 @@ export const Header: React.FC = () => {
                 <button className="header-icon-btn relative" aria-label="Notifications">
                   <Bell size={19} />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-                </button>
-
-                {/* Download offline copy */}
-                <button
-                  className="header-icon-btn"
-                  aria-label="Download offline copy"
-                  title="Download Offline Copy"
-                  onClick={() => downloadPageAsHtml(location.pathname)}
-                >
-                  <Download size={17} />
                 </button>
 
                 {/* User identity chip */}
@@ -211,7 +123,7 @@ export const Header: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Edit / profile icon button — opens profile drawer */}
+                  {/* Edit / profile icon button */}
                   <button
                     onClick={openProfileDrawer}
                     title="Edit My Profile"
