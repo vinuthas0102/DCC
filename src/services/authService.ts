@@ -1,7 +1,7 @@
 import { supabase, validateSession, refreshSession } from '../lib/supabase';
 import { UserDTO, LoginCredentials, CreateUserDTO, ProfileMetadata } from '../types';
 
-const DEMO_MODE = false;
+const DEMO_MODE = true;
 
 const DEMO_METADATA: ProfileMetadata = {
   fatherName: 'Suresh Kumar',
