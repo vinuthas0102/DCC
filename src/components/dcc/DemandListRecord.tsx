@@ -110,7 +110,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <div className="flex w-[170px] shrink-0 items-center justify-end gap-1.5 pl-4">
               {canPay && onPay && <button onClick={(e) => { e.stopPropagation(); onPay(tile); }} title="Pay Now" className="rounded-md bg-emerald-600 p-2 text-white hover:bg-emerald-700"><Wallet size={13} /></button>}
               {onChat && <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded-md p-2 ${isChatActive ? 'bg-slate-800 text-white' : 'border border-blue-100 text-slate-500 hover:bg-blue-50'}`}><MessageSquare size={13} /></button>}
-              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100">View Details <ChevronRight size={13} /></button>
               <button onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }} title={expanded ? 'Collapse' : 'Expand'} className="rounded-md p-2 text-slate-400 hover:bg-blue-50">{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
             </div>
           </div>
@@ -133,6 +132,11 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <LV label="Outstanding" value={fmtINR(tile.amount_due)} valueCls={tile.amount_due > 0 ? 'text-red-600' : 'text-slate-400'} />
             <span className="mx-3 h-8 w-px bg-blue-100" />
             <LV label="Total Amt" value={fmtINR(tile.total_amount)} valueCls="text-slate-600" />
+
+            {/* View Details button */}
+            <div className="ml-auto shrink-0 pl-4">
+              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100">View Details <ChevronRight size={13} /></button>
+            </div>
           </div>
         </div>
       </div>
