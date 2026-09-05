@@ -27,7 +27,6 @@ import {
   countActiveFilters,
   type DCCFilterState,
 } from '../components/dcc/DCCFilterModal';
-import { DCCReconciliationTab } from '../components/dcc/DCCReconciliationTab';
 import { DCCReportsTab } from '../components/dcc/DCCReportsTab';
 import { ClientWiseView } from '../components/dcc/ClientWiseView';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
@@ -114,7 +113,7 @@ const DemandTile: React.FC<{
       {/* Status strip */}
       <div className={`h-0.5 ${st.dot} shrink-0`} />
 
-      {/* Header: Status badge + Demand type tag + Object ID + Total due */}
+      {/* Header: Status badge + Demand type + Object + Outstanding amount */}
       <div className="px-3 pt-2 pb-1.5 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
@@ -129,6 +128,7 @@ const DemandTile: React.FC<{
           <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
         </div>
         <div className="text-right shrink-0">
+          <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide leading-none">Outstanding</div>
           <div className="text-base font-extrabold text-slate-900 leading-tight">{fmtINR(tile.amount_due)}</div>
           <div className="text-[9px] text-slate-400">of {fmtINRShort(tile.total_amount)}</div>
         </div>
@@ -146,12 +146,12 @@ const DemandTile: React.FC<{
         </span>
         {tile.overdue_amount > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-red-600 font-semibold">
-            <AlertTriangle size={10} /> {fmtINRShort(tile.overdue_amount)}
+            <AlertTriangle size={10} /> Overdue {fmtINRShort(tile.overdue_amount)}
           </span>
         )}
         {tile.amount_paid > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-emerald-600">
-            <CheckCircle2 size={10} /> {fmtINRShort(tile.amount_paid)} pd
+            <CheckCircle2 size={10} /> Paid {fmtINRShort(tile.amount_paid)}
           </span>
         )}
       </div>
@@ -170,13 +170,13 @@ const DemandTile: React.FC<{
               <div className="flex items-center gap-1"><Phone size={10} className="text-slate-400" />{tile.owner_contact || '—'}</div>
               <div className="flex items-start gap-1"><MapPin size={10} className="text-slate-400 mt-0.5" />{tile.owner_address || '—'}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                <span><span className="text-slate-400">Run:</span> {fmtDateShort(tile.demand_run_date)}</span>
+                <span><span className="text-slate-400">Run Date:</span> {fmtDateShort(tile.demand_run_date)}</span>
                 {tile.region && <span><span className="text-slate-400">Region:</span> {tile.region}</span>}
-                {tile.group_name && <span><span className="text-slate-400">Grp:</span> {tile.group_name}</span>}
-                {tile.subgroup && <span><span className="text-slate-400">Sub:</span> {tile.subgroup}</span>}
+                {tile.group_name && <span><span className="text-slate-400">Group:</span> {tile.group_name}</span>}
+                {tile.subgroup && <span><span className="text-slate-400">Subgroup:</span> {tile.subgroup}</span>}
               </div>
-              {tile.avg_overdue_days > 0 && <div><span className="text-slate-400">Avg OD:</span> {tile.avg_overdue_days}d</div>}
-              {tile.last_paid_date && <div><span className="text-slate-400">Last pd:</span> {fmtINRShort(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
+              {tile.avg_overdue_days > 0 && <div><span className="text-slate-400">Overdue Days:</span> {tile.avg_overdue_days}d</div>}
+              {tile.last_paid_date && <div><span className="text-slate-400">Last Payment:</span> {fmtINRShort(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
             </div>
           </motion.div>
         )}
@@ -266,6 +266,7 @@ const DemandListCard: React.FC<{
           <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
         </div>
         <div className="text-right shrink-0">
+          <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide leading-none">Outstanding</div>
           <div className="text-base font-extrabold text-slate-900 leading-tight">{fmtINR(tile.amount_due)}</div>
           <div className="text-[9px] text-slate-400">of {fmtINRShort(tile.total_amount)}</div>
         </div>
@@ -283,12 +284,12 @@ const DemandListCard: React.FC<{
         </span>
         {tile.overdue_amount > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-red-600 font-semibold">
-            <AlertTriangle size={10} /> {fmtINRShort(tile.overdue_amount)}
+            <AlertTriangle size={10} /> Overdue {fmtINRShort(tile.overdue_amount)}
           </span>
         )}
         {tile.amount_paid > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-emerald-600">
-            <CheckCircle2 size={10} /> {fmtINRShort(tile.amount_paid)} pd
+            <CheckCircle2 size={10} /> Paid {fmtINRShort(tile.amount_paid)}
           </span>
         )}
 
@@ -721,7 +722,7 @@ const SubDpRibbon: React.FC<{
 };
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
-type DccMainTab = 'dashboard' | 'reconciliation' | 'reports';
+type DccMainTab = 'dashboard' | 'reports';
 
 export const DCCPage: React.FC = () => {
   const navigate = useNavigate();
@@ -901,7 +902,6 @@ export const DCCPage: React.FC = () => {
   const mainTabs: { key: DccMainTab; label: string; icon: typeof Receipt }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: Receipt },
     ...(isManager ? [
-      { key: 'reconciliation' as DccMainTab, label: 'Reconciliation', icon: TrendingUp },
       { key: 'reports' as DccMainTab, label: 'Reports / MIS', icon: FileText },
     ] : []),
   ];
@@ -995,9 +995,6 @@ export const DCCPage: React.FC = () => {
           </>
         )}
       </div>
-
-      {/* Reconciliation Tab */}
-      {mainTab === 'reconciliation' && <DCCReconciliationTab />}
 
       {/* Reports Tab */}
       {mainTab === 'reports' && <DCCReportsTab />}

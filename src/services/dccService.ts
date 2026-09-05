@@ -12,12 +12,9 @@ import type {
   DccGenerationSource,
   DccInstallmentPlan,
   DccInstallmentRow,
-  DccReconciliationRow,
-  DccReconciliationSummary,
   DccReportRow,
   DccOwnerReportRow,
   DccDemandChat,
-  BankStatus,
   DccReportSchedule,
   DccReportScheduleInput,
 } from '../types/dcc';
@@ -626,61 +623,6 @@ export const dccService = {
     if (plan) {
       await supabase.from(IPLANS).delete().eq('id', (plan as { id: string }).id);
     }
-  },
-
-  // ── Reconciliation ────────────────────────────────────────────────────────────
-  async getReconciliationData(filters?: DccDemandFilters): Promise<{
-    rows: DccReconciliationRow[];
-    summary: DccReconciliationSummary;
-  }> {
-    const tiles = await this.getTiles(filters);
-
-    const groupMap: Record<string, DccReconciliationRow> = {};
-    for (const t of tiles) {
-      const key = `${t.object_id}-${t.demand_type_code}`;
-      if (!groupMap[key]) {
-        groupMap[key] = {
-          object_id: t.object_id,
-          object_ref: t.object_ref,
-          object_type: t.object_type,
-          owner_name: t.owner_name,
-          demand_type_code: t.demand_type_code,
-          demand_type_label: t.demand_type_label,
-          total_demand: 0,
-          total_collected: 0,
-          total_outstanding: 0,
-          bank_status: 'Pending',
-        };
-      }
-      groupMap[key].total_demand += t.total_amount;
-      groupMap[key].total_collected += t.amount_paid;
-      groupMap[key].total_outstanding += t.amount_due;
-    }
-
-    const rows = Object.values(groupMap).map((r) => {
-      let bankStatus: BankStatus = 'Pending';
-      if (r.total_outstanding === 0 && r.total_demand > 0) bankStatus = 'Matched';
-      else if (r.total_collected > 0) bankStatus = 'Unmatched';
-      return { ...r, bank_status: bankStatus };
-    });
-
-    const totalDemand = rows.reduce((s, r) => s + r.total_demand, 0);
-    const totalCollected = rows.reduce((s, r) => s + r.total_collected, 0);
-    const totalOutstanding = rows.reduce((s, r) => s + r.total_outstanding, 0);
-    const reconRate = totalDemand > 0 ? Math.round((totalCollected / totalDemand) * 100) : 0;
-
-    return {
-      rows,
-      summary: {
-        total_demand: totalDemand,
-        total_collected: totalCollected,
-        total_outstanding: totalOutstanding,
-        reconciliation_rate: reconRate,
-        matched_count: rows.filter((r) => r.bank_status === 'Matched').length,
-        unmatched_count: rows.filter((r) => r.bank_status === 'Unmatched').length,
-        pending_count: rows.filter((r) => r.bank_status === 'Pending').length,
-      },
-    };
   },
 
   // ── Reports ─────────────────────────────────────────────────────────────────────

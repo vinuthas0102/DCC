@@ -115,7 +115,7 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
 const CV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
   label, value, valueCls = 'text-slate-900',
 }) => (
-  <div className="flex items-baseline gap-0.5 min-w-0 shrink-0">
+  <div className="flex items-baseline gap-1 min-w-0 shrink-0">
     <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
     <span className={`text-[10px] font-semibold tabular-nums truncate leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
@@ -144,10 +144,10 @@ const ClientSummaryCard: React.FC<{
           {group.ownerName.charAt(0).toUpperCase()}
         </span>
         <CV label="Client" value={group.ownerName} valueCls="text-slate-900 font-bold" />
-        <CV label="Props" value={group.propertyCount} valueCls="text-blue-700" />
+        <CV label="Properties" value={group.propertyCount} valueCls="text-blue-700" />
         <CV label="Demands" value={group.demandCount} valueCls="text-slate-700" />
         <CV label="Contact" value={group.ownerContact} valueCls="text-slate-600" />
-        <CV label="Addr" value={group.ownerAddress} valueCls="text-slate-600" />
+        <CV label="Address" value={group.ownerAddress} valueCls="text-slate-600" />
 
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           <StatusBadge status={group.overallStatus} />
@@ -170,15 +170,15 @@ const ClientSummaryCard: React.FC<{
 
       {/* ── Row 2: All financial + date fields as label-value, no whitespace ── */}
       <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-1 pt-1 border-t border-slate-100">
-        <CV label="Demand" value={fmtINRShort(group.totalDemand)} />
+        <CV label="Total Demand" value={fmtINRShort(group.totalDemand)} />
         <CV label="Paid" value={fmtINRShort(group.totalPaid)} valueCls="text-emerald-600" />
         <CV label="Outstanding" value={fmtINRShort(group.totalOutstanding)} valueCls="text-red-600 font-bold" />
         {group.overdueAmount > 0 && (
           <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
         )}
         <CV label="Collected" value={`${collectionPct}%`} valueCls="text-slate-700" />
-        <CV label="Run" value={runDateRange} valueCls="text-slate-600" />
-        <CV label="Due" value={dueDateRange} valueCls="text-slate-600" />
+        <CV label="Run Date" value={runDateRange} valueCls="text-slate-600" />
+        <CV label="Due Date" value={dueDateRange} valueCls="text-slate-600" />
 
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           {group.demandTypes.slice(0, 4).map((dt) => (

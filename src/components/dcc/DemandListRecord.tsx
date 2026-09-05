@@ -12,7 +12,7 @@ import {
 const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
   label, value, valueCls = 'text-slate-900',
 }) => (
-  <div className="flex items-baseline gap-0.5 min-w-0 shrink-0">
+  <div className="flex items-baseline gap-1 min-w-0 shrink-0">
     <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
     <span className={`text-[10px] font-semibold tabular-nums truncate leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
@@ -47,38 +47,39 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         <div className={`w-1 shrink-0 ${st.dot}`} />
 
         <div className="flex-1 px-2.5 py-1.5 min-w-0">
-          {/* ── Row 1: Status + identity fields + amount, all as label-value ── */}
+          {/* ── Row 1: Status + identity fields + amount ── */}
           <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border} shrink-0`}>
               {st.label}
             </span>
             <LV label="Type" value={tile.demand_type_label} valueCls="text-slate-700" />
-            <LV label="Obj" value={tile.object_description || tile.object_ref} valueCls="text-slate-900" />
+            <LV label="Object" value={tile.object_description || tile.object_ref} valueCls="text-slate-900" />
             <LV label="Ref" value={tile.object_ref} valueCls="text-slate-600" />
-            <LV label="Cat" value={tile.object_type} valueCls="text-slate-600" />
+            <LV label="Category" value={tile.object_type} valueCls="text-slate-600" />
             <LV label="Client" value={tile.owner_name} valueCls="text-slate-700" />
             <LV label="Contact" value={tile.owner_contact} valueCls="text-slate-600" />
             <LV label="Region" value={tile.region} valueCls="text-slate-600" />
             <LV label="Group" value={tile.group_name} valueCls="text-slate-600" />
-            <LV label="Sub" value={tile.subgroup} valueCls="text-slate-600" />
+            <LV label="Subgroup" value={tile.subgroup} valueCls="text-slate-600" />
 
             <div className="text-right shrink-0 ml-auto pl-1">
+              <div className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none">Outstanding</div>
               <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
               <div className="text-[8px] text-slate-400 leading-none">of {fmtINRShort(tile.total_amount)}</div>
             </div>
           </div>
 
-          {/* ── Row 2: All financial/date fields + actions in one dense strip ── */}
+          {/* ── Row 2: Financial/date fields + actions ── */}
           <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-1 pt-1 border-t border-slate-100">
-            <LV label="Run" value={fmtDateShort(tile.demand_run_date)} />
-            <LV label="Due" value={fmtDateShort(tile.due_date)} valueCls={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} />
+            <LV label="Run Date" value={fmtDateShort(tile.demand_run_date)} />
+            <LV label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} />
             <LV label="Total" value={fmtINRShort(tile.total_amount)} />
             <LV label="Paid" value={tile.amount_paid > 0 ? fmtINRShort(tile.amount_paid) : '—'} valueCls="text-emerald-600" />
             <LV label="Pending" value={tile.amount_due > 0 ? fmtINRShort(tile.amount_due) : '—'} valueCls="text-red-600" />
             <LV label="Penalty" value={tile.overdue_amount > 0 ? fmtINRShort(tile.overdue_amount) : '—'} valueCls="text-red-600" />
-            <LV label="Last Pd" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} />
-            <LV label="Last Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINRShort(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
-            <LV label="OD Days" value={tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'} valueCls={tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-500'} />
+            <LV label="Last Paid" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} />
+            <LV label="Last Amount" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINRShort(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
+            <LV label="Overdue Days" value={tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'} valueCls={tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-500'} />
 
             <div className="flex items-center gap-1 ml-auto shrink-0">
               {canPay && onPay && (
