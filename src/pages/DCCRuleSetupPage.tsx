@@ -625,6 +625,9 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const excs = rec.collection_exceptions ?? [];
                   const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
                   const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
+                  const fullPaymentReference = fp?.reference_date
+                    ? fp.reference_date.replace(/_/g, ' ').split(' ').slice(0, 2).join(' ')
+                    : null;
                   const excByType: Record<string, number> = {};
                   excs.forEach(e => { excByType[e.exception_type] = (excByType[e.exception_type] ?? 0) + 1; });
                   return (
@@ -775,7 +778,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                         )}
                         {fp && (
                           <span className="px-1 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-100">
-            Full Pay: {fp.days_offset}d {fp.reference_date.replace(/_/g, ' ').split(' ').slice(0, 2).join(' ')}
+            Full Pay: {fp.days_offset ?? 0}d{fullPaymentReference ? ` ${fullPaymentReference}` : ''}
                           </span>
                         )}
                       </div>
