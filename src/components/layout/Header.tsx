@@ -16,13 +16,6 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const ChipField: React.FC<{ label: string; value?: string }> = ({ label, value }) => (
-  <div className="text-left leading-none">
-    <div className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{label}</div>
-    <div className="text-[12px] font-semibold text-gray-800 whitespace-nowrap mt-0.5">{value || '—'}</div>
-  </div>
-);
-
 export const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { openProfileDrawer } = useUIStore();
@@ -94,9 +87,13 @@ export const Header: React.FC = () => {
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
                 </button>
 
-                {/* User identity chip */}
+                {/* User identity chip — click to open profile */}
                 <div className="flex items-center gap-1">
-                  <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-l-xl bg-white border border-gray-200 shadow-sm">
+                  <button
+                    onClick={openProfileDrawer}
+                    title="View / Edit Profile"
+                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-l-xl bg-white border border-gray-200 shadow-sm hover:bg-blue-50 hover:border-blue-300 transition-all duration-150"
+                  >
                     <div className="relative w-8 h-8 flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold select-none">
                         {initials}
@@ -113,15 +110,7 @@ export const Header: React.FC = () => {
                         {ROLE_LABELS[user.role]}
                       </div>
                     </div>
-                    {/* Identity fields */}
-                    <div className="hidden sm:flex items-center gap-px ml-1 border-l border-gray-200 pl-3">
-                      <ChipField label="EMP ID" value={user.govtEmployeeId} />
-                      <div className="w-px h-6 bg-gray-200 mx-2" />
-                      <ChipField label="Location" value={user.projectLocation} />
-                      <div className="w-px h-6 bg-gray-200 mx-2" />
-                      <ChipField label="SAP ID" value={user.sapId} />
-                    </div>
-                  </div>
+                  </button>
 
                   {/* Edit / profile icon button */}
                   <button

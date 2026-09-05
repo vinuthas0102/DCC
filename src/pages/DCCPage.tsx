@@ -970,7 +970,7 @@ export const DCCPage: React.FC = () => {
             );
           })}
         </div>
-        {mainTab === 'dashboard' && isManager && (
+        {isManager && (
           <>
             <button
               onClick={() => navigate(ROUTES.DCC_RULE_SETUP)}
