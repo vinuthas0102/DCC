@@ -4,11 +4,13 @@ import {
   CheckCircle2, AlertCircle, Play, History,
   RefreshCw, ChevronDown, ChevronRight,
   Filter, X, Clock, FileText, TrendingUp, Users,
+  Calendar, HelpCircle, Sparkles, Settings2,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { ROUTES } from '../constants/routes';
 import { useNavigate } from 'react-router-dom';
+import { frequencyCodeLabel } from '../types/payableCriteria';
 import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
 
@@ -32,18 +34,29 @@ const fmtDuration = (ms: number | null) => {
 };
 
 const SOURCE_BADGE: Record<string, string> = {
-  TPA: 'bg-blue-100 text-blue-700',
-  EXCEL: 'bg-emerald-100 text-emerald-700',
-  AUTO: 'bg-amber-100 text-amber-700',
-  MANUAL: 'bg-slate-100 text-slate-700',
+  TPA: 'bg-blue-100 text-blue-700 border border-blue-200',
+  EXCEL: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  AUTO: 'bg-amber-100 text-amber-700 border border-amber-200',
+  MANUAL: 'bg-slate-100 text-slate-700 border border-slate-200',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  DUE: 'bg-amber-100 text-amber-700',
-  OVERDUE: 'bg-red-100 text-red-700',
-  PAID: 'bg-emerald-100 text-emerald-700',
-  EXEMPTED: 'bg-slate-100 text-slate-600',
+  DUE: 'bg-amber-100 text-amber-700 border border-amber-200',
+  OVERDUE: 'bg-red-100 text-red-700 border border-red-200',
+  PAID: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  EXEMPTED: 'bg-slate-100 text-slate-600 border border-slate-200',
 };
+
+const RULE_ICON_COLORS = [
+  'from-blue-500 to-blue-600',
+  'from-emerald-500 to-emerald-600',
+  'from-amber-500 to-amber-600',
+  'from-teal-500 to-teal-600',
+  'from-rose-500 to-rose-600',
+  'from-indigo-500 to-indigo-600',
+  'from-cyan-500 to-cyan-600',
+  'from-orange-500 to-orange-600',
+];
 
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -100,7 +113,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
       setDemandTypes(dt);
       setObjects(obj);
       const amounts: Record<string, number> = {};
-      for (const r of dccRules) amounts[r.id] = 1000;
+      for (const r of dccRules) amounts[r.id] = r.default_demand_amount ?? 1000;
       setAutoAmount(amounts);
     } catch {
       // ignore
@@ -215,111 +228,175 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const inputCls = 'w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500 bg-white text-slate-700 transition-colors';
 
   return (
-    <div className="h-full flex flex-col bg-slate-50">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
-        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
-          <ArrowLeft size={16} />
+    <div className="min-h-full bg-slate-100 flex flex-col">
+      {/* Page title bar */}
+      <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-slate-200 shrink-0">
+        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0">
+          <ArrowLeft size={18} />
         </button>
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-          <Zap size={16} className="text-white" />
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
+          <Zap size={18} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-bold text-white">Demand Generation</h1>
-          <p className="text-[10px] text-slate-400">Generate demands from active rules and review run history</p>
+          <h1 className="text-base font-bold text-slate-900">Demand Generation</h1>
+          <p className="text-[11px] text-slate-500">Generate demands from active rules and review run history</p>
         </div>
-        <button onClick={loadHistory} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-semibold hover:bg-slate-700 hover:text-white transition-colors border border-slate-700">
-          <RefreshCw size={13} /> Refresh
+        <button onClick={loadHistory} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 border border-slate-200 transition-colors">
+          <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
+      {/* Alerts */}
       {error && (
-        <div className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-[11px] text-red-700">
+        <div className="mx-6 mt-3 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
           <AlertCircle size={14} className="shrink-0" /> {error}
+          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700"><X size={14} /></button>
         </div>
       )}
-
       {success && (
-        <div className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md text-[11px] text-emerald-700">
+        <div className="mx-6 mt-3 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
           <CheckCircle2 size={14} className="shrink-0" /> Created {success.created} demands totaling {fmtINR(success.totalAmount)}
-          <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-600 hover:text-emerald-800"><X size={13} /></button>
+          <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-500 hover:text-emerald-700"><X size={14} /></button>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* ── Auto-Generate Panel ── */}
-        <div className="max-w-3xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={16} className="text-amber-600" />
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
+            <Sparkles size={16} className="text-amber-600" />
             <h2 className="text-sm font-bold text-slate-900">Auto-Generate from Rules</h2>
+            <span className="ml-auto text-[11px] text-slate-400">{rules.length} active rule{rules.length !== 1 ? 's' : ''}</span>
           </div>
-          <p className="text-xs text-slate-500 mb-4">Select active demand rules to generate demands for matching objects.</p>
-          <div className="mb-4">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date</label>
-            <input type="date" value={autoRunDate} onChange={e => setAutoRunDate(e.target.value)} className={inputCls + ' max-w-48'} />
-          </div>
-          {loadingRules ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={18} className="animate-spin text-teal-500" />
-            </div>
-          ) : rules.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              <Zap size={28} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-medium">No active DCC rules found</p>
-              <p className="text-xs mt-1">Create rules in Rule Setup first</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {rules.map(rule => {
-                const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
-                const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
-                const selected = selectedRuleIds.has(rule.id);
-                return (
-                  <div key={rule.id} className={`rounded-lg border ${selected ? 'border-teal-300 bg-teal-50/50' : 'border-slate-200'} p-3 transition-colors`}>
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked={selected} onChange={() => toggleRule(rule.id)} className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-900">{dtLabel}</span>
-                          <span className="text-[10px] text-slate-400">·</span>
-                          <span className="text-[10px] text-slate-500">{rule.object_type}</span>
-                          <span className="text-[10px] text-slate-400">·</span>
-                          <span className="text-[10px] text-slate-500">{matchingCount} object{matchingCount !== 1 ? 's' : ''}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Run day: {rule.subsequent_btm_run_day} · Offset: {rule.full_payment_spec?.days_offset ?? 0} days</p>
-                      </div>
-                      {selected && (
-                        <input
-                          type="number"
-                          value={autoAmount[rule.id] ?? 1000}
-                          onChange={e => setAutoAmount(prev => ({ ...prev, [rule.id]: Number(e.target.value) }))}
-                          className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
-                          placeholder="Amount"
-                        />
-                      )}
-                    </div>
+
+          <div className="p-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Left column: date + help + generate button */}
+              <div className="lg:col-span-4 space-y-4">
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    <Calendar size={12} /> Run Date
+                  </label>
+                  <input
+                    type="date"
+                    value={autoRunDate}
+                    onChange={e => setAutoRunDate(e.target.value)}
+                    className={inputCls + ' max-w-56'}
+                  />
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <HelpCircle size={13} className="text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">How it works?</span>
                   </div>
-                );
-              })}
+                  <ol className="space-y-1.5 text-[11px] text-slate-500 leading-relaxed">
+                    <li className="flex gap-2">
+                      <span className="font-bold text-slate-400 shrink-0">1.</span>
+                      <span>Select one or more active demand rules below.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold text-slate-400 shrink-0">2.</span>
+                      <span>Set the run date and per-rule amounts.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold text-slate-400 shrink-0">3.</span>
+                      <span>Click Generate — demands are created for every matching object.</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <button
+                  onClick={handleAutoGenerate}
+                  disabled={selectedRuleIds.size === 0 || generating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                  {generating ? 'Generating…' : `Generate (${selectedRuleIds.size} rule${selectedRuleIds.size !== 1 ? 's' : ''} selected)`}
+                </button>
+              </div>
+
+              {/* Right column: rule cards grid */}
+              <div className="lg:col-span-8">
+                {loadingRules ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 size={20} className="animate-spin text-emerald-500" />
+                  </div>
+                ) : rules.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Settings2 size={32} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No active DCC rules found</p>
+                    <p className="text-xs mt-1">Create rules in Rule Setup first</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {rules.map((rule, idx) => {
+                      const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
+                      const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
+                      const selected = selectedRuleIds.has(rule.id);
+                      const gradient = RULE_ICON_COLORS[idx % RULE_ICON_COLORS.length];
+                      return (
+                        <div
+                          key={rule.id}
+                          className={`rounded-lg border p-3.5 cursor-pointer transition-all duration-150 ${selected ? 'border-emerald-400 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
+                          onClick={() => toggleRule(rule.id)}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0`}>
+                              <FileText size={15} className="text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-bold text-slate-900 truncate">{dtLabel}</div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{rule.object_type ?? '—'}</div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleRule(rule.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0 mt-0.5"
+                            />
+                          </div>
+
+                          <div className="mt-2.5 flex items-center gap-2 text-[10px] text-slate-500">
+                            <span className="flex items-center gap-0.5">
+                              <Users size={10} /> {matchingCount} obj{matchingCount !== 1 ? 's' : ''}
+                            </span>
+                            <span className="text-slate-300">|</span>
+                            <span className="truncate">{frequencyCodeLabel(rule.generation_frequency_code)}</span>
+                          </div>
+
+                          {selected && (
+                            <div className="mt-2.5 pt-2.5 border-t border-emerald-100" onClick={(e) => e.stopPropagation()}>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Amount (₹)</label>
+                              <input
+                                type="number"
+                                value={autoAmount[rule.id] ?? 1000}
+                                onChange={e => setAutoAmount(prev => ({ ...prev, [rule.id]: Number(e.target.value) }))}
+                                className="w-full px-2 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500"
+                                placeholder="Amount"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          <div className="flex gap-2 mt-4">
-            <button onClick={handleAutoGenerate} disabled={selectedRuleIds.size === 0 || generating} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
-              {generating ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-              {generating ? 'Generating…' : `Generate (${selectedRuleIds.size} rule${selectedRuleIds.size !== 1 ? 's' : ''})`}
-            </button>
           </div>
         </div>
 
         {/* ── Run History ── */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-            <History size={15} className="text-slate-500" />
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
+            <History size={16} className="text-slate-500" />
             <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
-            <span className="ml-auto text-[10px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
+            <span className="ml-auto text-[11px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
             <button
               onClick={() => setShowFilters(s => !s)}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${hasActiveFilters ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${hasActiveFilters ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               <Filter size={12} /> Filter
               {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
@@ -328,7 +405,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
           {/* Filter bar */}
           {showFilters && (
-            <div className="px-4 py-3 bg-slate-50 border-b border-gray-100 space-y-3">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-100 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Source</label>
@@ -376,17 +453,17 @@ export const DCCDemandGenerationPage: React.FC = () => {
           )}
 
           {loadingHistory ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={18} className="animate-spin text-teal-500" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin text-emerald-500" />
             </div>
           ) : filteredRunLog.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              <History size={24} className="mx-auto mb-2 opacity-30" />
+            <div className="text-center py-12 text-slate-400">
+              <History size={28} className="mx-auto mb-2 opacity-30" />
               <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
-              {filteredRunLog.map((log) => {
+            <div className="divide-y divide-slate-50">
+              {filteredRunLog.map((log, logIdx) => {
                 const expanded = expandedRun === log.id;
                 const details = runDetails[log.id] ?? [];
                 const isLoadingDetail = loadingDetails === log.id;
@@ -395,36 +472,43 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     {/* Summary row */}
                     <button
                       onClick={() => handleExpandRun(log)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors text-left"
                     >
-                      {expanded ? <ChevronDown size={13} className="text-slate-400 shrink-0" /> : <ChevronRight size={13} className="text-slate-400 shrink-0" />}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700'}`}>
+                      {expanded ? <ChevronDown size={14} className="text-slate-400 shrink-0" /> : <ChevronRight size={14} className="text-slate-400 shrink-0" />}
+                      <span className="text-[10px] font-bold text-slate-400 w-5 text-right shrink-0">{logIdx + 1}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {log.source}
                       </span>
-                      <span className="text-xs font-semibold text-slate-700 shrink-0">{log.demand_type?.label ?? '—'}</span>
-                      <span className="text-[10px] text-slate-400 shrink-0">·</span>
-                      <span className="text-[10px] text-slate-500 shrink-0">{fmtDate(log.run_date)}</span>
-                      <div className="ml-auto flex items-center gap-4 shrink-0">
+                      <span className="text-xs font-semibold text-slate-700 shrink-0 hidden md:block">{log.demand_type?.label ?? '—'}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block">·</span>
+                      <span className="text-[10px] text-slate-500 shrink-0 hidden lg:block">{fmtDate(log.run_date)}</span>
+                      <div className="ml-auto flex items-center gap-3 shrink-0">
+                        <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden md:flex">
+                          <Users size={11} /> {log.run_summary?.object_count as number ?? '—'}
+                        </span>
                         <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                          <FileText size={11} /> {log.records_created} created
+                          <FileText size={11} /> {log.records_created}
                         </span>
                         {log.records_failed > 0 && (
                           <span className="flex items-center gap-1 text-[10px] text-red-500">
-                            <AlertCircle size={11} /> {log.records_failed} failed
+                            <AlertCircle size={11} /> {log.records_failed}
                           </span>
                         )}
                         {log.duration_ms != null && (
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden xl:flex">
                             <Clock size={11} /> {fmtDuration(log.duration_ms)}
                           </span>
                         )}
                         <span className="text-xs font-bold text-slate-900">{fmtINR(log.total_amount)}</span>
+                        <span className="flex items-center gap-1 text-[10px] text-emerald-600">
+                          <CheckCircle2 size={11} /> Done
+                        </span>
                       </div>
                     </button>
 
                     {/* Expanded detail */}
                     {expanded && (
-                      <div className="px-4 pb-4 bg-slate-50/70 border-t border-gray-100">
+                      <div className="px-5 pb-5 bg-slate-50/60 border-t border-slate-100">
                         {/* Run metadata grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-4">
                           <div className="bg-white rounded-lg border border-slate-200 p-3">
@@ -481,14 +565,14 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
                         {/* Demands created in this run */}
                         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+                          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
                             <FileText size={13} className="text-slate-500" />
                             <span className="text-xs font-bold text-slate-700">Demands in this run</span>
                             <span className="ml-auto text-[10px] text-slate-400">{details.length} demand{details.length !== 1 ? 's' : ''}</span>
                           </div>
                           {isLoadingDetail ? (
                             <div className="flex items-center justify-center py-6">
-                              <Loader2 size={16} className="animate-spin text-teal-500" />
+                              <Loader2 size={16} className="animate-spin text-emerald-500" />
                             </div>
                           ) : details.length === 0 ? (
                             <div className="text-center py-6 text-slate-400">
@@ -506,7 +590,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                                     <th className="px-3 py-2 text-center">Status</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-slate-50">
                                   {details.map((d) => (
                                     <tr key={d.id} className="hover:bg-slate-50">
                                       <td className="px-3 py-2 text-slate-700 font-medium">{d.object?.object_ref ?? '—'}</td>
@@ -514,7 +598,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                                       <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(d.amount)}</td>
                                       <td className="px-3 py-2 text-slate-600">{fmtDate(d.due_date)}</td>
                                       <td className="px-3 py-2 text-center">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                                           {d.status}
                                         </span>
                                       </td>
