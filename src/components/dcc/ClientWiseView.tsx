@@ -59,7 +59,6 @@ function groupByClient(tiles: DccTile[]): ClientGroup[] {
     const overdueAmount = ownerTiles.reduce((s, t) => s + t.overdue_amount, 0);
     const propertyIds = new Set(ownerTiles.map((t) => t.object_id));
 
-    // Demand type breakdown
     const dtMap = new Map<string, { label: string; count: number; amount: number }>();
     for (const t of ownerTiles) {
       const key = t.demand_type_label || t.demand_type_code;
@@ -69,7 +68,6 @@ function groupByClient(tiles: DccTile[]): ClientGroup[] {
       dtMap.set(key, entry);
     }
 
-    // Date ranges
     const runDates = ownerTiles.map((t) => t.demand_run_date).filter(Boolean) as string[];
     const dueDates = ownerTiles.map((t) => t.due_date).filter(Boolean) as string[];
 
@@ -107,13 +105,23 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
   };
   const s = config[status];
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${s.cls}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${s.cls}`}>
       {s.label}
     </span>
   );
 };
 
-// ── Client summary card (4-column high-density) ──────────────────────────────
+// ── Inline label-value ────────────────────────────────────────────────────────
+const CV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
+  label, value, valueCls = 'text-slate-900',
+}) => (
+  <div className="flex items-baseline gap-1 min-w-0">
+    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
+    <span className={`text-[10px] font-semibold tabular-nums truncate leading-tight ${valueCls}`}>{value || '—'}</span>
+  </div>
+);
+
+// ── Client summary card (2-row dense layout) ─────────────────────────────────
 const ClientSummaryCard: React.FC<{
   group: ClientGroup;
   isExpanded: boolean;
@@ -121,114 +129,76 @@ const ClientSummaryCard: React.FC<{
   onViewDetails: () => void;
 }> = ({ group, isExpanded, onToggle, onViewDetails }) => {
   const initials = group.ownerName.charAt(0).toUpperCase();
+  const collectionPct = group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200">
-      {/* Column 1: Client Info */}
-      <div className="bg-white px-3 py-2.5 flex items-start gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+    <div className="px-2.5 py-1.5">
+      {/* ── Row 1: Client identity + status + actions ── */}
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
           {initials}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-1.5">
           <h3 className="text-xs font-bold text-slate-900 truncate leading-tight">{group.ownerName}</h3>
-          <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200 shrink-0">
+            <Building2 size={9} /> {group.propertyCount} {group.propertyCount === 1 ? 'Prop' : 'Props'}
+          </span>
+          <span className="hidden lg:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
             <Phone size={9} className="shrink-0" />
             <span className="truncate">{group.ownerContact || '—'}</span>
-          </div>
-          <div className="flex items-start gap-1 mt-0.5 text-[10px] text-slate-500">
-            <MapPin size={9} className="shrink-0 mt-0.5" />
+          </span>
+          <span className="hidden xl:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+            <MapPin size={9} className="shrink-0" />
             <span className="truncate">{group.ownerAddress || '—'}</span>
-          </div>
-          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200">
-            <Building2 size={9} /> {group.propertyCount} {group.propertyCount === 1 ? 'Property' : 'Properties'}
           </span>
         </div>
-      </div>
-
-      {/* Column 2: Demand Overview */}
-      <div className="bg-white px-3 py-2.5">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Receipt size={11} className="text-slate-400" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Demand Overview</span>
-        </div>
-        <div className="text-sm font-extrabold text-slate-900 tabular-nums">{group.demandCount} Demands</div>
-        <div className="flex flex-wrap gap-1 mt-1">
-          {group.demandTypes.slice(0, 4).map((dt) => (
-            <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">
-              {dt.label} · {dt.count}
-            </span>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
-          <Calendar size={9} />
-          <span>
-            Run: {fmtDateShort(group.runDateMin)}{group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-          <Clock size={9} />
-          <span>
-            Due: {fmtDateShort(group.dueDateMin)}{group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}
-          </span>
-        </div>
-      </div>
-
-      {/* Column 3: Financial Breakdown */}
-      <div className="bg-white px-3 py-2.5">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Wallet size={11} className="text-slate-400" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Financial Breakdown</span>
-        </div>
-        <div className="space-y-0.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-500">Total Demand</span>
-            <span className="text-xs font-bold text-slate-900 tabular-nums">{fmtINR(group.totalDemand)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
-              <CheckCircle2 size={9} className="text-emerald-500" /> Total Paid
-            </span>
-            <span className="text-xs font-bold text-emerald-600 tabular-nums">{fmtINR(group.totalPaid)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-500">Outstanding</span>
-            <span className="text-sm font-extrabold text-red-600 tabular-nums">{fmtINR(group.totalOutstanding)}</span>
-          </div>
-          {group.overdueAmount > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
-                <AlertTriangle size={9} className="text-red-500" /> Overdue
-              </span>
-              <span className="text-xs font-bold text-red-700 tabular-nums">{fmtINR(group.overdueAmount)}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Column 4: Status & Actions */}
-      <div className="bg-white px-3 py-2.5 flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <StatusBadge status={group.overallStatus} />
           <button
             onClick={onToggle}
-            className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
           >
-            {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
             {isExpanded ? 'Collapse' : 'Expand'}
           </button>
-        </div>
-        <div className="text-[9px] text-slate-400">
-          Collection: {group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0}%
-        </div>
-        {/* View Details button at bottom-right */}
-        <div className="mt-auto flex justify-end">
           <button
             onClick={onViewDetails}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
             title="View Details"
           >
-            View Details <ChevronRight size={11} />
+            Details <ChevronRight size={10} />
           </button>
+        </div>
+      </div>
+
+      {/* ── Row 2: All financial + demand info in one dense strip ── */}
+      <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-1 pt-1 border-t border-slate-100">
+        <CV label="Demands" value={group.demandCount} />
+        <CV label="Demand" value={fmtINRShort(group.totalDemand)} />
+        <CV label="Paid" value={fmtINRShort(group.totalPaid)} valueCls="text-emerald-600" />
+        <CV label="Outstanding" value={fmtINRShort(group.totalOutstanding)} valueCls="text-red-600 font-bold" />
+        {group.overdueAmount > 0 && (
+          <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
+        )}
+        <CV label="Collected" value={`${collectionPct}%`} valueCls="text-slate-700" />
+        <span className="hidden md:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+          <Calendar size={9} className="shrink-0" />
+          <span className="truncate">
+            Run: {fmtDateShort(group.runDateMin)}{group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}
+          </span>
+        </span>
+        <span className="hidden md:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+          <Clock size={9} className="shrink-0" />
+          <span className="truncate">
+            Due: {fmtDateShort(group.dueDateMin)}{group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}
+          </span>
+        </span>
+        <div className="hidden lg:flex items-center gap-1 min-w-0 overflow-hidden">
+          {group.demandTypes.slice(0, 3).map((dt) => (
+            <span key={dt.label} className="inline-flex px-1 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0">
+              {dt.label}·{dt.count}
+            </span>
+          ))}
         </div>
       </div>
     </div>
@@ -381,19 +351,17 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Client groups */}
+    <div className="flex flex-col gap-2">
       {clientGroups.map((group) => {
         const isExpanded = expandedClients.has(group.ownerId);
         return (
           <motion.div
             key={group.ownerId}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
           >
-            {/* Summary card */}
             <ClientSummaryCard
               group={group}
               isExpanded={isExpanded}
@@ -401,7 +369,6 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
               onViewDetails={() => setSummaryOwnerId(group.ownerId)}
             />
 
-            {/* Expanded demand details table */}
             <AnimatePresence initial={false}>
               {isExpanded && (
                 <motion.div
@@ -427,7 +394,6 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
         );
       })}
 
-      {/* Client Due Summary Overlay */}
       <AnimatePresence>
         {summaryOwnerId && (
           <DCCClientDueSummaryModal
