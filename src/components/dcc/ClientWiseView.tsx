@@ -322,13 +322,11 @@ const ClientSummaryCard: React.FC<{
 // ── Demand details table ──────────────────────────────────────────────────────
 const ClientDemandTable: React.FC<{
   tiles: DccTile[];
-  onPay: (tile: DccTile) => void;
   onViewDetails: (tile: DccTile) => void;
   onChat: (tile: DccTile) => void;
   onShowDuePayment: (tile: DccTile) => void;
-  canRecordPayment: boolean;
   chatTileId: string | null;
-}> = ({ tiles, onPay, onViewDetails, onChat, onShowDuePayment, canRecordPayment, chatTileId }) => {
+}> = ({ tiles, onViewDetails, onChat, onShowDuePayment, chatTileId }) => {
   return (
     <div className="overflow-x-auto bg-slate-50/50">
       <table className="w-full">
@@ -348,7 +346,6 @@ const ClientDemandTable: React.FC<{
         <tbody className="divide-y divide-slate-100">
           {tiles.map((tile) => {
             const st = DCC_STATUS[tile.status];
-            const canPay = (tile.status === 'DUE' || tile.status === 'OVERDUE') && canRecordPayment;
             const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
             return (
               <tr key={tile.id} className="hover:bg-white transition-colors">
@@ -390,16 +387,7 @@ const ClientDemandTable: React.FC<{
                     >
                       <Eye size={13} />
                     </button>
-                    {canPay && (
-                      <button
-                        onClick={() => onPay(tile)}
-                        title="Pay Now"
-                        className="p-1.5 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
-                      >
-                        <Wallet size={13} />
-                      </button>
-                    )}
-                    {canShowDue && !canPay && (
+                    {canShowDue && (
                       <button
                         onClick={() => onShowDuePayment(tile)}
                         title="Due Payment"
@@ -429,16 +417,14 @@ const ClientDemandTable: React.FC<{
 // ── Main component ───────────────────────────────────────────────────────────
 export interface ClientWiseViewProps {
   tiles: DccTile[];
-  onPay: (tile: DccTile) => void;
   onViewDetails: (tile: DccTile) => void;
   onChat: (tile: DccTile) => void;
   onShowDuePayment: (tile: DccTile) => void;
-  canRecordPayment: boolean;
   chatTileId: string | null;
 }
 
 export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
-  tiles, onPay, onViewDetails, onChat, onShowDuePayment, canRecordPayment, chatTileId,
+  tiles, onViewDetails, onChat, onShowDuePayment, chatTileId,
 }) => {
   const clientGroups = useMemo(() => groupByClient(tiles), [tiles]);
 
@@ -494,11 +480,9 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
                 >
                   <ClientDemandTable
                     tiles={group.tiles}
-                    onPay={onPay}
                     onViewDetails={onViewDetails}
                     onChat={onChat}
                     onShowDuePayment={onShowDuePayment}
-                    canRecordPayment={canRecordPayment}
                     chatTileId={chatTileId}
                   />
                 </motion.div>

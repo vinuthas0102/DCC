@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, Wallet, CalendarDays, ChevronRight,
+  MessageSquare, CalendarDays, ChevronRight,
   ChevronDown, ChevronUp, Phone, MapPin, Users, Building2,
   Car, FileText, Home, Landmark, CircleDollarSign, Clock,
 } from 'lucide-react';
@@ -30,19 +30,16 @@ export interface DemandListRecordProps {
   tile: DccTile;
   idx: number;
   onViewDetails: (tile: DccTile) => void;
-  onPay?: (tile: DccTile) => void;
   onChat?: (tile: DccTile) => void;
   isChatActive?: boolean;
-  canRecordPayment?: boolean;
 }
 
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
-  tile, idx, onViewDetails, onPay, onChat, isChatActive, canRecordPayment,
+  tile, idx, onViewDetails, onChat, isChatActive,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
-  const canPay = (tile.status === 'DUE' || tile.status === 'OVERDUE') && canRecordPayment;
   const statusMessage = tile.status === 'OVERDUE'
     ? `${tile.avg_overdue_days || 0}d overdue`
     : tile.status === 'DUE'
@@ -108,7 +105,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
 
             {/* Action buttons */}
             <div className="flex w-[170px] shrink-0 items-center justify-end gap-1.5 pl-4">
-              {canPay && onPay && <button onClick={(e) => { e.stopPropagation(); onPay(tile); }} title="Pay Now" className="rounded-md bg-emerald-600 p-2 text-white hover:bg-emerald-700"><Wallet size={13} /></button>}
               {onChat && <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded-md p-2 ${isChatActive ? 'bg-slate-800 text-white' : 'border border-blue-100 text-slate-500 hover:bg-blue-50'}`}><MessageSquare size={13} /></button>}
               <button onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }} title={expanded ? 'Collapse' : 'Expand'} className="rounded-md p-2 text-slate-400 hover:bg-blue-50">{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
             </div>
