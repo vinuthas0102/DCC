@@ -94,6 +94,20 @@ const EQUIPMENT_RENT: DemandComponentConfig = {
   ],
 };
 
+// ── Property / Quarter electricity components ──────────────────────────────────
+
+const PROPERTY_ELECTRICITY: DemandComponentConfig = {
+  objectLabel: 'Property',
+  transactionLabel: 'Electricity',
+  cadence: 'monthly',
+  components: [
+    { key: 'energy_charge', label: 'Energy Charge (kWh)', ratio: 0.65 },
+    { key: 'fixed_demand', label: 'Fixed Demand Charge', ratio: 0.15 },
+    { key: 'fuel_adjustment', label: 'Fuel Adjustment Surcharge', ratio: 0.12 },
+    { key: 'meter_rent', label: 'Meter Rent', ratio: 0.08 },
+  ],
+};
+
 // ── Generic fallbacks (for insurance, security deposit, advance, loan, etc.) ──
 
 const GENERIC_SINGLE: DemandComponentConfig = {
@@ -158,6 +172,10 @@ export const getDemandComponentConfig = (
     case 'MAINTENANCE':
       if (isProp) return PROPERTY_MAINTENANCE;
       if (isVeh) return VEHICLE_MAINTENANCE;
+      return GENERIC_MONTHLY;
+
+    case 'ELECTRICITY':
+      if (isProp) return PROPERTY_ELECTRICITY;
       return GENERIC_MONTHLY;
 
     case 'LOAN':

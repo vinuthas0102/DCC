@@ -67,6 +67,7 @@ export const DEMAND_TYPE_COLORS: Record<string, string> = {
   PROPERTY_TAX: 'bg-teal-500',
   INSURANCE: 'bg-indigo-500',
   MAINTENANCE: 'bg-orange-500',
+  ELECTRICITY: 'bg-yellow-500',
 };
 
 export const fmtINR = (n: number) =>
