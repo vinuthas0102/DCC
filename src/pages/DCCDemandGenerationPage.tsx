@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ArrowLeft, FileSpreadsheet, Zap, DownloadCloud, Loader2,
-  CheckCircle2, AlertCircle, X, Upload, Play, History,
-  RefreshCw, ChevronDown, ChevronRight, FileText,
+  ArrowLeft, Zap, Loader2,
+  CheckCircle2, AlertCircle, Play, History,
+  RefreshCw, ChevronDown, ChevronRight,
+  Filter, X, Clock, FileText, TrendingUp, Users,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { ROUTES } from '../constants/routes';
 import { useNavigate } from 'react-router-dom';
-import type { DccDemandRunLog, DccDemandType, DccObject } from '../types/dcc';
+import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
 
 const fmtINR = (n: number) =>
@@ -17,52 +18,62 @@ const fmtINR = (n: number) =>
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-type Source = 'TPA' | 'EXCEL' | 'AUTO';
-type Step = 'select' | 'input' | 'preview' | 'result';
+const fmtDateTime = (d: string | null) =>
+  d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
-interface PreviewRow {
-  object_ref: string;
-  demand_type_code: string;
-  amount: number;
-  due_date: string;
-  run_date: string;
-  valid: boolean;
-  error?: string;
-}
+const fmtDuration = (ms: number | null) => {
+  if (ms == null) return '—';
+  if (ms < 1000) return `${ms} ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)} s`;
+  const m = Math.floor(s / 60);
+  const rem = Math.round(s % 60);
+  return `${m}m ${rem}s`;
+};
 
-const SOURCE_CONFIG: { key: Source; label: string; icon: typeof Zap; color: string; bg: string; border: string; desc: string }[] = [
-  { key: 'TPA', label: 'Import from TPA', icon: DownloadCloud, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', desc: 'Fetch demands from a third-party API endpoint' },
-  { key: 'EXCEL', label: 'Upload Excel Sheet', icon: FileSpreadsheet, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', desc: 'Upload a predefined Excel/CSV demand sheet' },
-  { key: 'AUTO', label: 'Auto-Generate from Rules', icon: Zap, color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', desc: 'Generate demands automatically from active rules' },
-];
+const SOURCE_BADGE: Record<string, string> = {
+  TPA: 'bg-blue-100 text-blue-700',
+  EXCEL: 'bg-emerald-100 text-emerald-700',
+  AUTO: 'bg-amber-100 text-amber-700',
+  MANUAL: 'bg-slate-100 text-slate-700',
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  DUE: 'bg-amber-100 text-amber-700',
+  OVERDUE: 'bg-red-100 text-red-700',
+  PAID: 'bg-emerald-100 text-emerald-700',
+  EXEMPTED: 'bg-slate-100 text-slate-600',
+};
 
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('select');
-  const [source, setSource] = useState<Source | null>(null);
-  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<{ created: number; totalAmount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ created: number; totalAmount: number } | null>(null);
 
-  // TPA state
-  const [tpaJson, setTpaJson] = useState('');
-
-  // Excel state
-  const [excelFileName, setExcelFileName] = useState('');
-
-  // Auto state
+  // Auto-generate state
   const [rules, setRules] = useState<PayableCriteria[]>([]);
   const [demandTypes, setDemandTypes] = useState<DccDemandType[]>([]);
   const [objects, setObjects] = useState<DccObject[]>([]);
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [autoAmount, setAutoAmount] = useState<Record<string, number>>({});
   const [autoRunDate, setAutoRunDate] = useState(new Date().toISOString().slice(0, 10));
+  const [loadingRules, setLoadingRules] = useState(true);
 
   // Run history
   const [runLog, setRunLog] = useState<DccDemandRunLog[]>([]);
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
+  const [runDetails, setRunDetails] = useState<Record<string, DccDemand[]>>({});
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Filters
+  const [filterSource, setFilterSource] = useState<string>('');
+  const [filterDemandTypeId, setFilterDemandTypeId] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [filterObjectRef, setFilterObjectRef] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
@@ -77,6 +88,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
   }, []);
 
   const loadRules = useCallback(async () => {
+    setLoadingRules(true);
     try {
       const [allRules, dt, obj] = await Promise.all([
         payableCriteriaService.listWithSpecs(),
@@ -92,128 +104,20 @@ export const DCCDemandGenerationPage: React.FC = () => {
       setAutoAmount(amounts);
     } catch {
       // ignore
+    } finally {
+      setLoadingRules(false);
     }
   }, []);
 
   useEffect(() => {
     loadHistory();
-  }, [loadHistory]);
-
-  useEffect(() => {
-    if (source === 'AUTO') loadRules();
-  }, [source, loadRules]);
-
-  const handleSelectSource = (s: Source) => {
-    setSource(s);
-    setStep('input');
-    setError(null);
-    setPreviewRows([]);
-    setResult(null);
-  };
-
-  const parseTpaJson = (): PreviewRow[] => {
-    try {
-      const parsed = JSON.parse(tpaJson) as { object_ref?: string; demand_type_code?: string; amount?: number; due_date?: string; run_date?: string }[];
-      if (!Array.isArray(parsed)) throw new Error('JSON must be an array');
-      return parsed.map((r) => {
-        const valid = !!(r.object_ref && r.demand_type_code && r.amount && r.due_date && r.run_date);
-        return {
-          object_ref: r.object_ref ?? '',
-          demand_type_code: r.demand_type_code ?? '',
-          amount: r.amount ?? 0,
-          due_date: r.due_date ?? '',
-          run_date: r.run_date ?? '',
-          valid,
-          error: valid ? undefined : 'Missing required fields',
-        };
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid JSON');
-      return [];
-    }
-  };
-
-  const parseCsv = (text: string): PreviewRow[] => {
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) { setError('CSV needs a header row and at least one data row'); return []; }
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const refIdx = headers.indexOf('object_ref');
-    const typeIdx = headers.indexOf('demand_type_code');
-    const amtIdx = headers.indexOf('amount');
-    const dueIdx = headers.indexOf('due_date');
-    const runIdx = headers.indexOf('run_date');
-
-    if (refIdx < 0 || typeIdx < 0 || amtIdx < 0 || dueIdx < 0 || runIdx < 0) {
-      setError('CSV must have columns: object_ref, demand_type_code, amount, due_date, run_date');
-      return [];
-    }
-
-    return lines.slice(1).map((line) => {
-      const cols = line.split(',').map(c => c.trim());
-      const row: PreviewRow = {
-        object_ref: cols[refIdx] ?? '',
-        demand_type_code: cols[typeIdx] ?? '',
-        amount: Number(cols[amtIdx] ?? 0),
-        due_date: cols[dueIdx] ?? '',
-        run_date: cols[runIdx] ?? '',
-        valid: !!(cols[refIdx] && cols[typeIdx] && cols[amtIdx] && cols[dueIdx] && cols[runIdx]),
-      };
-      if (!row.valid) row.error = 'Missing fields';
-      return row;
-    });
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setExcelFileName(file.name);
-    setError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = reader.result as string;
-      const rows = parseCsv(text);
-      if (rows.length > 0) {
-        setPreviewRows(rows);
-        setStep('preview');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleTpaPreview = () => {
-    const rows = parseTpaJson();
-    if (rows.length > 0) {
-      setPreviewRows(rows);
-      setStep('preview');
-    }
-  };
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const validRows = previewRows.filter(r => r.valid);
-      let res: { created: number; totalAmount: number };
-      if (source === 'TPA') {
-        res = await dccService.generateFromTPA(validRows);
-      } else if (source === 'EXCEL') {
-        res = await dccService.generateFromExcel(validRows);
-      } else {
-        res = { created: 0, totalAmount: 0 };
-      }
-      setResult(res);
-      setStep('result');
-      await loadHistory();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Generation failed');
-    } finally {
-      setGenerating(false);
-    }
-  };
+    loadRules();
+  }, [loadHistory, loadRules]);
 
   const handleAutoGenerate = async () => {
     setGenerating(true);
     setError(null);
+    setSuccess(null);
     try {
       const selectedRules = rules.filter(r => selectedRuleIds.has(r.id));
       const autoRows: { criteria_id: string; object_id: string; owner_id: string; demand_type_id: string; amount: number; due_date: string; run_date: string }[] = [];
@@ -245,25 +149,13 @@ export const DCCDemandGenerationPage: React.FC = () => {
       }
 
       const res = await dccService.generateAuto(autoRows);
-      setResult(res);
-      setStep('result');
+      setSuccess({ created: res.created, totalAmount: res.totalAmount });
       await loadHistory();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Auto-generation failed');
     } finally {
       setGenerating(false);
     }
-  };
-
-  const reset = () => {
-    setStep('select');
-    setSource(null);
-    setPreviewRows([]);
-    setResult(null);
-    setError(null);
-    setTpaJson('');
-    setExcelFileName('');
-    setSelectedRuleIds(new Set());
   };
 
   const toggleRule = (id: string) => {
@@ -275,13 +167,58 @@ export const DCCDemandGenerationPage: React.FC = () => {
     });
   };
 
+  const handleExpandRun = async (log: DccDemandRunLog) => {
+    if (expandedRun === log.id) {
+      setExpandedRun(null);
+      return;
+    }
+    setExpandedRun(log.id);
+    if (!runDetails[log.id]) {
+      setLoadingDetails(log.id);
+      try {
+        const details = await dccService.getRunLogDetails(log);
+        setRunDetails(prev => ({ ...prev, [log.id]: details }));
+      } catch {
+        setRunDetails(prev => ({ ...prev, [log.id]: [] }));
+      } finally {
+        setLoadingDetails(null);
+      }
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterSource('');
+    setFilterDemandTypeId('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterObjectRef('');
+  };
+
+  const hasActiveFilters = filterSource || filterDemandTypeId || filterDateFrom || filterDateTo || filterObjectRef;
+
+  const filteredRunLog = useMemo(() => {
+    let r = runLog;
+    if (filterSource) r = r.filter(l => l.source === filterSource);
+    if (filterDemandTypeId) r = r.filter(l => l.demand_type_id === filterDemandTypeId);
+    if (filterDateFrom) r = r.filter(l => l.run_date >= filterDateFrom);
+    if (filterDateTo) r = r.filter(l => l.run_date <= filterDateTo);
+    if (filterObjectRef) {
+      const ref = filterObjectRef.toLowerCase();
+      r = r.filter(l => {
+        const details = runDetails[l.id] ?? [];
+        return details.some(d => (d.object?.object_ref ?? '').toLowerCase().includes(ref));
+      });
+    }
+    return r;
+  }, [runLog, filterSource, filterDemandTypeId, filterDateFrom, filterDateTo, filterObjectRef, runDetails]);
+
   const inputCls = 'w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500 bg-white text-slate-700 transition-colors';
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
-      {/* Header — Deep Slate Navy */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
-        <button onClick={() => step === 'select' ? navigate(ROUTES.DCC) : reset()} className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
           <ArrowLeft size={16} />
         </button>
         <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
@@ -289,7 +226,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-white">Demand Generation</h1>
-          <p className="text-[10px] text-slate-400">Create demands from TPA import, Excel upload, or auto-generation rules</p>
+          <p className="text-[10px] text-slate-400">Generate demands from active rules and review run history</p>
         </div>
         <button onClick={loadHistory} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-semibold hover:bg-slate-700 hover:text-white transition-colors border border-slate-700">
           <RefreshCw size={13} /> Refresh
@@ -302,236 +239,294 @@ export const DCCDemandGenerationPage: React.FC = () => {
         </div>
       )}
 
+      {success && (
+        <div className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md text-[11px] text-emerald-700">
+          <CheckCircle2 size={14} className="shrink-0" /> Created {success.created} demands totaling {fmtINR(success.totalAmount)}
+          <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-600 hover:text-emerald-800"><X size={13} /></button>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {/* ── Source selection ── */}
-        {step === 'select' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {SOURCE_CONFIG.map(cfg => {
-              const Icon = cfg.icon;
-              return (
-                <button
-                  key={cfg.key}
-                  onClick={() => handleSelectSource(cfg.key)}
-                  className={`text-left rounded-2xl border-2 ${cfg.border} ${cfg.bg} p-5 hover:shadow-md transition-all duration-200 group`}
-                >
-                  <div className={`w-12 h-12 rounded-lg ${cfg.color} bg-white flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <Icon size={24} />
-                  </div>
-                  <h3 className={`text-sm font-bold ${cfg.color} mb-1`}>{cfg.label}</h3>
-                  <p className="text-xs text-slate-500">{cfg.desc}</p>
-                </button>
-              );
-            })}
+        {/* ── Auto-Generate Panel ── */}
+        <div className="max-w-3xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Zap size={16} className="text-amber-600" />
+            <h2 className="text-sm font-bold text-slate-900">Auto-Generate from Rules</h2>
           </div>
-        )}
-
-        {/* ── TPA input ── */}
-        {step === 'input' && source === 'TPA' && (
-          <div className="max-w-2xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-slate-900 mb-1">Import from Third-Party API</h2>
-            <p className="text-xs text-slate-500 mb-4">Paste the JSON array returned by the TPA endpoint. Each row needs: object_ref, demand_type_code, amount, due_date, run_date.</p>
-            <textarea
-              value={tpaJson}
-              onChange={e => setTpaJson(e.target.value)}
-              placeholder={`[\n  {\n    "object_ref": "MH12-AB-1234",\n    "demand_type_code": "PROPERTY_TAX",\n    "amount": 5000,\n    "due_date": "2026-09-15",\n    "run_date": "2026-09-01"\n  }\n]`}
-              className="w-full h-48 px-3 py-2 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/30 bg-slate-50 text-slate-700"
-            />
-            <div className="flex gap-2 mt-4">
-              <button onClick={handleTpaPreview} disabled={!tpaJson.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
-                <Play size={14} /> Preview
-              </button>
-              <button onClick={reset} className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">Cancel</button>
-            </div>
+          <p className="text-xs text-slate-500 mb-4">Select active demand rules to generate demands for matching objects.</p>
+          <div className="mb-4">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date</label>
+            <input type="date" value={autoRunDate} onChange={e => setAutoRunDate(e.target.value)} className={inputCls + ' max-w-48'} />
           </div>
-        )}
-
-        {/* ── Excel input ── */}
-        {step === 'input' && source === 'EXCEL' && (
-          <div className="max-w-2xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-slate-900 mb-1">Upload Excel / CSV Sheet</h2>
-            <p className="text-xs text-slate-500 mb-4">Upload a CSV file with columns: object_ref, demand_type_code, amount, due_date, run_date.</p>
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg py-12 cursor-pointer hover:border-teal-400 hover:bg-teal-50/30 transition-colors">
-              <Upload size={28} className="text-slate-400" />
-              <span className="text-xs font-semibold text-slate-600">{excelFileName || 'Click to select a CSV file'}</span>
-              <span className="text-[10px] text-slate-400">Accepts .csv files</span>
-              <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-            </label>
-            <div className="flex gap-2 mt-4">
-              <button onClick={reset} className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">Cancel</button>
+          {loadingRules ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={18} className="animate-spin text-teal-500" />
             </div>
-          </div>
-        )}
-
-        {/* ── Auto input ── */}
-        {step === 'input' && source === 'AUTO' && (
-          <div className="max-w-3xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-slate-900 mb-1">Auto-Generate from Rules</h2>
-            <p className="text-xs text-slate-500 mb-4">Select active demand rules to generate demands for matching objects.</p>
-            <div className="mb-4">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date</label>
-              <input type="date" value={autoRunDate} onChange={e => setAutoRunDate(e.target.value)} className={inputCls + ' max-w-48'} />
+          ) : rules.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Zap size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm font-medium">No active DCC rules found</p>
+              <p className="text-xs mt-1">Create rules in Rule Setup first</p>
             </div>
-            {rules.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Zap size={28} className="mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-medium">No active DCC rules found</p>
-                <p className="text-xs mt-1">Create rules in Rule Setup first</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {rules.map(rule => {
-                  const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
-                  const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
-                  const selected = selectedRuleIds.has(rule.id);
-                  return (
-                    <div key={rule.id} className={`rounded-lg border ${selected ? 'border-teal-300 bg-teal-50/50' : 'border-slate-200'} p-3 transition-colors`}>
-                      <div className="flex items-center gap-3">
-                        <input type="checkbox" checked={selected} onChange={() => toggleRule(rule.id)} className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900">{dtLabel}</span>
-                            <span className="text-[10px] text-slate-400">·</span>
-                            <span className="text-[10px] text-slate-500">{rule.object_type}</span>
-                            <span className="text-[10px] text-slate-400">·</span>
-                            <span className="text-[10px] text-slate-500">{matchingCount} object{matchingCount !== 1 ? 's' : ''}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5">Run day: {rule.subsequent_btm_run_day} · Offset: {rule.full_payment_spec?.days_offset ?? 0} days</p>
+          ) : (
+            <div className="space-y-2">
+              {rules.map(rule => {
+                const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
+                const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
+                const selected = selectedRuleIds.has(rule.id);
+                return (
+                  <div key={rule.id} className={`rounded-lg border ${selected ? 'border-teal-300 bg-teal-50/50' : 'border-slate-200'} p-3 transition-colors`}>
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked={selected} onChange={() => toggleRule(rule.id)} className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">{dtLabel}</span>
+                          <span className="text-[10px] text-slate-400">·</span>
+                          <span className="text-[10px] text-slate-500">{rule.object_type}</span>
+                          <span className="text-[10px] text-slate-400">·</span>
+                          <span className="text-[10px] text-slate-500">{matchingCount} object{matchingCount !== 1 ? 's' : ''}</span>
                         </div>
-                        {selected && (
-                          <input
-                            type="number"
-                            value={autoAmount[rule.id] ?? 1000}
-                            onChange={e => setAutoAmount(prev => ({ ...prev, [rule.id]: Number(e.target.value) }))}
-                            className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
-                            placeholder="Amount"
-                          />
-                        )}
+                        <p className="text-[10px] text-slate-400 mt-0.5">Run day: {rule.subsequent_btm_run_day} · Offset: {rule.full_payment_spec?.days_offset ?? 0} days</p>
                       </div>
+                      {selected && (
+                        <input
+                          type="number"
+                          value={autoAmount[rule.id] ?? 1000}
+                          onChange={e => setAutoAmount(prev => ({ ...prev, [rule.id]: Number(e.target.value) }))}
+                          className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
+                          placeholder="Amount"
+                        />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex gap-2 mt-4">
-              <button onClick={handleAutoGenerate} disabled={selectedRuleIds.size === 0 || generating} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
-                {generating ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                {generating ? 'Generating…' : `Generate (${selectedRuleIds.size} rule${selectedRuleIds.size !== 1 ? 's' : ''})`}
-              </button>
-              <button onClick={reset} className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">Cancel</button>
+                  </div>
+                );
+              })}
             </div>
+          )}
+          <div className="flex gap-2 mt-4">
+            <button onClick={handleAutoGenerate} disabled={selectedRuleIds.size === 0 || generating} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
+              {generating ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+              {generating ? 'Generating…' : `Generate (${selectedRuleIds.size} rule${selectedRuleIds.size !== 1 ? 's' : ''})`}
+            </button>
           </div>
-        )}
-
-        {/* ── Preview ── */}
-        {step === 'preview' && (source === 'TPA' || source === 'EXCEL') && (
-          <div className="max-w-4xl mx-auto bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-emerald-600">
-              <FileText size={16} className="text-white" />
-              <span className="text-sm font-bold text-white">Preview — {previewRows.length} rows</span>
-              <span className="ml-auto text-[10px] text-white/70">{previewRows.filter(r => r.valid).length} valid · {previewRows.filter(r => !r.valid).length} invalid</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-2 text-left">Object Ref</th>
-                    <th className="px-3 py-2 text-left">Demand Type</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                    <th className="px-3 py-2 text-left">Due Date</th>
-                    <th className="px-3 py-2 text-left">Run Date</th>
-                    <th className="px-3 py-2 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {previewRows.map((row, idx) => (
-                    <tr key={idx} className={row.valid ? '' : 'bg-red-50/50'}>
-                      <td className="px-3 py-2 text-slate-700">{row.object_ref || '—'}</td>
-                      <td className="px-3 py-2 text-slate-700">{row.demand_type_code || '—'}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(row.amount)}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.due_date || '—'}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.run_date || '—'}</td>
-                      <td className="px-3 py-2 text-center">
-                        {row.valid
-                          ? <CheckCircle2 size={14} className="inline text-emerald-500" />
-                          : <span className="text-[10px] text-red-500" title={row.error}>Invalid</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex gap-2 px-5 py-3 border-t border-gray-100 bg-slate-50">
-              <button onClick={handleGenerate} disabled={generating || previewRows.filter(r => r.valid).length === 0} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
-                {generating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                {generating ? 'Generating…' : `Generate ${previewRows.filter(r => r.valid).length} Demands`}
-              </button>
-              <button onClick={reset} className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">Back</button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Result ── */}
-        {step === 'result' && result && (
-          <div className="max-w-md mx-auto bg-white rounded-lg border border-slate-200 shadow-sm p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={32} className="text-emerald-600" />
-            </div>
-            <h2 className="text-base font-bold text-slate-900 mb-1">Generation Complete</h2>
-            <p className="text-xs text-slate-500 mb-4">Successfully created demands from {source}</p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-slate-50 rounded-lg p-3">
-                <div className="text-2xl font-extrabold text-teal-700">{result.created}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Demands Created</div>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-3">
-                <div className="text-2xl font-extrabold text-teal-700">{fmtINR(result.totalAmount)}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Amount</div>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-center">
-              <button onClick={() => navigate(ROUTES.DCC)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors">
-                View DCC Summary
-              </button>
-              <button onClick={reset} className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">Generate More</button>
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* ── Run History ── */}
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
             <History size={15} className="text-slate-500" />
             <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
-            <span className="ml-auto text-[10px] text-slate-400">{runLog.length} run{runLog.length !== 1 ? 's' : ''}</span>
+            <span className="ml-auto text-[10px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
+            <button
+              onClick={() => setShowFilters(s => !s)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${hasActiveFilters ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            >
+              <Filter size={12} /> Filter
+              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+            </button>
           </div>
+
+          {/* Filter bar */}
+          {showFilters && (
+            <div className="px-4 py-3 bg-slate-50 border-b border-gray-100 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Source</label>
+                  <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className={inputCls}>
+                    <option value="">All Sources</option>
+                    <option value="AUTO">Auto</option>
+                    <option value="TPA">TPA</option>
+                    <option value="EXCEL">Excel</option>
+                    <option value="MANUAL">Manual</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Demand Type</label>
+                  <select value={filterDemandTypeId} onChange={e => setFilterDemandTypeId(e.target.value)} className={inputCls}>
+                    <option value="">All Types</option>
+                    {demandTypes.map(dt => (
+                      <option key={dt.id} value={dt.id}>{dt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date From</label>
+                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date To</label>
+                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={filterObjectRef}
+                  onChange={e => setFilterObjectRef(e.target.value)}
+                  placeholder="Search by object reference..."
+                  className={inputCls + ' max-w-xs'}
+                />
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                    <X size={12} /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {loadingHistory ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 size={18} className="animate-spin text-teal-500" />
             </div>
-          ) : runLog.length === 0 ? (
+          ) : filteredRunLog.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               <History size={24} className="mx-auto mb-2 opacity-30" />
-              <p className="text-xs">No generation runs yet</p>
+              <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {runLog.map((log) => {
+              {filteredRunLog.map((log) => {
                 const expanded = expandedRun === log.id;
+                const details = runDetails[log.id] ?? [];
+                const isLoadingDetail = loadingDetails === log.id;
                 return (
                   <div key={log.id}>
+                    {/* Summary row */}
                     <button
-                      onClick={() => setExpandedRun(expanded ? null : log.id)}
+                      onClick={() => handleExpandRun(log)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
                     >
-                      {expanded ? <ChevronDown size={13} className="text-slate-400" /> : <ChevronRight size={13} className="text-slate-400" />}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${log.source === 'TPA' ? 'bg-blue-100 text-blue-700' : log.source === 'EXCEL' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {expanded ? <ChevronDown size={13} className="text-slate-400 shrink-0" /> : <ChevronRight size={13} className="text-slate-400 shrink-0" />}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700'}`}>
                         {log.source}
                       </span>
-                      <span className="text-xs font-semibold text-slate-700">{log.demand_type?.label ?? '—'}</span>
-                      <span className="text-[10px] text-slate-400">·</span>
-                      <span className="text-[10px] text-slate-500">{fmtDate(log.run_date)}</span>
-                      <span className="ml-auto text-xs font-bold text-slate-900">{log.records_created} rows · {fmtINR(log.total_amount)}</span>
+                      <span className="text-xs font-semibold text-slate-700 shrink-0">{log.demand_type?.label ?? '—'}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0">·</span>
+                      <span className="text-[10px] text-slate-500 shrink-0">{fmtDate(log.run_date)}</span>
+                      <div className="ml-auto flex items-center gap-4 shrink-0">
+                        <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                          <FileText size={11} /> {log.records_created} created
+                        </span>
+                        {log.records_failed > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] text-red-500">
+                            <AlertCircle size={11} /> {log.records_failed} failed
+                          </span>
+                        )}
+                        {log.duration_ms != null && (
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                            <Clock size={11} /> {fmtDuration(log.duration_ms)}
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-slate-900">{fmtINR(log.total_amount)}</span>
+                      </div>
                     </button>
+
+                    {/* Expanded detail */}
+                    {expanded && (
+                      <div className="px-4 pb-4 bg-slate-50/70 border-t border-gray-100">
+                        {/* Run metadata grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-4">
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <Play size={11} /> Started
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.started_at)}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <CheckCircle2 size={11} /> Ended
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.ended_at)}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <Clock size={11} /> Duration
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">{fmtDuration(log.duration_ms)}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <TrendingUp size={11} /> Total Amount
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">{fmtINR(log.total_amount)}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <FileText size={11} /> Records Created
+                            </div>
+                            <div className="text-xs font-semibold text-emerald-600">{log.records_created}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <AlertCircle size={11} /> Records Failed
+                            </div>
+                            <div className={`text-xs font-semibold ${log.records_failed > 0 ? 'text-red-600' : 'text-slate-700'}`}>{log.records_failed}</div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <Users size={11} /> Objects
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">
+                              {log.run_summary?.object_count as number ?? '—'}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                              <History size={11} /> Logged At
+                            </div>
+                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.created_at)}</div>
+                          </div>
+                        </div>
+
+                        {/* Demands created in this run */}
+                        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+                            <FileText size={13} className="text-slate-500" />
+                            <span className="text-xs font-bold text-slate-700">Demands in this run</span>
+                            <span className="ml-auto text-[10px] text-slate-400">{details.length} demand{details.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          {isLoadingDetail ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 size={16} className="animate-spin text-teal-500" />
+                            </div>
+                          ) : details.length === 0 ? (
+                            <div className="text-center py-6 text-slate-400">
+                              <p className="text-xs">No demand records found for this run</p>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                    <th className="px-3 py-2 text-left">Object Ref</th>
+                                    <th className="px-3 py-2 text-left">Owner</th>
+                                    <th className="px-3 py-2 text-right">Amount</th>
+                                    <th className="px-3 py-2 text-left">Due Date</th>
+                                    <th className="px-3 py-2 text-center">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                  {details.map((d) => (
+                                    <tr key={d.id} className="hover:bg-slate-50">
+                                      <td className="px-3 py-2 text-slate-700 font-medium">{d.object?.object_ref ?? '—'}</td>
+                                      <td className="px-3 py-2 text-slate-600">{d.owner?.name ?? '—'}</td>
+                                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(d.amount)}</td>
+                                      <td className="px-3 py-2 text-slate-600">{fmtDate(d.due_date)}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                                          {d.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

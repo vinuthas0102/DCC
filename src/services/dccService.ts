@@ -328,6 +328,22 @@ export const dccService = {
     return (data ?? []) as DccDemandRunLog[];
   },
 
+  async getRunLogDetails(runLog: DccDemandRunLog): Promise<DccDemand[]> {
+    let q = supabase
+      .from(DEMANDS)
+      .select('*, object:object_id(*, owner:owner_id(*)), owner:owner_id(*), demand_type:demand_type_id(*)')
+      .eq('demand_run_date', runLog.run_date)
+      .eq('generation_source', runLog.source)
+      .order('due_date', { ascending: true });
+    if (runLog.demand_type_id) q = q.eq('demand_type_id', runLog.demand_type_id);
+    const { data, error } = await q;
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
+    return (data ?? []) as DccDemand[];
+  },
+
   // ── Demand generation ──────────────────────────────────────────────────────
 
   async generateDemands(
@@ -336,6 +352,8 @@ export const dccService = {
     criteriaId?: string | null,
   ): Promise<{ created: number; totalAmount: number; runLogId: string }> {
     if (rows.length === 0) return { created: 0, totalAmount: 0, runLogId: '' };
+
+    const startedAt = new Date().toISOString();
 
     const demandRows = rows.map((r) => ({
       object_id: r.object_id,
@@ -359,6 +377,15 @@ export const dccService = {
     const created = (inserted ?? []).length;
     const totalAmount = (inserted ?? []).reduce((s, r: { amount: number }) => s + r.amount, 0);
     const demandTypeId = rows[0]?.demand_type_id ?? null;
+    const endedAt = new Date().toISOString();
+    const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+    const recordsFailed = rows.length - created;
+
+    const runSummary = {
+      total_rows_input: rows.length,
+      object_count: new Set(rows.map(r => r.object_id)).size,
+      criteria_id: criteriaId ?? null,
+    };
 
     const { data: logRow, error: logErr } = await supabase
       .from(RUNLOG)
@@ -368,6 +395,11 @@ export const dccService = {
         demand_type_id: demandTypeId,
         records_created: created,
         total_amount: totalAmount,
+        started_at: startedAt,
+        ended_at: endedAt,
+        duration_ms: durationMs,
+        records_failed: recordsFailed,
+        run_summary: runSummary,
       })
       .select('id')
       .single();

@@ -129,6 +129,11 @@ export interface DccDemandRunLog {
   total_amount: number;
   created_at: string;
   demand_type?: DccDemandType;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_ms: number | null;
+  records_failed: number;
+  run_summary: Record<string, unknown> | null;
 }
 
 // ── Tile / summary shape for the summary screen ─────────────────────────────────
