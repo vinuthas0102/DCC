@@ -10,7 +10,7 @@ import {
 import type { DccTile } from '../../types/dcc';
 import {
   DCC_STATUS,
-  fmtINR, fmtINRShort, fmtDateShort,
+  fmtINR, fmtDateShort,
 } from '../../constants/dccTheme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -236,7 +236,7 @@ const ClientSummaryCard: React.FC<{
               Outstanding
             </span>
             <span className={`text-base font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
-              {fmtINRShort(group.totalOutstanding)}
+              {fmtINR(group.totalOutstanding)}
             </span>
             <span className="text-[9px] text-slate-400 leading-none">{collectionPct}% collected</span>
           </div>
@@ -265,7 +265,7 @@ const ClientSummaryCard: React.FC<{
           <DataPoint
             icon={<Wallet size={13} />}
             label="Total Demand"
-            value={fmtINRShort(group.totalDemand)}
+            value={fmtINR(group.totalDemand)}
             valueCls="text-slate-800"
           />
 
@@ -274,7 +274,7 @@ const ClientSummaryCard: React.FC<{
           <DataPoint
             icon={<TrendingUp size={13} />}
             label="Paid"
-            value={fmtINRShort(group.totalPaid)}
+            value={fmtINR(group.totalPaid)}
             valueCls="text-emerald-600"
           />
 
@@ -284,7 +284,7 @@ const ClientSummaryCard: React.FC<{
               <DataPoint
                 icon={<AlertTriangle size={13} />}
                 label="Overdue"
-                value={fmtINRShort(group.overdueAmount)}
+                value={fmtINR(group.overdueAmount)}
                 valueCls="text-red-600"
               />
             </>
@@ -311,7 +311,7 @@ const ClientSummaryCard: React.FC<{
 
           {/* Collected / Total text */}
           <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-1">
-            {fmtINRShort(group.totalPaid)} / {fmtINRShort(group.totalDemand)}
+            {fmtINR(group.totalPaid)} / {fmtINR(group.totalDemand)}
           </span>
         </div>
       </div>
