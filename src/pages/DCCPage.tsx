@@ -48,11 +48,21 @@ type StatusKey = DccTile['status'];
 type DpKey = 'ALL' | 'PAID' | 'DUE' | 'OVERDUE';
 
 // ── KPI config ─────────────────────────────────────────────────────────────────
-const KPI_CONFIG: { key: DpKey; label: string; icon: typeof Receipt; accent: string; iconBg: string; iconText: string; valueColor: string }[] = [
-  { key: 'ALL',     label: 'Total Demands',   icon: Receipt,       accent: 'border-l-slate-600',   iconBg: 'bg-slate-200/60',   iconText: 'text-slate-700',   valueColor: 'text-slate-900' },
-  { key: 'PAID',    label: 'Total Paid',       icon: CheckCircle2,  accent: 'border-l-blue-600',    iconBg: 'bg-blue-100/70',    iconText: 'text-blue-600',   valueColor: 'text-blue-600' },
-  { key: 'DUE',     label: 'Total Due',        icon: Clock,         accent: 'border-l-emerald-600', iconBg: 'bg-emerald-100/70', iconText: 'text-emerald-600', valueColor: 'text-emerald-600' },
-  { key: 'OVERDUE', label: 'Total Overdue',    icon: AlertTriangle, accent: 'border-l-amber-500',   iconBg: 'bg-amber-100/70',    iconText: 'text-amber-600',   valueColor: 'text-amber-600' },
+const KPI_CONFIG: {
+  key: DpKey;
+  label: string;
+  icon: typeof Receipt;
+  iconBg: string;
+  iconText: string;
+  accentBar: string;
+  trendColor: string;
+  sparkColor: string;
+  sparkPath: string;
+}[] = [
+  { key: 'ALL',     label: 'Total Demands',  icon: Receipt,       iconBg: 'bg-blue-100',     iconText: 'text-blue-600',    accentBar: 'bg-blue-500',    trendColor: 'text-blue-600',   sparkColor: '#3b82f6', sparkPath: 'M0,18 L8,14 L16,16 L24,10 L32,12 L40,6 L48,8 L56,4' },
+  { key: 'PAID',    label: 'Total Paid',     icon: CheckCircle2, iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', accentBar: 'bg-emerald-500', trendColor: 'text-emerald-600', sparkColor: '#10b981', sparkPath: 'M0,20 L8,16 L16,12 L24,14 L32,8 L40,10 L48,4 L56,2' },
+  { key: 'DUE',     label: 'Total Due',      icon: Clock,        iconBg: 'bg-amber-100',   iconText: 'text-amber-600',   accentBar: 'bg-amber-500',   trendColor: 'text-amber-600',   sparkColor: '#f59e0b', sparkPath: 'M0,8 L8,12 L16,10 L24,14 L32,12 L40,16 L48,14 L56,18' },
+  { key: 'OVERDUE', label: 'Total Overdue',  icon: AlertTriangle,iconBg: 'bg-red-100',     iconText: 'text-red-600',     accentBar: 'bg-red-500',     trendColor: 'text-red-600',     sparkColor: '#ef4444', sparkPath: 'M0,4 L8,8 L16,6 L24,12 L32,10 L40,16 L48,14 L56,20' },
 ];
 
 // ── Icon-only View Mode Toggle ──────────────────────────────────────────────────
