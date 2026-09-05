@@ -143,11 +143,11 @@ const ClientSummaryCard: React.FC<{
           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200 shrink-0">
             <Building2 size={9} /> {group.propertyCount} {group.propertyCount === 1 ? 'Prop' : 'Props'}
           </span>
-          <span className="hidden lg:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+          <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
             <Phone size={9} className="shrink-0" />
             <span className="truncate">{group.ownerContact || '—'}</span>
           </span>
-          <span className="hidden xl:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+          <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
             <MapPin size={9} className="shrink-0" />
             <span className="truncate">{group.ownerAddress || '—'}</span>
           </span>
@@ -181,19 +181,19 @@ const ClientSummaryCard: React.FC<{
           <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
         )}
         <CV label="Collected" value={`${collectionPct}%`} valueCls="text-slate-700" />
-        <span className="hidden md:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+        <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
           <Calendar size={9} className="shrink-0" />
           <span className="truncate">
             Run: {fmtDateShort(group.runDateMin)}{group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}
           </span>
         </span>
-        <span className="hidden md:flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
+        <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
           <Clock size={9} className="shrink-0" />
           <span className="truncate">
             Due: {fmtDateShort(group.dueDateMin)}{group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}
           </span>
         </span>
-        <div className="hidden lg:flex items-center gap-1 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           {group.demandTypes.slice(0, 3).map((dt) => (
             <span key={dt.label} className="inline-flex px-1 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0">
               {dt.label}·{dt.count}

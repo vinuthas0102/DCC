@@ -67,13 +67,14 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
               </span>
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide truncate shrink-0">{tile.demand_type_label}</span>
               <h3 className="text-[11px] font-bold text-slate-900 truncate leading-tight min-w-0">{tile.object_description || tile.object_ref}</h3>
-              <span className="text-[9px] text-slate-400 truncate shrink-0 hidden xl:inline">{tile.object_ref} · {tile.object_type}</span>
+              <span className="text-[9px] text-slate-400 truncate shrink-0">{tile.object_ref} · {tile.object_type}</span>
             </div>
 
-            <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <LV label="Client" value={tile.owner_name} valueCls="text-slate-700" />
               <LV label="Contact" value={tile.owner_contact} valueCls="text-slate-600" />
               <LV label="Region" value={tile.region} valueCls="text-slate-600" />
+              <LV label="Group" value={tile.group_name || tile.subgroup} valueCls="text-slate-600" />
             </div>
 
             <div className="text-right shrink-0 ml-1">
