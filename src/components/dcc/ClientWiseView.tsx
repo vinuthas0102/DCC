@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DCCClientDueSummaryModal } from '../../pages/DCCClientDueSummaryPage';
 import {
-  Users, Wallet,
-  ChevronDown, ChevronUp,
-  MessageSquare, Eye, ChevronRight,
+  Users, Wallet, ChevronDown, ChevronUp,
+  MessageSquare, Eye, ChevronRight, ChevronLeft,
+  Phone, MapPin,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
 import {
@@ -99,9 +99,9 @@ function groupByClient(tiles: DccTile[]): ClientGroup[] {
 // ── Status badge ─────────────────────────────────────────────────────────────
 const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status }) => {
   const config = {
-    PAID: { label: 'PAID', cls: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-    DUE: { label: 'DUE', cls: 'bg-amber-100 text-amber-700 border-amber-300' },
-    OVERDUE: { label: 'OVERDUE', cls: 'bg-red-100 text-red-700 border-red-300' },
+    PAID: { label: 'PAID', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
+    DUE: { label: 'DUE', cls: 'bg-amber-50 text-amber-700 border-amber-300' },
+    OVERDUE: { label: 'OVERDUE', cls: 'bg-red-50 text-red-700 border-red-300' },
   };
   const s = config[status];
   return (
@@ -111,9 +111,12 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
   );
 };
 
-// ── Inline label-value ────────────────────────────────────────────────────────
+// ── Vertical separator ───────────────────────────────────────────────────────
+const Sep: React.FC = () => <span className="w-px h-7 bg-slate-200 shrink-0" />;
+
+// ── Compact label-value pill ────────────────────────────────────────────────
 const CV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
-  label, value, valueCls = 'text-slate-900',
+  label, value, valueCls = 'text-slate-800',
 }) => (
   <div className="flex items-baseline gap-1 min-w-0 shrink-0">
     <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
@@ -137,30 +140,54 @@ const ClientSummaryCard: React.FC<{
     : '—';
 
   return (
-    <div className="px-2.5 py-1.5">
-      {/* ── Row 1: Client identity + status + actions, all as label-value ── */}
-      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-        <span className="inline-flex w-6 h-6 rounded-lg bg-blue-600 items-center justify-center text-white text-[10px] font-bold shrink-0">
+    <div className="px-3 py-2">
+      {/* ── Row 1: Client identity + status + actions ── */}
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Avatar */}
+        <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
           {group.ownerName.charAt(0).toUpperCase()}
-        </span>
-        <CV label="Client" value={group.ownerName} valueCls="text-slate-900 font-bold" />
-        <CV label="Properties" value={group.propertyCount} valueCls="text-blue-700" />
-        <CV label="Demands" value={group.demandCount} valueCls="text-slate-700" />
-        <CV label="Contact" value={group.ownerContact} valueCls="text-slate-600" />
-        <CV label="Address" value={group.ownerAddress} valueCls="text-slate-600" />
+        </div>
 
+        {/* Client name + contact */}
+        <div className="flex flex-col leading-tight min-w-0 shrink-0">
+          <span className="text-[11px] font-bold text-slate-900 truncate max-w-[160px]">{group.ownerName}</span>
+          <span className="text-[9px] text-slate-400 truncate max-w-[160px]">{group.ownerContact || '—'}</span>
+        </div>
+
+        <Sep />
+
+        {/* Counts */}
+        <CV label="Properties" value={group.propertyCount} valueCls="text-blue-700 font-bold" />
+        <CV label="Demands" value={group.demandCount} valueCls="text-slate-700" />
+
+        <Sep />
+
+        {/* Dates */}
+        <CV label="Run" value={runDateRange} valueCls="text-slate-500" />
+        <CV label="Due" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600 font-bold' : 'text-slate-500'} />
+
+        {/* Demand type tags */}
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+          {group.demandTypes.slice(0, 3).map((dt) => (
+            <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0">
+              {dt.label}·{dt.count}
+            </span>
+          ))}
+        </div>
+
+        {/* Actions */}
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           <StatusBadge status={group.overallStatus} />
           <button
             onClick={onToggle}
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
+            title={isExpanded ? 'Collapse' : 'Expand'}
           >
-            {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-            {isExpanded ? 'Collapse' : 'Expand'}
+            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
           <button
             onClick={onViewDetails}
-            className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-0.5 px-2 py-1 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
             title="View Details"
           >
             Details <ChevronRight size={10} />
@@ -168,24 +195,28 @@ const ClientSummaryCard: React.FC<{
         </div>
       </div>
 
-      {/* ── Row 2: All financial + date fields as label-value, no whitespace ── */}
-      <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-1 pt-1 border-t border-slate-100">
-        <CV label="Total Demand" value={fmtINRShort(group.totalDemand)} />
+      {/* ── Row 2: Financial summary ── */}
+      <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-slate-100">
+        <CV label="Total Demand" value={fmtINRShort(group.totalDemand)} valueCls="text-slate-700" />
+        <Sep />
         <CV label="Paid" value={fmtINRShort(group.totalPaid)} valueCls="text-emerald-600" />
+        <Sep />
         <CV label="Outstanding" value={fmtINRShort(group.totalOutstanding)} valueCls="text-red-600 font-bold" />
+        <Sep />
         {group.overdueAmount > 0 && (
-          <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
+          <>
+            <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
+            <Sep />
+          </>
         )}
         <CV label="Collected" value={`${collectionPct}%`} valueCls="text-slate-700" />
-        <CV label="Run Date" value={runDateRange} valueCls="text-slate-600" />
-        <CV label="Due Date" value={dueDateRange} valueCls="text-slate-600" />
 
-        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-          {group.demandTypes.slice(0, 4).map((dt) => (
-            <span key={dt.label} className="inline-flex px-1 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0">
-              {dt.label}·{dt.count}
-            </span>
-          ))}
+        {/* Collection progress bar */}
+        <div className="flex-1 min-w-[60px] max-w-[160px] h-1.5 bg-slate-100 rounded-full overflow-hidden ml-2">
+          <div
+            className={`h-full rounded-full transition-all ${collectionPct >= 80 ? 'bg-emerald-500' : collectionPct >= 50 ? 'bg-amber-400' : 'bg-red-400'}`}
+            style={{ width: `${Math.min(collectionPct, 100)}%` }}
+          />
         </div>
       </div>
     </div>
@@ -206,9 +237,9 @@ const ClientDemandTable: React.FC<{
     <div className="overflow-x-auto bg-slate-50/40">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-slate-200">
+          <tr className="border-b border-slate-200 bg-slate-50">
             <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-500 tracking-wide">Property / Description</th>
-            <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-500 tracking-wide">Demand Type</th>
+            <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-500 tracking-wide">Type</th>
             <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-500 tracking-wide">Run Date</th>
             <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-500 tracking-wide">Due Date</th>
             <th className="px-3 py-1.5 text-right text-[9px] font-bold uppercase text-slate-500 tracking-wide">Total</th>
@@ -226,17 +257,17 @@ const ClientDemandTable: React.FC<{
             return (
               <tr key={tile.id} className="hover:bg-white transition-colors">
                 <td className="px-3 py-1.5">
-                  <div className="text-[11px] font-semibold text-slate-900 truncate max-w-[180px]">{tile.object_description || tile.object_ref}</div>
-                  <div className="text-[9px] text-slate-400 truncate max-w-[180px]">{tile.object_ref} · {tile.object_type}</div>
+                  <div className="text-[11px] font-semibold text-slate-900 truncate max-w-[200px]">{tile.object_description || tile.object_ref}</div>
+                  <div className="text-[9px] text-slate-400 truncate max-w-[200px]">{tile.object_ref} · {tile.object_type}</div>
                 </td>
                 <td className="px-3 py-1.5">
                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
                 </td>
                 <td className="px-3 py-1.5">
-                  <span className="text-[10px] text-slate-600">{fmtDateShort(tile.demand_run_date)}</span>
+                  <span className="text-[10px] text-slate-600 tabular-nums">{fmtDateShort(tile.demand_run_date)}</span>
                 </td>
                 <td className="px-3 py-1.5">
-                  <span className={`text-[10px] font-medium ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
+                  <span className={`text-[10px] font-medium tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
                     {fmtDateShort(tile.due_date)}
                   </span>
                 </td>
