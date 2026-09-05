@@ -175,9 +175,35 @@ const ClientSummaryCard: React.FC<{
           ))}
         </div>
 
+        {/* Prominent Outstanding Amount */}
+        <div
+          className={`flex flex-col items-end justify-center px-2.5 py-1 rounded-lg shrink-0 ml-auto ${
+            group.totalOutstanding > 0
+              ? group.overallStatus === 'OVERDUE'
+                ? 'bg-red-50 border border-red-200'
+                : 'bg-amber-50 border border-amber-200'
+              : 'bg-emerald-50 border border-emerald-200'
+          }`}
+        >
+          <span className={`text-[8px] font-bold uppercase tracking-wide leading-none ${
+            group.totalOutstanding > 0
+              ? group.overallStatus === 'OVERDUE' ? 'text-red-500' : 'text-amber-500'
+              : 'text-emerald-500'
+          }`}>
+            Outstanding
+          </span>
+          <span className={`text-sm font-extrabold tabular-nums leading-tight ${
+            group.totalOutstanding > 0
+              ? group.overallStatus === 'OVERDUE' ? 'text-red-700' : 'text-amber-700'
+              : 'text-emerald-700'
+          }`}>
+            {fmtINRShort(group.totalOutstanding)}
+          </span>
+          <span className="text-[8px] text-slate-400 leading-none">{collectionPct}% collected</span>
+        </div>
+
         {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0 ml-auto">
-          <StatusBadge status={group.overallStatus} />
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onToggle}
             className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
@@ -201,11 +227,9 @@ const ClientSummaryCard: React.FC<{
         <Sep />
         <CV label="Paid" value={fmtINRShort(group.totalPaid)} valueCls="text-emerald-600" />
         <Sep />
-        <CV label="Outstanding" value={fmtINRShort(group.totalOutstanding)} valueCls="text-red-600 font-bold" />
-        <Sep />
         {group.overdueAmount > 0 && (
           <>
-            <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
+            <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700 font-bold" />
             <Sep />
           </>
         )}
