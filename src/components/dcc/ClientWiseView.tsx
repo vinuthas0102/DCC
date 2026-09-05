@@ -2,14 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DCCClientDueSummaryModal } from '../../pages/DCCClientDueSummaryPage';
 import {
-  Users, Phone, MapPin, Building2, Receipt, Calendar, Wallet,
-  CheckCircle2, AlertTriangle, Clock, ChevronDown, ChevronUp,
+  Users, Wallet,
+  ChevronDown, ChevronUp,
   MessageSquare, Eye, ChevronRight,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
 import {
   DCC_STATUS,
-  fmtINR, fmtINRShort, fmtDate, fmtDateShort,
+  fmtINR, fmtINRShort, fmtDateShort,
 } from '../../constants/dccTheme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
   };
   const s = config[status];
   return (
-    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${s.cls}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${s.cls} shrink-0`}>
       {s.label}
     </span>
   );
@@ -115,8 +115,8 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
 const CV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
   label, value, valueCls = 'text-slate-900',
 }) => (
-  <div className="flex items-baseline gap-1 min-w-0">
-    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
+  <div className="flex items-baseline gap-0.5 min-w-0 shrink-0">
+    <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none shrink-0">{label}</span>
     <span className={`text-[10px] font-semibold tabular-nums truncate leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
@@ -128,31 +128,28 @@ const ClientSummaryCard: React.FC<{
   onToggle: () => void;
   onViewDetails: () => void;
 }> = ({ group, isExpanded, onToggle, onViewDetails }) => {
-  const initials = group.ownerName.charAt(0).toUpperCase();
   const collectionPct = group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0;
+  const runDateRange = group.runDateMin
+    ? `${fmtDateShort(group.runDateMin)}${group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}`
+    : '—';
+  const dueDateRange = group.dueDateMin
+    ? `${fmtDateShort(group.dueDateMin)}${group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}`
+    : '—';
 
   return (
     <div className="px-2.5 py-1.5">
-      {/* ── Row 1: Client identity + status + actions ── */}
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-          {initials}
-        </div>
-        <div className="min-w-0 flex-1 flex items-center gap-1.5">
-          <h3 className="text-xs font-bold text-slate-900 truncate leading-tight">{group.ownerName}</h3>
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-200 shrink-0">
-            <Building2 size={9} /> {group.propertyCount} {group.propertyCount === 1 ? 'Prop' : 'Props'}
-          </span>
-          <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
-            <Phone size={9} className="shrink-0" />
-            <span className="truncate">{group.ownerContact || '—'}</span>
-          </span>
-          <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
-            <MapPin size={9} className="shrink-0" />
-            <span className="truncate">{group.ownerAddress || '—'}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+      {/* ── Row 1: Client identity + status + actions, all as label-value ── */}
+      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+        <span className="inline-flex w-6 h-6 rounded-lg bg-blue-600 items-center justify-center text-white text-[10px] font-bold shrink-0">
+          {group.ownerName.charAt(0).toUpperCase()}
+        </span>
+        <CV label="Client" value={group.ownerName} valueCls="text-slate-900 font-bold" />
+        <CV label="Props" value={group.propertyCount} valueCls="text-blue-700" />
+        <CV label="Demands" value={group.demandCount} valueCls="text-slate-700" />
+        <CV label="Contact" value={group.ownerContact} valueCls="text-slate-600" />
+        <CV label="Addr" value={group.ownerAddress} valueCls="text-slate-600" />
+
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
           <StatusBadge status={group.overallStatus} />
           <button
             onClick={onToggle}
@@ -171,9 +168,8 @@ const ClientSummaryCard: React.FC<{
         </div>
       </div>
 
-      {/* ── Row 2: All financial + demand info in one dense strip ── */}
+      {/* ── Row 2: All financial + date fields as label-value, no whitespace ── */}
       <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-1 pt-1 border-t border-slate-100">
-        <CV label="Demands" value={group.demandCount} />
         <CV label="Demand" value={fmtINRShort(group.totalDemand)} />
         <CV label="Paid" value={fmtINRShort(group.totalPaid)} valueCls="text-emerald-600" />
         <CV label="Outstanding" value={fmtINRShort(group.totalOutstanding)} valueCls="text-red-600 font-bold" />
@@ -181,20 +177,11 @@ const ClientSummaryCard: React.FC<{
           <CV label="Overdue" value={fmtINRShort(group.overdueAmount)} valueCls="text-red-700" />
         )}
         <CV label="Collected" value={`${collectionPct}%`} valueCls="text-slate-700" />
-        <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
-          <Calendar size={9} className="shrink-0" />
-          <span className="truncate">
-            Run: {fmtDateShort(group.runDateMin)}{group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}
-          </span>
-        </span>
-        <span className="flex items-center gap-0.5 text-[10px] text-slate-500 min-w-0">
-          <Clock size={9} className="shrink-0" />
-          <span className="truncate">
-            Due: {fmtDateShort(group.dueDateMin)}{group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}
-          </span>
-        </span>
+        <CV label="Run" value={runDateRange} valueCls="text-slate-600" />
+        <CV label="Due" value={dueDateRange} valueCls="text-slate-600" />
+
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-          {group.demandTypes.slice(0, 3).map((dt) => (
+          {group.demandTypes.slice(0, 4).map((dt) => (
             <span key={dt.label} className="inline-flex px-1 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0">
               {dt.label}·{dt.count}
             </span>
@@ -291,7 +278,7 @@ const ClientDemandTable: React.FC<{
                         title="Due Payment"
                         className="p-1 rounded text-amber-600 hover:bg-amber-50 transition-colors"
                       >
-                        <Clock size={11} />
+                        <ChevronDown size={11} />
                       </button>
                     )}
                     <button
