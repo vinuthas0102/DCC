@@ -98,9 +98,7 @@ const DemandTile: React.FC<{
 }> = ({ tile, onPay, onViewDetails, onChat, onShowDuePayment, isChatActive }) => {
   const [expanded, setExpanded] = useState(false);
   const st = DCC_STATUS[tile.status];
-  const { user, logout } = useAuthStore();
-  const { openProfileDrawer } = useUIStore();
-  const handleLogout = async () => { await logout(); navigate(ROUTES.LOGIN); };
+  const { user } = useAuthStore();
   const canRecordPayment = user?.role === 'manager' || user?.role === 'admin';
   const canPay = (tile.status === 'DUE' || tile.status === 'OVERDUE') && canRecordPayment;
   const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
@@ -752,7 +750,12 @@ export const DCCPage: React.FC = () => {
   const [owners, setOwners] = useState<DccObjectOwner[]>([]);
   const [objects, setObjects] = useState<DccObject[]>([]);
 
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const { openProfileDrawer } = useUIStore();
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.LOGIN);
+  };
   const isManager = user?.role === 'manager' || user?.role === 'admin';
   const canRecordPayment = isManager;
 
