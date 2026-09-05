@@ -4,7 +4,7 @@ import {
   SlidersHorizontal, Plus, Search, Trash2, Save, X, ChevronDown,
   ChevronRight, Percent, IndianRupee, Calendar, AlertCircle, Loader2,
   CheckCircle2, Clock, Layers, Tag, Building2, User, ArrowLeft,
-  TrendingUp, Upload, Zap,
+  TrendingUp, Upload, Zap, Filter,
 } from 'lucide-react';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { dccService } from '../services/dccService';
@@ -43,6 +43,7 @@ import type { DccDemandType, DccObjectOwner } from '../types/dcc';
 import { ROUTES } from '../constants/routes';
 import { useNavigate } from 'react-router-dom';
 import { CollectionExceptionRow } from '../components/dcc/CollectionExceptionRow';
+import { RuleFilterModal, emptyRuleFilterState, countActiveRuleFilters, type RuleFilterState } from '../components/dcc/RuleFilterModal';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (d: string | null) =>
@@ -215,6 +216,8 @@ export const DCCRuleSetupPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [ruleFilters, setRuleFilters] = useState<RuleFilterState>(emptyRuleFilterState);
 
   // DCC reference data
   const [demandTypes, setDemandTypes] = useState<DccDemandType[]>([]);
@@ -242,9 +245,17 @@ export const DCCRuleSetupPage: React.FC = () => {
 
   useEffect(() => { loadList(); }, [loadList]);
 
+  const activeFilterCount = countActiveRuleFilters(ruleFilters);
+
   const filtered = useMemo(() => {
     return records.filter((r) => {
       if (filterType !== 'ALL' && r.payable_transaction_type !== filterType) return false;
+      if (ruleFilters.objectTypes.length > 0 && !ruleFilters.objectTypes.includes(r.object_type ?? '')) return false;
+      if (ruleFilters.importSources.length > 0 && !ruleFilters.importSources.includes(r.import_source ?? '')) return false;
+      if (ruleFilters.ownerIds.length > 0 && !ruleFilters.ownerIds.includes(r.object_owner_id ?? '')) return false;
+      if (ruleFilters.demandTypeIds.length > 0 && !ruleFilters.demandTypeIds.includes(r.demand_type_id ?? '')) return false;
+      if (ruleFilters.activeOnly !== null && r.is_active !== ruleFilters.activeOnly) return false;
+      if (ruleFilters.includeGst !== null && r.include_gst !== ruleFilters.includeGst) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       const ownerName = owners.find(o => o.id === r.object_owner_id)?.name ?? '';
@@ -256,7 +267,7 @@ export const DCCRuleSetupPage: React.FC = () => {
         r.payable_transaction_type.toLowerCase().includes(q)
       );
     });
-  }, [records, search, filterType, owners, demandTypes]);
+  }, [records, search, filterType, owners, demandTypes, ruleFilters]);
 
   const handleSelect = (rec: PayableCriteria) => {
     setSelectedId(rec.id);
@@ -502,6 +513,16 @@ export const DCCRuleSetupPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
+      <RuleFilterModal
+        isOpen={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        records={records}
+        demandTypes={demandTypes}
+        owners={owners}
+        state={ruleFilters}
+        onApply={setRuleFilters}
+      />
+
       {/* Page header — Deep Slate Navy */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
         <button
@@ -557,6 +578,17 @@ export const DCCRuleSetupPage: React.FC = () => {
                 </option>
               ))}
             </select>
+            <button
+              onClick={() => setFilterOpen(true)}
+              className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold border transition-colors ${activeFilterCount > 0 ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400 hover:text-emerald-700'}`}
+            >
+              <Filter size={13} />
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-white text-emerald-700 text-[9px] font-bold leading-none">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* List body */}
