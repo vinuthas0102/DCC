@@ -26,9 +26,10 @@ const PROPERTY_RENT: DemandComponentConfig = {
   transactionLabel: 'Rent',
   cadence: 'monthly',
   components: [
-    { key: 'base_rent', label: 'Base Rent', ratio: 0.72 },
+    { key: 'base_rent', label: 'Base Rent', ratio: 0.60 },
     { key: 'cam', label: 'Common Area Maintenance (CAM)', ratio: 0.10 },
-    { key: 'water_utility', label: 'Water / Utility Charges', ratio: 0.10 },
+    { key: 'water_utility', label: 'Water / Utility Charges', ratio: 0.08 },
+    { key: 'electricity', label: 'Electricity Charges', ratio: 0.14 },
     { key: 'parking', label: 'Parking Bay Charges', ratio: 0.08 },
   ],
 };
@@ -91,20 +92,6 @@ const EQUIPMENT_RENT: DemandComponentConfig = {
     { key: 'base_hire_rate', label: 'Base Hire Rate', ratio: 0.75 },
     { key: 'operator_fee', label: 'Operator Fee', ratio: 0.18 },
     { key: 'calibration', label: 'Calibration Charge', ratio: 0.07 },
-  ],
-};
-
-// ── Property / Quarter electricity components ──────────────────────────────────
-
-const PROPERTY_ELECTRICITY: DemandComponentConfig = {
-  objectLabel: 'Property',
-  transactionLabel: 'Electricity',
-  cadence: 'monthly',
-  components: [
-    { key: 'energy_charge', label: 'Energy Charge (kWh)', ratio: 0.65 },
-    { key: 'fixed_demand', label: 'Fixed Demand Charge', ratio: 0.15 },
-    { key: 'fuel_adjustment', label: 'Fuel Adjustment Surcharge', ratio: 0.12 },
-    { key: 'meter_rent', label: 'Meter Rent', ratio: 0.08 },
   ],
 };
 
@@ -172,10 +159,6 @@ export const getDemandComponentConfig = (
     case 'MAINTENANCE':
       if (isProp) return PROPERTY_MAINTENANCE;
       if (isVeh) return VEHICLE_MAINTENANCE;
-      return GENERIC_MONTHLY;
-
-    case 'ELECTRICITY':
-      if (isProp) return PROPERTY_ELECTRICITY;
       return GENERIC_MONTHLY;
 
     case 'LOAN':
