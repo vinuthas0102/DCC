@@ -283,7 +283,7 @@ export const DCCRuleSetupPage: React.FC = () => {
       first_btm_run_date: rec.first_btm_run_date,
       subsequent_btm_run_day: rec.subsequent_btm_run_day,
       next_run_date: rec.next_run_date,
-      available_payment_modes: rec.available_payment_modes,
+      available_payment_modes: rec.available_payment_modes ?? [],
       include_gst: rec.include_gst,
       is_active: rec.is_active,
       demand_type_id: rec.demand_type_id ?? null,
@@ -296,22 +296,24 @@ export const DCCRuleSetupPage: React.FC = () => {
       due_date_reference: rec.due_date_reference ?? null,
       grace_period_days: rec.grace_period_days ?? 0,
       tpa_url_id: rec.tpa_url_id ?? null,
-      full_payment_spec: rec.full_payment_spec ?? {
-        reference_date: 'allotted_date',
-        days_offset: 0,
-        discount_slabs: [emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab()],
+      full_payment_spec: {
+        reference_date: rec.full_payment_spec?.reference_date ?? 'allotted_date',
+        days_offset: rec.full_payment_spec?.days_offset ?? 0,
+        discount_slabs: rec.full_payment_spec?.discount_slabs ?? [
+          emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab(), emptyDiscountSlab(),
+        ],
       },
-      advance_spec: rec.advance_spec ?? {
-        advance_type: 'PERCENTAGE',
-        advance_value: 0,
-        reference_date: 'allotted_date',
-        days_offset: 0,
+      advance_spec: {
+        advance_type: rec.advance_spec?.advance_type ?? 'PERCENTAGE',
+        advance_value: rec.advance_spec?.advance_value ?? 0,
+        reference_date: rec.advance_spec?.reference_date ?? 'allotted_date',
+        days_offset: rec.advance_spec?.days_offset ?? 0,
       },
-      installment_spec: rec.installment_spec ?? {
-        installment_type: 'PERCENTAGE',
-        installment_value: 0,
-        reference_date: 'allotted_date',
-        days_offset: 0,
+      installment_spec: {
+        installment_type: rec.installment_spec?.installment_type ?? 'PERCENTAGE',
+        installment_value: rec.installment_spec?.installment_value ?? 0,
+        reference_date: rec.installment_spec?.reference_date ?? 'allotted_date',
+        days_offset: rec.installment_spec?.days_offset ?? 0,
       },
       penalty_slabs: rec.penalty_slabs?.length
         ? [1, 2, 3, 4, 5].map((n) => rec.penalty_slabs!.find((s) => s.slab_row === n) ?? emptyPenaltySlab(n))
