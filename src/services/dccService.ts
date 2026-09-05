@@ -489,13 +489,21 @@ export const dccService = {
       throw planErr;
     }
     if (!plan) return { plan: null, rows: [] };
+    const safePlan = {
+      installment_start_date: null,
+      due_days_with_late_fee: 0,
+      balance_payment: 0,
+      installments_paid: 0,
+      installments_due: 0,
+      ...plan,
+    } as DccInstallmentPlan;
     const { data: rows, error: rowErr } = await supabase
       .from(IROWS)
       .select('*')
-      .eq('plan_id', (plan as DccInstallmentPlan).id)
+      .eq('plan_id', safePlan.id)
       .order('row_number', { ascending: true });
     if (rowErr) throw rowErr;
-    return { plan: plan as DccInstallmentPlan, rows: (rows ?? []) as DccInstallmentRow[] };
+    return { plan: safePlan, rows: (rows ?? []) as DccInstallmentRow[] };
   },
 
   async createInstallmentPlan(
