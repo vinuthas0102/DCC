@@ -604,71 +604,181 @@ export const DCCRuleSetupPage: React.FC = () => {
                 <p className="text-xs mt-1">Click "New Rule" to create one</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-slate-100">
                 {filtered.map((rec) => {
                   const isActive = selectedId === rec.id;
                   const hasRun = rec.next_run_date !== null;
                   const dtLabel = demandTypes.find(d => d.id === rec.demand_type_id)?.label ?? '—';
                   const ownerName = owners.find(o => o.id === rec.object_owner_id)?.name ?? '—';
+                  const freqLabel = frequencyCodeLabel(rec.generation_frequency_code ?? 1);
+                  const dueRef = rec.due_date_reference ? DUE_DATE_REFERENCE_LABELS[rec.due_date_reference] : null;
+                  const grace = rec.grace_period_days ?? 0;
+                  const demandAmt = rec.default_demand_amount;
+                  const gstPct = rec.default_gst_pct;
+                  const fp = rec.full_payment_spec;
+                  const adv = rec.advance_spec;
+                  const inst = rec.installment_spec;
+                  const pens = rec.penalty_slabs ?? [];
+                  const alert = rec.alert_spec;
+                  const inc = rec.increase_spec;
+                  const grid = rec.instalment_grid ?? [];
+                  const excs = rec.collection_exceptions ?? [];
+                  const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
+                  const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
+                  const excByType: Record<string, number> = {};
+                  excs.forEach(e => { excByType[e.exception_type] = (excByType[e.exception_type] ?? 0) + 1; });
                   return (
                     <div
                       key={rec.id}
                       onClick={() => handleSelect(rec)}
-                      className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors ${isActive ? 'bg-emerald-50 border-l-4 border-l-emerald-500' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
+                      className={`px-3 py-1.5 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                            {rec.payable_transaction_type}
-                          </span>
-                          <span className="text-xs font-semibold text-slate-900 truncate">{dtLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
-                          <span className="flex items-center gap-0.5"><Building2 size={10} />{rec.object_type ?? '—'}</span>
-                          <span className="flex items-center gap-0.5"><User size={10} />{ownerName}</span>
-                          <span className="flex items-center gap-0.5"><Tag size={10} />{rec.import_source ?? '—'}</span>
-                          <span className="flex items-center gap-0.5 text-emerald-600"><Zap size={10} />{frequencyCodeLabel(rec.generation_frequency_code ?? 1)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-[10px]">
-                          <span className={`flex items-center gap-0.5 ${hasRun ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {hasRun ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-                            {hasRun ? `Next run: ${fmtDate(rec.next_run_date)}` : 'No run yet'}
-                          </span>
-                          {rec.last_run_date && (
-                            <>
-                              <span className="text-slate-400">·</span>
-                              <span className="text-slate-500">Last: {fmtDate(rec.last_run_date)}</span>
-                            </>
+                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />}
+                      {/* Row 1: Header — type badge + demand type + status pills */}
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                          {rec.payable_transaction_type}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-900 truncate flex-1">{dtLabel}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {rec.is_active ? (
+                            <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600"><CheckCircle2 size={9} />Active</span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded">INACTIVE</span>
                           )}
-                          {rec.next_instalment_seq != null && (
-                            <>
-                              <span className="text-slate-400">·</span>
-                              <span className="text-sky-600 font-medium">Inst #{rec.next_instalment_seq}</span>
-                            </>
-                          )}
-                          <span className="text-slate-400">·</span>
-                          <span className="text-slate-500">{rec.available_payment_modes.length} mode{rec.available_payment_modes.length !== 1 ? 's' : ''}</span>
-                          {rec.include_gst && (
-                            <>
-                              <span className="text-slate-400">·</span>
-                              <span className="text-emerald-600 font-medium">GST</span>
-                            </>
-                          )}
-                          {!rec.is_active && (
-                            <>
-                              <span className="text-slate-400">·</span>
-                              <span className="text-red-500 font-medium">Inactive</span>
-                            </>
-                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
+                            className="p-0.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={11} />
+                          </button>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
-                        className="p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                        title="Delete"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {/* Row 2: Keying — object type / owner / source / freq / location */}
+                      <div className="flex items-center gap-1.5 text-[9px] text-slate-500 flex-wrap mb-0.5">
+                        <span className="flex items-center gap-0.5"><Building2 size={9} />{rec.object_type ?? '—'}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="flex items-center gap-0.5"><User size={9} />{ownerName}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="flex items-center gap-0.5"><Tag size={9} />{rec.import_source ?? '—'}</span>
+                        {rec.tpa_url_id && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-400 font-mono text-[8px]">{rec.tpa_url_id}</span>
+                          </>
+                        )}
+                        <span className="text-slate-300">|</span>
+                        <span className="flex items-center gap-0.5 text-emerald-600 font-medium"><Zap size={9} />{freqLabel}</span>
+                        {rec.location && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span>{rec.location}</span>
+                          </>
+                        )}
+                      </div>
+                      {/* Row 3: Schedule + amounts + due date */}
+                      <div className="flex items-center gap-1.5 text-[9px] flex-wrap mb-0.5">
+                        <span className={`flex items-center gap-0.5 ${hasRun ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {hasRun ? <CheckCircle2 size={9} /> : <Clock size={9} />}
+                          {hasRun ? `Next: ${fmtDate(rec.next_run_date)}` : 'No run yet'}
+                        </span>
+                        {rec.last_run_date && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-500">Last: {fmtDate(rec.last_run_date)}</span>
+                          </>
+                        )}
+                        {rec.first_btm_run_date && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-500">First: {fmtDate(rec.first_btm_run_date)}</span>
+                          </>
+                        )}
+                        {rec.next_instalment_seq != null && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-sky-600 font-medium">Inst #{rec.next_instalment_seq}</span>
+                          </>
+                        )}
+                        {demandAmt != null && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="flex items-center gap-0.5 text-slate-600"><IndianRupee size={9} />{demandAmt.toLocaleString('en-IN')}</span>
+                          </>
+                        )}
+                        {gstPct != null && gstPct > 0 && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="flex items-center gap-0.5 text-slate-600"><Percent size={9} />{gstPct}%</span>
+                          </>
+                        )}
+                        {rec.include_gst && (
+                          <span className="text-emerald-600 font-medium">GST</span>
+                        )}
+                        {dueRef && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-600">Due: {dueRef.split(' ')[0]}{grace > 0 ? ` +${grace}d` : ''}</span>
+                          </>
+                        )}
+                      </div>
+                      {/* Row 4: Payment modes as pills */}
+                      <div className="flex items-center gap-0.5 flex-wrap mb-0.5">
+                        {rec.available_payment_modes.map(m => (
+                          <span key={m} className="text-[8px] font-semibold px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                            {PAYMENT_MODE_LABELS[m]}
+                          </span>
+                        ))}
+                      </div>
+                      {/* Row 5: Spec summaries — advance / installment / penalty / alert / increase / discounts / exceptions / grid */}
+                      <div className="flex items-center gap-1 flex-wrap text-[8px]">
+                        {adv && adv.advance_value > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+                            Adv: {adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}{adv.days_offset > 0 ? ` +${adv.days_offset}d` : ''}
+                          </span>
+                        )}
+                        {inst && inst.installment_value > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">
+                            Inst: {inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}{inst.days_offset > 0 ? ` +${inst.days_offset}d` : ''}
+                          </span>
+                        )}
+                        {activePenaltySlabs.length > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-red-50 text-red-700 border border-red-100">
+                            Penalty: {activePenaltySlabs.length} slab{activePenaltySlabs.length > 1 ? 's' : ''} ({activePenaltySlabs.map(s => s.penalty_type === 'PERCENTAGE' ? `${s.penalty_value}%` : `Rs${s.penalty_value}`).join('/')})
+                          </span>
+                        )}
+                        {activeDiscounts.length > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            Discount: {activeDiscounts.length} slab{activeDiscounts.length > 1 ? 's' : ''} ({activeDiscounts.map(d => `${d.discount_pct}%@${d.days_offset}d`).join(', ')})
+                          </span>
+                        )}
+                        {alert && alert.days_before_due > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-100">
+                            Alert: {alert.days_before_due}d before
+                          </span>
+                        )}
+                        {inc && inc.increase_pct > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-100">
+                            Increase: +{inc.increase_pct}% after {inc.increase_after_months}mo
+                          </span>
+                        )}
+                        {grid.length > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            Grid: {grid.length} rows
+                          </span>
+                        )}
+                        {excs.length > 0 && (
+                          <span className="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            Exc: {Object.entries(excByType).map(([t, n]) => `${n}${t[0]}`).join(' ')}
+                          </span>
+                        )}
+                        {fp && (
+                          <span className="px-1 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-100">
+            Full Pay: {fp.days_offset}d {fp.reference_date.replace(/_/g, ' ').split(' ').slice(0, 2).join(' ')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
