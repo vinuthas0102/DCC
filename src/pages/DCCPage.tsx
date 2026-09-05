@@ -1002,9 +1002,9 @@ export const DCCPage: React.FC = () => {
       {/* Dashboard Tab */}
       {mainTab === 'dashboard' && (() => {
         const dashboardContent = (
-      <div className="h-full flex flex-col bg-slate-50">
+      <div className="h-full flex flex-col bg-[linear-gradient(135deg,#f5f9ff_0%,#eef5ff_48%,#f8fbff_100%)]">
       {/* KPI Cards — single row, 2-line cards */}
-      <div className="px-4 pt-2 grid grid-cols-5 gap-3 mb-2 shrink-0">
+      <div className="px-4 pt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-3 shrink-0">
         {KPI_CONFIG.map(dp => {
           const Icon = dp.icon;
           const value =
@@ -1030,39 +1030,39 @@ export const DCCPage: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               onClick={() => { setDpFilter(prev => prev === dp.key ? 'ALL' : dp.key); setSubDpFilter(null); }}
-              className={`relative text-left rounded-lg border-l-[5px] ${dp.accent} bg-slate-50/70 border border-slate-200/80 px-2.5 py-1.5 overflow-hidden ${
-                isSelected ? 'ring-2 ring-teal-500 border-teal-500 bg-teal-50/10 shadow-sm' : 'hover:shadow-md hover:bg-white'
+              className={`relative text-left min-h-[104px] rounded-xl border ${dp.accent.replace('border-l-', 'border-t-')} bg-white px-4 py-3 overflow-hidden transition-all ${
+                isSelected ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_8px_24px_rgba(37,99,235,0.14)]' : 'border-blue-100 shadow-[0_4px_16px_rgba(30,64,175,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(30,64,175,0.12)]'
               }`}
             >
               {isSelected && (
                 <span className="absolute top-1 right-1 text-teal-500"><ChevronDown size={10} /></span>
               )}
               <div className="flex items-center gap-1.5">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
-                  <Icon size={11} />
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
+                  <Icon size={18} />
                 </div>
-                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider truncate">{dp.label}</span>
+                <span className="text-xs font-bold text-slate-800 truncate">{dp.label}</span>
               </div>
               <div className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold text-slate-900 tabular-nums leading-tight">{value}</span>
-                <span className="text-sm font-bold text-slate-700 tabular-nums ml-1.5 truncate">{fmtINRShort(amount)}</span>
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0 ml-auto">{displayRate}%</span>
+                <span className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">{value}</span>
+                <span className="text-base font-bold text-slate-700 tabular-nums ml-1.5 truncate">{fmtINRShort(amount)}</span>
+                <span className="text-[11px] font-bold text-emerald-600 shrink-0 ml-auto">↑ {displayRate}%</span>
               </div>
             </motion.button>
           );
         })}
 
         {/* Collection Rate KPI */}
-        <div className="relative text-left rounded-lg border-l-[5px] border-l-rose-600 bg-slate-50/70 border border-slate-200/80 px-2.5 py-1.5 overflow-hidden">
+        <div className="relative text-left min-h-[104px] rounded-xl border-t-4 border-t-rose-500 bg-white border border-rose-100 px-4 py-3 overflow-hidden shadow-[0_4px_16px_rgba(190,24,93,0.07)]">
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded flex items-center justify-center bg-rose-100/70 text-rose-600 shrink-0">
-              <TrendingUp size={11} />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-rose-100 text-rose-600 shrink-0">
+              <TrendingUp size={18} />
             </div>
-            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider truncate">Collection Rate</span>
+            <span className="text-xs font-bold text-slate-800 truncate">Collection Rate</span>
           </div>
           <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-xl font-extrabold text-slate-900 tabular-nums leading-tight">{collectionRate}%</span>
-            <span className="text-sm font-bold text-slate-700 tabular-nums ml-1.5 truncate">of {fmtINRShort(totalAmount)}</span>
+            <span className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">{collectionRate}%</span>
+            <span className="text-base font-bold text-slate-700 tabular-nums ml-1.5 truncate">of {fmtINRShort(totalAmount)}</span>
           </div>
         </div>
       </div>
@@ -1215,7 +1215,7 @@ export const DCCPage: React.FC = () => {
             chatTileId={chatTileId}
           />
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 min-w-0 overflow-x-auto pb-2">
             {filteredTiles.map((tile, idx) => (
               <DemandListRecord
                 key={tile.id}
