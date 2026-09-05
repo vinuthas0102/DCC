@@ -8,7 +8,7 @@ import type {
   DccTile, DccDemandFilters, DccDemandType, DccObjectOwner,
 } from '../../types/dcc';
 import {
-  fmtINRShort,
+  fmtINR,
 } from '../../constants/dccTheme';
 
 // ── Region row computed from tiles ──────────────────────────────────────────────
@@ -443,7 +443,7 @@ export const DCCFilterModal: React.FC<DCCFilterModalProps> = ({
                               </td>
                               <td className="px-2 py-1.5 font-semibold text-slate-700 truncate">{r.region}</td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-slate-600">{r.activeDemands}</td>
-                              <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-slate-700">{fmtINRShort(r.totalValue)}</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-slate-700">{fmtINR(r.totalValue)}</td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-slate-600">{r.avgDuePct}%</td>
                               <td className="px-2 py-1.5 text-right tabular-nums">
                                 <span className={r.overdueCount > 0 ? 'text-red-600 font-semibold' : 'text-slate-400'}>{r.overdueCount}</span>

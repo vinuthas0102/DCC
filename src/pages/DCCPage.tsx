@@ -39,7 +39,7 @@ import { ChatDeliveryModePicker } from '../components/ui/ChatDeliveryModePicker'
 import type { ChatDeliveryMode } from '../types/dcc';
 import {
   DCC_STATUS,
-  fmtINR, fmtINRShort, fmtDate, fmtDateShort,
+  fmtINR, fmtDate, fmtDateShort,
 } from '../constants/dccTheme';
 
 type DeliveryModes = ChatDeliveryMode[];
@@ -140,7 +140,7 @@ const DemandTile: React.FC<{
         <div className="text-right shrink-0">
           <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide leading-none">Outstanding</div>
           <div className="text-base font-extrabold text-slate-900 leading-tight">{fmtINR(tile.amount_due)}</div>
-          <div className="text-[9px] text-slate-400">of {fmtINRShort(tile.total_amount)}</div>
+          <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
         </div>
       </div>
 
@@ -156,12 +156,12 @@ const DemandTile: React.FC<{
         </span>
         {tile.overdue_amount > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-red-600 font-semibold">
-            <AlertTriangle size={10} /> Overdue {fmtINRShort(tile.overdue_amount)}
+            <AlertTriangle size={10} /> Overdue {fmtINR(tile.overdue_amount)}
           </span>
         )}
         {tile.amount_paid > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-emerald-600">
-            <CheckCircle2 size={10} /> Paid {fmtINRShort(tile.amount_paid)}
+            <CheckCircle2 size={10} /> Paid {fmtINR(tile.amount_paid)}
           </span>
         )}
       </div>
@@ -186,7 +186,7 @@ const DemandTile: React.FC<{
                 {tile.subgroup && <span><span className="text-slate-400">Subgroup:</span> {tile.subgroup}</span>}
               </div>
               {tile.avg_overdue_days > 0 && <div><span className="text-slate-400">Overdue Days:</span> {tile.avg_overdue_days}d</div>}
-              {tile.last_paid_date && <div><span className="text-slate-400">Last Payment:</span> {fmtINRShort(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
+              {tile.last_paid_date && <div><span className="text-slate-400">Last Payment:</span> {fmtINR(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
             </div>
           </motion.div>
         )}
@@ -278,7 +278,7 @@ const DemandListCard: React.FC<{
         <div className="text-right shrink-0">
           <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide leading-none">Outstanding</div>
           <div className="text-base font-extrabold text-slate-900 leading-tight">{fmtINR(tile.amount_due)}</div>
-          <div className="text-[9px] text-slate-400">of {fmtINRShort(tile.total_amount)}</div>
+          <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
         </div>
       </div>
 
@@ -294,12 +294,12 @@ const DemandListCard: React.FC<{
         </span>
         {tile.overdue_amount > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-red-600 font-semibold">
-            <AlertTriangle size={10} /> Overdue {fmtINRShort(tile.overdue_amount)}
+            <AlertTriangle size={10} /> Overdue {fmtINR(tile.overdue_amount)}
           </span>
         )}
         {tile.amount_paid > 0 && (
           <span className="flex items-center gap-0.5 shrink-0 text-emerald-600">
-            <CheckCircle2 size={10} /> Paid {fmtINRShort(tile.amount_paid)}
+            <CheckCircle2 size={10} /> Paid {fmtINR(tile.amount_paid)}
           </span>
         )}
 
@@ -365,7 +365,7 @@ const DemandListCard: React.FC<{
                 {tile.subgroup && <span><span className="text-slate-400">Sub:</span> {tile.subgroup}</span>}
               </div>
               {tile.avg_overdue_days > 0 && <div><span className="text-slate-400">Avg OD:</span> {tile.avg_overdue_days}d</div>}
-              {tile.last_paid_date && <div><span className="text-slate-400">Last pd:</span> {fmtINRShort(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
+              {tile.last_paid_date && <div><span className="text-slate-400">Last pd:</span> {fmtINR(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
             </div>
           </motion.div>
         )}
@@ -711,7 +711,7 @@ const SubDpRibbon: React.FC<{
                     <div className="mt-0.5 flex items-center gap-1">
                       <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
                       <span className="text-xs font-black text-slate-900 tabular-nums leading-tight">{data.count}</span>
-                      <span className="text-xs font-bold text-slate-600 tabular-nums ml-1 truncate">{fmtINRShort(data.amount)}</span>
+                      <span className="text-xs font-bold text-slate-600 tabular-nums ml-1 truncate">{fmtINR(data.amount)}</span>
                     </div>
                   </motion.button>
                 );
@@ -1065,7 +1065,7 @@ export const DCCPage: React.FC = () => {
               <div className="mt-2.5 flex items-end justify-between gap-2">
                 <div className="flex flex-col leading-none">
                   <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
-                  <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">{fmtINRShort(amount)}</span>
+                  <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">{fmtINR(amount)}</span>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                   <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">
@@ -1095,7 +1095,7 @@ export const DCCPage: React.FC = () => {
           <div className="mt-2.5 flex items-end justify-between gap-2">
             <div className="flex flex-col leading-none">
               <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{collectionRate}%</span>
-              <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">of {fmtINRShort(totalAmount)}</span>
+              <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">of {fmtINR(totalAmount)}</span>
             </div>
             <div className="flex flex-col items-end gap-0.5 shrink-0">
               <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">

@@ -15,13 +15,6 @@ import type {
 const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
-const fmtINRShort = (n: number) => {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-  return `₹${n}`;
-};
-
 const fmtDate = (d: string | null) => {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -380,9 +373,9 @@ const DetailedTable: React.FC<{ rows: DccTile[] }> = ({ rows }) => (
               <td className="px-3 py-2 text-xs font-semibold text-slate-900">{t.object_ref}</td>
               <td className="px-3 py-2 text-xs text-slate-600">{t.owner_name}</td>
               <td className="px-3 py-2 text-xs text-slate-600">{t.demand_type_label}</td>
-              <td className="px-3 py-2 text-xs text-right font-semibold text-slate-900">{fmtINRShort(t.total_amount)}</td>
-              <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINRShort(t.amount_paid)}</td>
-              <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINRShort(t.amount_due)}</td>
+              <td className="px-3 py-2 text-xs text-right font-semibold text-slate-900">{fmtINR(t.total_amount)}</td>
+              <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINR(t.amount_paid)}</td>
+              <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINR(t.amount_due)}</td>
               <td className="px-3 py-2 text-xs text-slate-600">{fmtDate(t.due_date)}</td>
               <td className="px-3 py-2 text-center">
                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${

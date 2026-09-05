@@ -12,7 +12,7 @@ import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import type { DccTile, DccDemandStatus } from '../types/dcc';
 import {
   DCC_STATUS,
-  fmtINR, fmtINRShort, fmtDateShort,
+  fmtINR, fmtDateShort,
 } from '../constants/dccTheme';
 
 type ViewMode = 'card' | 'list' | 'table';
@@ -257,23 +257,23 @@ export const DCCClientDueSummaryModal: React.FC<DCCClientDueSummaryModalProps> =
               {st.label}
             </span>
             <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
-            <div className="text-[9px] text-slate-400">of {fmtINRShort(tile.total_amount)}</div>
+            <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
           </div>
         </div>
         {/* Row 2: 6-column label-value grid */}
         <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
           <LV label="Run Date" value={fmtDateShort(tile.demand_run_date)} />
           <LV label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} />
-          <LV label="Total" value={fmtINRShort(tile.total_amount)} />
-          <LV label="Paid" value={tile.amount_paid > 0 ? fmtINRShort(tile.amount_paid) : '—'} valueCls="text-emerald-600" />
-          <LV label="Pending" value={tile.amount_due > 0 ? fmtINRShort(tile.amount_due) : '—'} valueCls="text-red-600" />
-          <LV label="Penalty" value={tile.overdue_amount > 0 ? fmtINRShort(tile.overdue_amount) : '—'} valueCls="text-red-600" />
+          <LV label="Total" value={fmtINR(tile.total_amount)} />
+          <LV label="Paid" value={tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'} valueCls="text-emerald-600" />
+          <LV label="Pending" value={tile.amount_due > 0 ? fmtINR(tile.amount_due) : '—'} valueCls="text-red-600" />
+          <LV label="Penalty" value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'} valueCls="text-red-600" />
         </div>
         {/* Row 3: Transaction details when available */}
         <div className="px-3 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
           <LV label="Txn Type" value={tile.demand_type_code} valueCls="text-slate-500" />
           <LV label="Last Paid" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} />
-          <LV label="Last Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINRShort(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
+          <LV label="Last Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINR(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
           <LV label="Avg OD Days" value={tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'} valueCls={tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-500'} />
           <LV label="Region" value={tile.region || '—'} valueCls="text-slate-500" />
           <LV label="Group" value={tile.group_name || '—'} valueCls="text-slate-500" />
