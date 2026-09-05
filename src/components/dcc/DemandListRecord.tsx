@@ -6,7 +6,7 @@ import {
   Car, FileText, Home, Landmark, CircleDollarSign, Clock,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
-import { DCC_STATUS, fmtINR, fmtINRShort, fmtDateShort } from '../../constants/dccTheme';
+import { DCC_STATUS, fmtINR, fmtDateShort } from '../../constants/dccTheme';
 
 const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({ label, value, valueCls = 'text-slate-800' }) => (
   <div className="min-w-[80px]">
@@ -32,19 +32,17 @@ export interface DemandListRecordProps {
   onViewDetails: (tile: DccTile) => void;
   onPay?: (tile: DccTile) => void;
   onChat?: (tile: DccTile) => void;
-  onShowDuePayment?: (tile: DccTile) => void;
   isChatActive?: boolean;
   canRecordPayment?: boolean;
 }
 
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
-  tile, idx, onViewDetails, onPay, onChat, onShowDuePayment, isChatActive, canRecordPayment,
+  tile, idx, onViewDetails, onPay, onChat, isChatActive, canRecordPayment,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
   const canPay = (tile.status === 'DUE' || tile.status === 'OVERDUE') && canRecordPayment;
-  const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
   const statusMessage = tile.status === 'OVERDUE'
     ? `${tile.avg_overdue_days || 0}d overdue`
     : tile.status === 'DUE'
@@ -111,9 +109,8 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             {/* Action buttons */}
             <div className="flex w-[170px] shrink-0 items-center justify-end gap-1.5 pl-4">
               {canPay && onPay && <button onClick={(e) => { e.stopPropagation(); onPay(tile); }} title="Pay Now" className="rounded-md bg-emerald-600 p-2 text-white hover:bg-emerald-700"><Wallet size={13} /></button>}
-              {canShowDue && !canPay && onShowDuePayment && <button onClick={(e) => { e.stopPropagation(); onShowDuePayment(tile); }} title="Due Payment" className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-700 hover:bg-amber-100"><CalendarDays size={13} /></button>}
               {onChat && <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded-md p-2 ${isChatActive ? 'bg-slate-800 text-white' : 'border border-blue-100 text-slate-500 hover:bg-blue-50'}`}><MessageSquare size={13} /></button>}
-              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100">Details <ChevronRight size={13} /></button>
+              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100">View Details <ChevronRight size={13} /></button>
               <button onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }} title={expanded ? 'Collapse' : 'Expand'} className="rounded-md p-2 text-slate-400 hover:bg-blue-50">{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
             </div>
           </div>
@@ -133,16 +130,9 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
               <div className={`mt-1 text-sm font-bold tabular-nums leading-tight ${tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-400'}`}>{tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'}</div>
             </div>
             <span className="mx-3 h-8 w-px bg-blue-100" />
-            <LV label="Outstanding" value={fmtINRShort(tile.amount_due)} valueCls={tile.amount_due > 0 ? 'text-red-600' : 'text-slate-400'} />
+            <LV label="Outstanding" value={fmtINR(tile.amount_due)} valueCls={tile.amount_due > 0 ? 'text-red-600' : 'text-slate-400'} />
             <span className="mx-3 h-8 w-px bg-blue-100" />
-            <LV label="Total Amt" value={fmtINRShort(tile.total_amount)} valueCls="text-slate-600" />
-
-            {/* Tags */}
-            <div className="flex items-center gap-1.5 ml-auto shrink-0">
-              {tile.region && <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-semibold">{tile.region}</span>}
-              {tile.group_name && <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-semibold">{tile.group_name}</span>}
-              {tile.subgroup && <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-semibold">{tile.subgroup}</span>}
-            </div>
+            <LV label="Total Amt" value={fmtINR(tile.total_amount)} valueCls="text-slate-600" />
           </div>
         </div>
       </div>

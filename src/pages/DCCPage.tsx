@@ -1224,7 +1224,6 @@ export const DCCPage: React.FC = () => {
                 onViewDetails={handleViewDetails}
                 onPay={handlePay}
                 onChat={handleOpenChat}
-                onShowDuePayment={handleShowDuePayment}
                 isChatActive={chatTileId === tile.id}
                 canRecordPayment={canRecordPayment}
               />
