@@ -1013,8 +1013,8 @@ export const DCCPage: React.FC = () => {
       {mainTab === 'dashboard' && (() => {
         const dashboardContent = (
       <div className="h-full flex flex-col bg-[linear-gradient(135deg,#f5f9ff_0%,#eef5ff_48%,#f8fbff_100%)]">
-      {/* KPI Cards — single row, 2-line cards */}
-      <div className="px-4 pt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-3 shrink-0">
+      {/* KPI Cards — 5-card reference layout */}
+      <div className="px-4 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-3 shrink-0">
         {KPI_CONFIG.map(dp => {
           const Icon = dp.icon;
           const value =
@@ -1033,6 +1033,7 @@ export const DCCPage: React.FC = () => {
             ? Math.round(((dp.key === 'ALL' || dp.key === 'PAID' ? summary?.total_paid ?? 0 : amount) / totalForRate) * 100)
             : 0;
           const displayRate = dp.key === 'OVERDUE' ? 100 - ratePct : ratePct;
+          const trendUp = dp.key !== 'OVERDUE';
           return (
             <motion.button
               key={dp.key}
@@ -1040,39 +1041,68 @@ export const DCCPage: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               onClick={() => { setDpFilter(prev => prev === dp.key ? 'ALL' : dp.key); setSubDpFilter(null); }}
-              className={`relative text-left min-h-[104px] rounded-xl border ${dp.accent.replace('border-l-', 'border-t-')} bg-white px-4 py-3 overflow-hidden transition-all ${
-                isSelected ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_8px_24px_rgba(37,99,235,0.14)]' : 'border-blue-100 shadow-[0_4px_16px_rgba(30,64,175,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(30,64,175,0.12)]'
+              className={`relative text-left min-h-[112px] rounded-xl bg-white px-4 py-3.5 overflow-hidden transition-all border ${
+                isSelected
+                  ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_8px_24px_rgba(37,99,235,0.14)]'
+                  : 'border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
               }`}
             >
+              <div className={`absolute top-0 left-0 right-0 h-1 ${dp.accentBar} ${isSelected ? 'opacity-100' : 'opacity-80'}`} />
               {isSelected && (
-                <span className="absolute top-1 right-1 text-teal-500"><ChevronDown size={10} /></span>
+                <span className="absolute top-2 right-2 flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white shadow-sm">
+                  <ChevronDown size={11} />
+                </span>
               )}
-              <div className="flex items-center gap-1.5">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
-                  <Icon size={18} />
+              <div className="flex items-center gap-2.5">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
+                  <Icon size={22} strokeWidth={2} />
                 </div>
-                <span className="text-xs font-bold text-slate-800 truncate">{dp.label}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] font-bold text-slate-800 truncate leading-tight">{dp.label}</span>
+                  <span className="text-[10px] text-slate-400 font-medium leading-tight">{dp.key === 'ALL' ? 'All records' : `${dp.key.toLowerCase()} records`}</span>
+                </div>
               </div>
-              <div className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">{value}</span>
-                <span className="text-base font-bold text-slate-700 tabular-nums ml-1.5 truncate">{fmtINRShort(amount)}</span>
-                <span className="text-[11px] font-bold text-emerald-600 shrink-0 ml-auto">↑ {displayRate}%</span>
+              <div className="mt-2.5 flex items-end justify-between gap-2">
+                <div className="flex flex-col leading-none">
+                  <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
+                  <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">{fmtINRShort(amount)}</span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">
+                    <path d={dp.sparkPath} fill="none" stroke={dp.sparkColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className={`text-[11px] font-bold tabular-nums ${trendUp ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {trendUp ? '↑' : '↓'} {displayRate}%
+                  </span>
+                </div>
               </div>
             </motion.button>
           );
         })}
 
         {/* Collection Rate KPI */}
-        <div className="relative text-left min-h-[104px] rounded-xl border-t-4 border-t-rose-500 bg-white border border-rose-100 px-4 py-3 overflow-hidden shadow-[0_4px_16px_rgba(190,24,93,0.07)]">
-          <div className="flex items-center gap-1.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-rose-100 text-rose-600 shrink-0">
-              <TrendingUp size={18} />
+        <div className="relative text-left min-h-[112px] rounded-xl bg-white px-4 py-3.5 overflow-hidden border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-teal-100 text-teal-600 shrink-0">
+              <TrendingUp size={22} strokeWidth={2} />
             </div>
-            <span className="text-xs font-bold text-slate-800 truncate">Collection Rate</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[13px] font-bold text-slate-800 truncate leading-tight">Collection Rate</span>
+              <span className="text-[10px] text-slate-400 font-medium leading-tight">overall collection</span>
+            </div>
           </div>
-          <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">{collectionRate}%</span>
-            <span className="text-base font-bold text-slate-700 tabular-nums ml-1.5 truncate">of {fmtINRShort(totalAmount)}</span>
+          <div className="mt-2.5 flex items-end justify-between gap-2">
+            <div className="flex flex-col leading-none">
+              <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{collectionRate}%</span>
+              <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">of {fmtINRShort(totalAmount)}</span>
+            </div>
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">
+                <path d="M0,20 L8,16 L16,14 L24,10 L32,8 L40,6 L48,4 L56,2" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[11px] font-bold text-emerald-600 tabular-nums">↑ {collectionRate}%</span>
+            </div>
           </div>
         </div>
       </div>
