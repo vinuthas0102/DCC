@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Landmark, Mail, Lock, LogIn, Users, Shield } from 'lucide-react';
+import { Landmark, Mail, Lock, LogIn, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { Button } from '../components/ui/Button';
@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('demo@fms.com');
   const [password, setPassword] = useState('demo123');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('public');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('govt_official');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -113,18 +113,6 @@ export const LoginPage: React.FC = () => {
         <div className="mt-6 bg-white rounded-2xl shadow-xl p-6 animate-slideUp" style={{ animationDelay: '0.1s' }}>
           <h3 className="text-sm font-semibold text-gray-700 mb-1">Demo Role Switcher</h3>
           <p className="text-xs text-gray-400 mb-4">Select a role then click Sign In</p>
-
-          {/* General public */}
-          <div className="mb-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-              <Users size={11} /> General Access
-            </div>
-            <div className="space-y-1.5">
-              {(['public', 'dept_user'] as UserRole[]).map((role) => (
-                <RoleButton key={role} role={role} selected={selectedRole} onSelect={setSelectedRole} />
-              ))}
-            </div>
-          </div>
 
           {/* Govt */}
           <div className="mb-3">
