@@ -18,6 +18,18 @@ const getObjectIcon = (objectType: string) => {
   return FileText;
 };
 
+const LABEL_CLS = 'text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
+const VALUE_CLS = 'text-xs font-bold text-slate-800 tabular-nums leading-tight';
+
+const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; align?: string }> = ({
+  label, value, valueCls = VALUE_CLS, align = 'text-right',
+}) => (
+  <div className={`flex flex-col justify-center min-w-0 ${align}`}>
+    <span className={LABEL_CLS}>{label}</span>
+    <span className={`mt-0.5 truncate ${valueCls}`}>{value || '—'}</span>
+  </div>
+);
+
 export interface DemandListRecordProps {
   tile: DccTile;
   idx: number;
@@ -40,74 +52,86 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       initial={{ opacity: 0, y: 2 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
-      className="group flex items-center min-w-0 h-[52px] px-2 gap-2 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      className="group grid items-center min-w-0 h-[54px] px-3 py-2 gap-1 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      style={{
+        gridTemplateColumns:
+          '85px minmax(140px,1fr) 100px 120px 65px 65px 80px 70px 70px 90px 110px',
+      }}
     >
-      {/* Status pill */}
-      <span className={`inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-md text-[10px] font-bold border ${st.bg} ${st.text} ${st.border}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
-        {st.label}
-        {odText && <span className="opacity-75">· {odText}</span>}
-      </span>
+      {/* Col 1: Status pill */}
+      <div className="flex items-center justify-start min-w-0">
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${st.bg} ${st.text} ${st.border} whitespace-nowrap`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+          {st.label}
+          {odText && <span className="opacity-75">· {odText}</span>}
+        </span>
+      </div>
 
-      {/* Asset icon + title + ref */}
-      <div className="flex items-center gap-2 min-w-0 w-[200px] shrink-0">
+      {/* Col 2: Asset icon + title + ref */}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-900">
           <ObjectIcon size={15} strokeWidth={1.8} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-hidden">
           <div className="truncate text-[11px] font-bold text-slate-900 leading-tight">{tile.object_description || tile.object_ref}</div>
           <div className="truncate text-[10px] text-slate-400 leading-tight">{tile.object_ref}</div>
         </div>
       </div>
 
-      {/* Type badges */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800">{tile.object_type}</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600">{tile.demand_type_label}</span>
+      {/* Col 3: Type badges */}
+      <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800 whitespace-nowrap shrink-0">{tile.object_type}</span>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 whitespace-nowrap shrink-0">{tile.demand_type_label}</span>
       </div>
 
-      {/* Client name */}
-      <div className="min-w-0 w-[130px] shrink-0">
+      {/* Col 4: Client name */}
+      <div className="min-w-0 overflow-hidden">
         <div className="truncate text-[11px] font-semibold text-slate-700">{tile.owner_name}</div>
       </div>
 
-      {/* Run date */}
-      <div className="shrink-0 text-[10px] text-slate-500 tabular-nums w-[60px] text-right">{fmtDateShort(tile.demand_run_date)}</div>
+      {/* Col 5: Run date */}
+      <LV label="RUN" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
 
-      {/* Due date */}
-      <div className={`shrink-0 text-[10px] font-semibold tabular-nums w-[60px] text-right ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>{fmtDateShort(tile.due_date)}</div>
+      {/* Col 6: Due date */}
+      <LV label="DUE" value={fmtDateShort(tile.due_date)} valueCls={`text-[11px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
 
-      {/* Base amount */}
-      <div className="shrink-0 text-[11px] font-semibold text-slate-700 tabular-nums w-[80px] text-right">{fmtINR(tile.total_amount)}</div>
+      {/* Col 7: Base amount */}
+      <LV label="BASE" value={fmtINR(tile.total_amount)} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
 
-      {/* GST */}
-      <div className={`shrink-0 text-[10px] tabular-nums w-[70px] text-right ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}>
-        {tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
-      </div>
+      {/* Col 8: GST */}
+      <LV
+        label="GST"
+        value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
+        valueCls={`text-[11px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
+      />
 
-      {/* Penalty */}
-      <div className={`shrink-0 text-[10px] tabular-nums w-[70px] text-right ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}>
-        {tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
-      </div>
+      {/* Col 9: Late fee */}
+      <LV
+        label="LATE FEE"
+        value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
+        valueCls={`text-[11px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
+      />
 
-      {/* Net outstanding */}
-      <div className={`shrink-0 text-[11px] font-bold tabular-nums w-[90px] text-right ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-        {fmtINR(tile.amount_due)}
-      </div>
+      {/* Col 10: Payable */}
+      <LV
+        label="PAYABLE"
+        value={fmtINR(tile.amount_due)}
+        valueCls={`text-[11px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
+      />
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0 ml-auto pl-2">
+      {/* Col 11: Actions */}
+      <div className="flex items-center justify-end gap-1 shrink-0">
         {onChat && (
-          <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded p-1.5 ${isChatActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-100'}`}>
+          <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded p-1.5 shrink-0 ${isChatActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-100'}`}>
             <MessageSquare size={12} />
           </button>
         )}
         {canShowDue && onShowDuePayment && (
-          <button onClick={(e) => { e.stopPropagation(); onShowDuePayment(tile); }} title="Due Payment" className="rounded px-2 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors whitespace-nowrap">
+          <button onClick={(e) => { e.stopPropagation(); onShowDuePayment(tile); }} title="Due Payment" className="rounded px-2 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors whitespace-nowrap shrink-0">
             Pay
           </button>
         )}
-        <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-0.5 rounded px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors whitespace-nowrap">
+        <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-0.5 rounded px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors whitespace-nowrap shrink-0">
           View <ChevronRight size={11} />
         </button>
       </div>

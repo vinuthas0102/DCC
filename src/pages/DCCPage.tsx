@@ -1175,7 +1175,7 @@ export const DCCPage: React.FC = () => {
             chatTileId={chatTileId}
           />
         ) : (
-          <div className="flex flex-col gap-1 min-w-0 overflow-x-auto pb-2">
+          <div className="flex flex-col gap-1 min-w-0 overflow-hidden pb-2">
             {filteredTiles.map((tile, idx) => (
               <DemandListRecord
                 key={tile.id}
