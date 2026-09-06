@@ -352,7 +352,9 @@ type SortKey = 'status' | 'object_description' | 'owner_name' | 'demand_type_lab
 const DemandTable: React.FC<{
   tiles: DccTile[];
   onRowClick: (tile: DccTile) => void;
-}> = ({ tiles, onRowClick }) => {
+  onChat: (tile: DccTile) => void;
+  chatTileId: string | null;
+}> = ({ tiles, onRowClick, onChat, chatTileId }) => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -504,7 +506,17 @@ const DemandTable: React.FC<{
                       >
                         <Eye size={11} /> View
                       </button>
-
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onChat(t); }}
+                        title="Chat"
+                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 ${
+                          chatTileId === t.id
+                            ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <MessageSquare size={11} /> Chat
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1073,6 +1085,8 @@ export const DCCPage: React.FC = () => {
           <DemandTable
             tiles={filteredTiles}
             onRowClick={handleViewDetails}
+            onChat={handleOpenChat}
+            chatTileId={chatTileId}
           />
         ) : viewMode === 'client' ? (
           <ClientWiseView
