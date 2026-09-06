@@ -1161,7 +1161,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                   <table className="w-full text-[10px]">
                     <thead>
                       <tr className="bg-slate-100 text-slate-600">
-                        <th className="px-1.5 py-1 text-left font-bold">Action</th>
                         <th className="px-1.5 py-1 text-left font-bold">Seq</th>
                         <th className="px-1.5 py-1 text-right font-bold">Total Amt</th>
                         <th className="px-1.5 py-1 text-right font-bold">Discount</th>
@@ -1173,6 +1172,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                         <th className="px-1.5 py-1 text-right font-bold">Paid Amt</th>
                         <th className="px-1.5 py-1 text-right font-bold">Remaining</th>
                         <th className="px-1.5 py-1 text-center font-bold">Status</th>
+                        <th className="px-1.5 py-1 text-center font-bold">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1193,20 +1193,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
                           return (
                             <tr key={row.id} className={isPaid ? 'bg-emerald-50/40' : row.status === 'OVERDUE' ? 'bg-red-50/30' : isFullPayment ? 'bg-emerald-50/20' : ''}>
-                              <td className="px-1.5 py-1">
-                                {canPayThis ? (
-                                  <button onClick={() => handlePayInstallment(row)} disabled={payingRowId === row.id} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
-                                    {payingRowId === row.id ? <Loader2 size={10} className="animate-spin" /> : <Wallet size={10} />}
-                                    {payingRowId === row.id ? 'Paying…' : 'Pay'}
-                                  </button>
-                                ) : isLocked ? (
-                                  <span className="inline-flex items-center gap-0.5 text-slate-400 text-[9px]" title="Pay the previous instalment first">
-                                    <Lock size={10} /> Locked
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-300">—</span>
-                                )}
-                              </td>
                               <td className="px-1.5 py-1 font-semibold text-slate-700">{row.label}</td>
                               <td className="px-1.5 py-1 text-right tabular-nums font-bold">{fmtINR(row.amount)}</td>
                               <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.late_fee > 0 && row.row_number === 0 ? fmtINR(0) : '—'}</td>
@@ -1225,6 +1211,20 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                                   row.status === 'DUE' ? 'bg-amber-100 text-amber-700' :
                                   'bg-slate-100 text-slate-500'
                                 }`}>{row.status}</span>
+                              </td>
+                              <td className="px-1.5 py-1 text-center">
+                                {canPayThis ? (
+                                  <button onClick={() => handlePayInstallment(row)} disabled={payingRowId === row.id} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
+                                    {payingRowId === row.id ? <Loader2 size={10} className="animate-spin" /> : <Wallet size={10} />}
+                                    {payingRowId === row.id ? 'Paying…' : 'Pay'}
+                                  </button>
+                                ) : isLocked ? (
+                                  <span className="inline-flex items-center gap-0.5 text-slate-400 text-[9px]" title="Pay the previous instalment first">
+                                    <Lock size={10} /> Locked
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">—</span>
+                                )}
                               </td>
                             </tr>
                           );
