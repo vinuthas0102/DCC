@@ -119,9 +119,6 @@ const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status 
   );
 };
 
-// ── Vertical separator ───────────────────────────────────────────────────────
-const Sep: React.FC = () => <span className="w-px h-8 bg-slate-200 shrink-0" />;
-
 // ── Data point with icon ─────────────────────────────────────────────────────
 const DataPoint: React.FC<{
   icon: React.ReactNode;
@@ -129,11 +126,11 @@ const DataPoint: React.FC<{
   value: React.ReactNode;
   valueCls?: string;
 }> = ({ icon, label, value, valueCls = 'text-slate-800' }) => (
-  <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+  <div className="flex items-center gap-1 min-w-0 shrink-0">
     <span className="text-slate-400 shrink-0">{icon}</span>
     <div className="flex flex-col leading-tight min-w-0">
-      <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400 leading-none">{label}</span>
-      <span className={`text-[11px] font-bold tabular-nums truncate leading-tight ${valueCls}`}>{value || '—'}</span>
+      <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none">{label}</span>
+      <span className={`text-[10px] font-bold tabular-nums truncate leading-tight whitespace-nowrap ${valueCls}`}>{value || '—'}</span>
     </div>
   </div>
 );
@@ -181,53 +178,40 @@ const ClientSummaryCard: React.FC<{
             </div>
           </div>
 
-          <Sep />
-
-          {/* Properties count */}
-          <DataPoint
-            icon={<Building2 size={13} />}
-            label="Properties"
-            value={group.propertyCount}
-            valueCls="text-blue-700"
-          />
-
-          <Sep />
-
-          {/* Demands count */}
-          <DataPoint
-            icon={<FileText size={13} />}
-            label="Demands"
-            value={group.demandCount}
-            valueCls="text-slate-700"
-          />
-
-          <Sep />
-
-          {/* Run date range */}
-          <DataPoint
-            icon={<CalendarDays size={13} />}
-            label="Run Date"
-            value={runDateRange}
-            valueCls="text-slate-600"
-          />
-
-          <Sep />
-
-          {/* Due date range */}
-          <DataPoint
-            icon={<CalendarDays size={13} />}
-            label="Due Date"
-            value={dueDateRange}
-            valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}
-          />
-
-          {/* Demand type tags */}
-          <div className="flex items-center gap-1 min-w-0 overflow-hidden ml-1">
-            {group.demandTypes.slice(0, 3).map((dt) => (
-              <span key={dt.label} className="inline-flex px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">
-                {dt.label} · {dt.count}
-              </span>
-            ))}
+          {/* Data points — single row, no wrapping */}
+          <div className="flex items-center gap-2.5 flex-nowrap overflow-hidden min-w-0">
+            <DataPoint
+              icon={<Building2 size={11} />}
+              label="Properties"
+              value={group.propertyCount}
+              valueCls="text-blue-700"
+            />
+            <DataPoint
+              icon={<FileText size={11} />}
+              label="Demands"
+              value={group.demandCount}
+              valueCls="text-slate-700"
+            />
+            <DataPoint
+              icon={<CalendarDays size={11} />}
+              label="Run Date"
+              value={runDateRange}
+              valueCls="text-slate-600"
+            />
+            <DataPoint
+              icon={<CalendarDays size={11} />}
+              label="Due Date"
+              value={dueDateRange}
+              valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}
+            />
+            {/* Demand type tags */}
+            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+              {group.demandTypes.slice(0, 2).map((dt) => (
+                <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0 whitespace-nowrap">
+                  {dt.label} · {dt.count}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Outstanding panel */}
@@ -261,39 +245,32 @@ const ClientSummaryCard: React.FC<{
         </div>
 
         {/* ── Row 2: Financial summary ── */}
-        <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-slate-100">
+        <div className="flex items-center gap-2.5 mt-2.5 pt-2.5 border-t border-slate-100">
           <DataPoint
-            icon={<Wallet size={13} />}
+            icon={<Wallet size={11} />}
             label="Total Demand"
             value={fmtINR(group.totalDemand)}
             valueCls="text-slate-800"
           />
 
-          <Sep />
-
           <DataPoint
-            icon={<TrendingUp size={13} />}
+            icon={<TrendingUp size={11} />}
             label="Paid"
             value={fmtINR(group.totalPaid)}
             valueCls="text-emerald-600"
           />
 
           {group.overdueAmount > 0 && (
-            <>
-              <Sep />
-              <DataPoint
-                icon={<AlertTriangle size={13} />}
-                label="Overdue"
-                value={fmtINR(group.overdueAmount)}
-                valueCls="text-red-600"
-              />
-            </>
+            <DataPoint
+              icon={<AlertTriangle size={11} />}
+              label="Overdue"
+              value={fmtINR(group.overdueAmount)}
+              valueCls="text-red-600"
+            />
           )}
 
-          <Sep />
-
           <DataPoint
-            icon={<TrendingUp size={13} />}
+            icon={<TrendingUp size={11} />}
             label="Collected"
             value={`${collectionPct}%`}
             valueCls="text-slate-700"
