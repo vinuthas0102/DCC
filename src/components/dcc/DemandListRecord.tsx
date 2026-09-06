@@ -35,16 +35,14 @@ export interface DemandListRecordProps {
   idx: number;
   onViewDetails: (tile: DccTile) => void;
   onChat?: (tile: DccTile) => void;
-  onShowDuePayment?: (tile: DccTile) => void;
   isChatActive?: boolean;
 }
 
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
-  tile, idx, onViewDetails, onChat, onShowDuePayment, isChatActive,
+  tile, idx, onViewDetails, onChat, isChatActive,
 }) => {
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
-  const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
   const odText = tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '';
 
   return (
@@ -116,14 +114,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
 
       {/* Actions — pinned right */}
       <div className="flex items-center justify-end gap-2 shrink-0">
-        {canShowDue && onShowDuePayment && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onShowDuePayment(tile); }}
-            className="rounded px-2.5 py-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors whitespace-nowrap"
-          >
-            Pay
-          </button>
-        )}
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
