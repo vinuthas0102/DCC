@@ -190,7 +190,7 @@ const ClientSummaryCard: React.FC<{
           </div>
 
           {/* Data points — single row, no wrapping */}
-          <div className="flex items-center gap-2.5 flex-nowrap overflow-hidden min-w-0">
+          <div className="flex items-center gap-2.5 flex-nowrap overflow-hidden min-w-0 flex-1">
             <DataPoint
               icon={<Building2 size={11} />}
               label="Properties"

@@ -53,7 +53,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       transition={{ duration: 0.14, delay: Math.min(idx * 0.012, 0.08) }}
       className="group overflow-hidden rounded-xl border border-blue-100 bg-white shadow-[0_4px_16px_rgba(30,64,175,0.06)] transition-all hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(30,64,175,0.1)]"
     >
-      <div className="flex min-w-[1180px] items-stretch">
+      <div className="flex min-w-0 items-stretch">
         {/* Status panel */}
         <div className={`flex w-[116px] shrink-0 flex-col justify-center border-r border-white/60 px-4 py-3 ${st.bg}`}>
           <span className={`inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-bold ${st.text} ${st.border}`}>
@@ -104,9 +104,10 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             </div>
 
             {/* Action buttons */}
-            <div className="flex w-[170px] shrink-0 items-center justify-end gap-1.5 pl-4">
+            <div className="flex w-[200px] shrink-0 items-center justify-end gap-1.5 pl-4">
               {onChat && <button onClick={(e) => { e.stopPropagation(); onChat(tile); }} title="Chat" className={`rounded-md p-2 ${isChatActive ? 'bg-slate-800 text-white' : 'border border-blue-100 text-slate-500 hover:bg-blue-50'}`}><MessageSquare size={13} /></button>}
               <button onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }} title={expanded ? 'Collapse' : 'Expand'} className="rounded-md p-2 text-slate-400 hover:bg-blue-50">{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
+              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100 whitespace-nowrap">Details <ChevronRight size={13} /></button>
             </div>
           </div>
 
@@ -131,10 +132,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <span className="mx-3 h-8 w-px bg-blue-100" />
             <LV label="Total Amt" value={fmtINR(tile.total_amount)} valueCls="text-slate-600" />
 
-            {/* View Details button */}
-            <div className="ml-auto shrink-0 pl-4">
-              <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100">View Details <ChevronRight size={13} /></button>
-            </div>
+
           </div>
         </div>
       </div>
