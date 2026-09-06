@@ -399,6 +399,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
             <div className="space-y-1.5">
               {filteredRunLog.map((log, logIdx) => {
                 const rowStyle = SOURCE_ROW_STYLE[log.source] ?? 'bg-white border-l-slate-300';
+                const processedCount = log.records_created + log.records_failed;
                 return (
                   <div
                     key={log.id}
@@ -412,7 +413,23 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <span className="text-xs font-semibold text-slate-700 shrink-0 hidden md:block">{log.demand_type?.label ?? '—'}</span>
                     <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block">{fmtDate(log.run_date)}</span>
 
-                    {/* Middle: metadata */}
+                    {/* Run summary */}
+                    <div className="hidden lg:grid flex-1 min-w-0 grid-cols-3 gap-4 mx-2">
+                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Demands Processed</div>
+                        <div className="mt-0.5 text-xs font-bold text-slate-700 truncate">{processedCount}</div>
+                      </div>
+                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Started</div>
+                        <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{fmtDateTime(log.started_at)}</div>
+                      </div>
+                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Ended</div>
+                        <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{fmtDateTime(log.ended_at)}</div>
+                      </div>
+                    </div>
+
+                    {/* Right: totals and status */}
                     <div className="ml-auto flex items-center gap-3 shrink-0">
                       <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden md:flex">
                         <Users size={11} /> {log.run_summary?.object_count as number ?? '—'}
