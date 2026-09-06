@@ -158,21 +158,32 @@ const ClientSummaryCard: React.FC<{
       : { bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'text-emerald-500', value: 'text-emerald-700' };
 
   return (
-    <div className="flex">
+    <div className="flex relative">
       {/* Left status strip */}
       <div className={`w-1.5 shrink-0 ${STRIP[group.overallStatus]}`} />
 
-      <div className="flex-1 px-4 py-3">
-        {/* ── Row 1: Client identity + data points + outstanding + actions ── */}
-        <div className="flex items-center gap-3 min-w-0">
+      {/* Outstanding panel — top-right corner */}
+      <div className={`absolute top-2 right-2 z-10 flex flex-col items-end justify-center px-2.5 py-1 rounded-lg border ${outstandingCls.bg} ${outstandingCls.border}`}>
+        <span className={`text-[8px] font-bold uppercase tracking-wide leading-none ${outstandingCls.label}`}>
+          Outstanding
+        </span>
+        <span className={`text-sm font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
+          {fmtINR(group.totalOutstanding)}
+        </span>
+        <span className="text-[8px] text-slate-400 leading-none">{collectionPct}% collected</span>
+      </div>
+
+      <div className="flex-1 px-4 py-2">
+        {/* ── Row 1: Client identity + data points + actions ── */}
+        <div className="flex items-center gap-3 min-w-0 pr-32">
           {/* Avatar + Client name */}
           <div className="flex items-center gap-2.5 shrink-0 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
               {group.ownerName.charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-sm font-bold text-slate-900 truncate max-w-[180px]">{group.ownerName}</span>
-              <span className="flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-[180px]">
+              <span className="text-sm font-bold text-slate-900 truncate max-w-[160px]">{group.ownerName}</span>
+              <span className="flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-[160px]">
                 <Phone size={9} /> {group.ownerContact || '—'}
               </span>
             </div>
@@ -214,29 +225,18 @@ const ClientSummaryCard: React.FC<{
             </div>
           </div>
 
-          {/* Outstanding panel */}
-          <div className={`flex flex-col items-end justify-center px-3 py-1.5 rounded-lg shrink-0 ml-auto border ${outstandingCls.bg} ${outstandingCls.border}`}>
-            <span className={`text-[9px] font-bold uppercase tracking-wide leading-none ${outstandingCls.label}`}>
-              Outstanding
-            </span>
-            <span className={`text-base font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
-              {fmtINR(group.totalOutstanding)}
-            </span>
-            <span className="text-[9px] text-slate-400 leading-none">{collectionPct}% collected</span>
-          </div>
-
           {/* Actions */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={onToggle}
-              className="flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
               title={isExpanded ? 'Collapse' : 'Expand'}
             >
               {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             <button
               onClick={onViewDetails}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
               title="View Details"
             >
               Details <ChevronRight size={11} />
@@ -245,7 +245,7 @@ const ClientSummaryCard: React.FC<{
         </div>
 
         {/* ── Row 2: Financial summary ── */}
-        <div className="flex items-center gap-2.5 mt-2.5 pt-2.5 border-t border-slate-100">
+        <div className="flex items-center gap-2.5 mt-1.5 pt-1.5 border-t border-slate-100 pr-32">
           <DataPoint
             icon={<Wallet size={11} />}
             label="Total Demand"
@@ -275,21 +275,6 @@ const ClientSummaryCard: React.FC<{
             value={`${collectionPct}%`}
             valueCls="text-slate-700"
           />
-
-          {/* Collection progress bar */}
-          <div className="flex-1 min-w-[80px] max-w-[200px] h-2 bg-slate-100 rounded-full overflow-hidden ml-2">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                collectionPct >= 80 ? 'bg-emerald-500' : collectionPct >= 50 ? 'bg-amber-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${Math.min(collectionPct, 100)}%` }}
-            />
-          </div>
-
-          {/* Collected / Total text */}
-          <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-1">
-            {fmtINR(group.totalPaid)} / {fmtINR(group.totalDemand)}
-          </span>
         </div>
       </div>
     </div>
