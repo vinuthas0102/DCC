@@ -126,11 +126,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <MessageSquare size={12} />
           </button>
         )}
-        {canShowDue && onShowDuePayment && (
-          <button onClick={(e) => { e.stopPropagation(); onShowDuePayment(tile); }} title="Due Payment" className="rounded px-2 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors whitespace-nowrap shrink-0">
-            Pay
-          </button>
-        )}
         <button onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }} className="flex items-center gap-0.5 rounded px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors whitespace-nowrap shrink-0">
           View <ChevronRight size={11} />
         </button>
