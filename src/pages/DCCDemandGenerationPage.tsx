@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Zap, Loader2,
   CheckCircle2, AlertCircle, Play, History,
   RefreshCw, ChevronDown, ChevronRight,
   Filter, X, Clock, FileText, TrendingUp, Users,
   Calendar, HelpCircle, Sparkles, Settings2,
+  Eye, Plus, Check,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
@@ -13,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { frequencyCodeLabel } from '../types/payableCriteria';
 import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
+import { Modal } from '../components/ui/Modal';
 
 const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
@@ -47,16 +49,7 @@ const STATUS_BADGE: Record<string, string> = {
   EXEMPTED: 'bg-slate-100 text-slate-600 border border-slate-200',
 };
 
-const RULE_ICON_COLORS = [
-  'from-blue-500 to-blue-600',
-  'from-emerald-500 to-emerald-600',
-  'from-amber-500 to-amber-600',
-  'from-teal-500 to-teal-600',
-  'from-rose-500 to-rose-600',
-  'from-indigo-500 to-indigo-600',
-  'from-cyan-500 to-cyan-600',
-  'from-orange-500 to-orange-600',
-];
+
 
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -75,10 +68,10 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
   // Run history
   const [runLog, setRunLog] = useState<DccDemandRunLog[]>([]);
-  const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [runDetails, setRunDetails] = useState<Record<string, DccDemand[]>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [detailModalLog, setDetailModalLog] = useState<DccDemandRunLog | null>(null);
 
   // Filters
   const [filterSource, setFilterSource] = useState<string>('');
@@ -180,12 +173,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
     });
   };
 
-  const handleExpandRun = async (log: DccDemandRunLog) => {
-    if (expandedRun === log.id) {
-      setExpandedRun(null);
-      return;
-    }
-    setExpandedRun(log.id);
+  const handleOpenRunDetails = async (log: DccDemandRunLog) => {
+    setDetailModalLog(log);
     if (!runDetails[log.id]) {
       setLoadingDetails(log.id);
       try {
@@ -198,6 +187,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
       }
     }
   };
+
+  const closeRunDetails = () => setDetailModalLog(null);
 
   const clearFilters = () => {
     setFilterSource('');
@@ -462,160 +453,74 @@ export const DCCDemandGenerationPage: React.FC = () => {
               <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-100">
               {filteredRunLog.map((log, logIdx) => {
-                const expanded = expandedRun === log.id;
                 const details = runDetails[log.id] ?? [];
-                const isLoadingDetail = loadingDetails === log.id;
                 return (
-                  <div key={log.id}>
-                    {/* Summary row */}
-                    <button
-                      onClick={() => handleExpandRun(log)}
-                      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors text-left"
-                    >
-                      {expanded ? <ChevronDown size={14} className="text-slate-400 shrink-0" /> : <ChevronRight size={14} className="text-slate-400 shrink-0" />}
-                      <span className="text-[10px] font-bold text-slate-400 w-5 text-right shrink-0">{logIdx + 1}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                        {log.source}
+                  <div
+                    key={log.id}
+                    className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors group"
+                  >
+                    {/* Left: primary info */}
+                    <span className="text-[10px] font-bold text-slate-300 w-6 text-right shrink-0">{logIdx + 1}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                      {log.source}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700 shrink-0 hidden md:block">{log.demand_type?.label ?? '—'}</span>
+                    <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block">{fmtDate(log.run_date)}</span>
+
+                    {/* Middle: metadata */}
+                    <div className="ml-auto flex items-center gap-3 shrink-0">
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden md:flex">
+                        <Users size={11} /> {log.run_summary?.object_count as number ?? '—'}
                       </span>
-                      <span className="text-xs font-semibold text-slate-700 shrink-0 hidden md:block">{log.demand_type?.label ?? '—'}</span>
-                      <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block">·</span>
-                      <span className="text-[10px] text-slate-500 shrink-0 hidden lg:block">{fmtDate(log.run_date)}</span>
-                      <div className="ml-auto flex items-center gap-3 shrink-0">
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden md:flex">
-                          <Users size={11} /> {log.run_summary?.object_count as number ?? '—'}
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                        <FileText size={11} /> {log.records_created}
+                      </span>
+                      {log.records_failed > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] text-red-500">
+                          <AlertCircle size={11} /> {log.records_failed}
                         </span>
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                          <FileText size={11} /> {log.records_created}
+                      )}
+                      {log.duration_ms != null && (
+                        <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden xl:flex">
+                          <Clock size={11} /> {fmtDuration(log.duration_ms)}
                         </span>
-                        {log.records_failed > 0 && (
-                          <span className="flex items-center gap-1 text-[10px] text-red-500">
-                            <AlertCircle size={11} /> {log.records_failed}
-                          </span>
-                        )}
-                        {log.duration_ms != null && (
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden xl:flex">
-                            <Clock size={11} /> {fmtDuration(log.duration_ms)}
-                          </span>
-                        )}
-                        <span className="text-xs font-bold text-slate-900">{fmtINR(log.total_amount)}</span>
-                        <span className="flex items-center gap-1 text-[10px] text-emerald-600">
-                          <CheckCircle2 size={11} /> Done
-                        </span>
-                      </div>
-                    </button>
+                      )}
+                      <span className="text-xs font-bold text-slate-900">{fmtINR(log.total_amount)}</span>
+                    </div>
 
-                    {/* Expanded detail */}
-                    {expanded && (
-                      <div className="px-5 pb-5 bg-slate-50/60 border-t border-slate-100">
-                        {/* Run metadata grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-4">
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <Play size={11} /> Started
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.started_at)}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <CheckCircle2 size={11} /> Ended
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.ended_at)}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <Clock size={11} /> Duration
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">{fmtDuration(log.duration_ms)}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <TrendingUp size={11} /> Total Amount
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">{fmtINR(log.total_amount)}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <FileText size={11} /> Records Created
-                            </div>
-                            <div className="text-xs font-semibold text-emerald-600">{log.records_created}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <AlertCircle size={11} /> Records Failed
-                            </div>
-                            <div className={`text-xs font-semibold ${log.records_failed > 0 ? 'text-red-600' : 'text-slate-700'}`}>{log.records_failed}</div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <Users size={11} /> Objects
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">
-                              {log.run_summary?.object_count as number ?? '—'}
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg border border-slate-200 p-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-                              <History size={11} /> Logged At
-                            </div>
-                            <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.created_at)}</div>
-                          </div>
-                        </div>
-
-                        {/* Demands created in this run */}
-                        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-                            <FileText size={13} className="text-slate-500" />
-                            <span className="text-xs font-bold text-slate-700">Demands in this run</span>
-                            <span className="ml-auto text-[10px] text-slate-400">{details.length} demand{details.length !== 1 ? 's' : ''}</span>
-                          </div>
-                          {isLoadingDetail ? (
-                            <div className="flex items-center justify-center py-6">
-                              <Loader2 size={16} className="animate-spin text-emerald-500" />
-                            </div>
-                          ) : details.length === 0 ? (
-                            <div className="text-center py-6 text-slate-400">
-                              <p className="text-xs">No demand records found for this run</p>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                                    <th className="px-3 py-2 text-left">Object Ref</th>
-                                    <th className="px-3 py-2 text-left">Owner</th>
-                                    <th className="px-3 py-2 text-right">Amount</th>
-                                    <th className="px-3 py-2 text-left">Due Date</th>
-                                    <th className="px-3 py-2 text-center">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                  {details.map((d) => (
-                                    <tr key={d.id} className="hover:bg-slate-50">
-                                      <td className="px-3 py-2 text-slate-700 font-medium">{d.object?.object_ref ?? '—'}</td>
-                                      <td className="px-3 py-2 text-slate-600">{d.owner?.name ?? '—'}</td>
-                                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(d.amount)}</td>
-                                      <td className="px-3 py-2 text-slate-600">{fmtDate(d.due_date)}</td>
-                                      <td className="px-3 py-2 text-center">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                                          {d.status}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    {/* Right: actions */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <button
+                        onClick={() => handleOpenRunDetails(log)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 transition-colors"
+                      >
+                        <Eye size={11} /> View
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
+
+          {/* Run details modal */}
+          <Modal
+            isOpen={!!detailModalLog}
+            onClose={closeRunDetails}
+            title="Run Details"
+            size="lg"
+            noPadding
+          >
+            {detailModalLog && (
+              <RunDetailsContent
+                log={detailModalLog}
+                details={runDetails[detailModalLog.id] ?? []}
+                isLoading={loadingDetails === detailModalLog.id}
+              />
+            )}
+          </Modal>
         </div>
       </div>
     </div>
@@ -623,3 +528,247 @@ export const DCCDemandGenerationPage: React.FC = () => {
 };
 
 export default DCCDemandGenerationPage;
+
+// ── Rule Dropdown Section ──────────────────────────────────────────
+
+interface RuleDropdownSectionProps {
+  rules: PayableCriteria[];
+  demandTypes: DccDemandType[];
+  objects: DccObject[];
+  selectedRuleIds: Set<string>;
+  autoAmount: Record<string, number>;
+  onToggleRule: (id: string) => void;
+  onAmountChange: (id: string, val: number) => void;
+  onAddRule: (id: string) => void;
+  onRemoveRule: (id: string) => void;
+}
+
+const RuleDropdownSection: React.FC<RuleDropdownSectionProps> = ({
+  rules, demandTypes, objects, selectedRuleIds, autoAmount,
+  onAmountChange, onAddRule, onRemoveRule,
+}) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedRules = rules.filter(r => selectedRuleIds.has(r.id));
+  const availableRules = rules.filter(r => !selectedRuleIds.has(r.id));
+
+  return (
+    <div className="space-y-3">
+      {/* Selected rules list */}
+      {selectedRules.length > 0 && (
+        <div className="space-y-2">
+          {selectedRules.map(rule => {
+          const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
+          const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
+          return (
+            <div key={rule.id} className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shrink-0">
+                <Check size={14} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-slate-900 truncate">{dtLabel}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                  <span>{rule.object_type ?? '—'}</span>
+                  <span className="text-slate-300">|</span>
+                  <span className="flex items-center gap-0.5">
+                    <Users size={10} /> {matchingCount} obj{matchingCount !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-slate-300">|</span>
+                  <span>{frequencyCodeLabel(rule.generation_frequency_code)}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">₹</span>
+                  <input
+                    type="number"
+                    value={autoAmount[rule.id] ?? 1000}
+                    onChange={e => onAmountChange(rule.id, Number(e.target.value))}
+                    className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500"
+                    placeholder="Amount"
+                  />
+                </div>
+                <button
+                  onClick={() => onRemoveRule(rule.id)}
+                  className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          );
+          })}
+        </div>
+      )}
+
+      {/* Add rule dropdown */}
+      {availableRules.length > 0 && (
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(o => !o)}
+            className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-xs font-semibold text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/30 transition-colors"
+          >
+            <Plus size={14} />
+            {selectedRules.length === 0 ? 'Select rules to generate demands' : 'Add another rule'}
+            <ChevronDown size={14} className={`ml-auto transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              {availableRules.map(rule => {
+                const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
+                const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
+                return (
+                  <button
+                    key={rule.id}
+                    onClick={() => { onAddRule(rule.id); setDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-emerald-50/40 transition-colors text-left border-b border-slate-50 last:border-0"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                      <FileText size={14} className="text-slate-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">{dtLabel}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                        <span>{rule.object_type ?? '—'}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="flex items-center gap-0.5">
+                          <Users size={10} /> {matchingCount} obj{matchingCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <Plus size={14} className="text-slate-300 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Run Details Content (inside modal) ─────────────────────────────
+
+interface RunDetailsContentProps {
+  log: DccDemandRunLog;
+  details: DccDemand[];
+  isLoading: boolean;
+}
+
+const RunDetailsContent: React.FC<RunDetailsContentProps> = ({ log, details, isLoading }) => {
+  return (
+    <div className="p-5 space-y-4">
+      {/* Metadata grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <Play size={11} /> Started
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.started_at)}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <CheckCircle2 size={11} /> Ended
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.ended_at)}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <Clock size={11} /> Duration
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{fmtDuration(log.duration_ms)}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <TrendingUp size={11} /> Total Amount
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{fmtINR(log.total_amount)}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <FileText size={11} /> Records Created
+          </div>
+          <div className="text-xs font-semibold text-emerald-600">{log.records_created}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <AlertCircle size={11} /> Records Failed
+          </div>
+          <div className={`text-xs font-semibold ${log.records_failed > 0 ? 'text-red-600' : 'text-slate-700'}`}>{log.records_failed}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <Users size={11} /> Objects
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{log.run_summary?.object_count as number ?? '—'}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+            <History size={11} /> Logged At
+          </div>
+          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.created_at)}</div>
+        </div>
+      </div>
+
+      {/* Demands table */}
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+          <FileText size={13} className="text-slate-500" />
+          <span className="text-xs font-bold text-slate-700">Demands in this run</span>
+          <span className="ml-auto text-[10px] text-slate-400">{details.length} demand{details.length !== 1 ? 's' : ''}</span>
+        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 size={16} className="animate-spin text-emerald-500" />
+          </div>
+        ) : details.length === 0 ? (
+          <div className="text-center py-6 text-slate-400">
+            <p className="text-xs">No demand records found for this run</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                  <th className="px-3 py-2 text-left">Object Ref</th>
+                  <th className="px-3 py-2 text-left">Owner</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2 text-left">Due Date</th>
+                  <th className="px-3 py-2 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {details.map((d) => (
+                  <tr key={d.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2 text-slate-700 font-medium">{d.object?.object_ref ?? '—'}</td>
+                    <td className="px-3 py-2 text-slate-600">{d.owner?.name ?? '—'}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(d.amount)}</td>
+                    <td className="px-3 py-2 text-slate-600">{fmtDate(d.due_date)}</td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                        {d.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
