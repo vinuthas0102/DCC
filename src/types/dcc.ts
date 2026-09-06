@@ -61,6 +61,10 @@ export interface DccDemand {
   dispute_reason: string | null;
   dispute_remarks: string | null;
   generation_source: DccGenerationSource;
+  include_gst: boolean;
+  gst_pct: number;
+  gst_type: 'inclusive' | 'exclusive';
+  gst_amount: number;
   created_at: string;
   updated_at: string;
   // Joined
@@ -162,6 +166,11 @@ export interface DccTile {
   last_paid_amount: number | null;
   avg_overdue_days: number;
   status: DccDemandStatus;
+  // GST
+  include_gst: boolean;
+  gst_pct: number;
+  gst_type: 'inclusive' | 'exclusive';
+  gst_amount: number;
   // Extra
   region: string | null;
   group_name: string | null;
@@ -201,6 +210,7 @@ export interface DccReportRow {
   total_collected: number;
   total_outstanding: number;
   overdue_amount: number;
+  total_gst: number;
   collection_rate: number;
   demand_count: number;
   overdue_count: number;
@@ -213,6 +223,7 @@ export interface DccOwnerReportRow {
   total_collected: number;
   total_outstanding: number;
   overdue_amount: number;
+  total_gst: number;
   demand_count: number;
   overdue_count: number;
 }

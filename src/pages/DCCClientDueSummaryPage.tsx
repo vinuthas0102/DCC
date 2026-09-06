@@ -275,6 +275,7 @@ export const DCCClientDueSummaryModal: React.FC<DCCClientDueSummaryModalProps> =
           <LV label="Last Paid" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} />
           <LV label="Last Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINR(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
           <LV label="Avg OD Days" value={tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'} valueCls={tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-500'} />
+          <LV label="GST" value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'} valueCls={tile.include_gst && tile.gst_amount > 0 ? 'text-slate-700' : 'text-slate-400'} />
           <LV label="Region" value={tile.region || '—'} valueCls="text-slate-500" />
           <LV label="Group" value={tile.group_name || '—'} valueCls="text-slate-500" />
         </div>
@@ -306,6 +307,7 @@ export const DCCClientDueSummaryModal: React.FC<DCCClientDueSummaryModalProps> =
               <th className="py-2 px-3 text-right font-bold text-slate-600">Paid</th>
               <th className="py-2 px-3 text-right font-bold text-slate-600">Pending</th>
               <th className="py-2 px-3 text-right font-bold text-slate-600">Penalty</th>
+              <th className="py-2 px-3 text-right font-bold text-slate-600">GST</th>
               <th className="py-2 px-3 text-center font-bold text-slate-600">Status</th>
               <th className="py-2 px-3 text-center font-bold text-slate-600">Action</th>
             </tr>
@@ -336,6 +338,7 @@ export const DCCClientDueSummaryModal: React.FC<DCCClientDueSummaryModalProps> =
                   <td className="py-1.5 px-3 text-right font-semibold text-emerald-600 tabular-nums">{fmtINR(tile.amount_paid)}</td>
                   <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(tile.amount_due)}</td>
                   <td className="py-1.5 px-3 text-right font-semibold text-red-600 tabular-nums">{tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}</td>
+                  <td className="py-1.5 px-3 text-right font-semibold text-slate-700 tabular-nums">{tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}</td>
                   <td className="py-1.5 px-3 text-center">
                     <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
                       {st.label}

@@ -62,16 +62,16 @@ function buildDemoDemands(): DccDemand[] {
   const daysFromNow = (n: number) => { const d = new Date(today); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
   const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
   return [
-    { id: 'dem-1', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysFromNow(5), amount: 25000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
-    { id: 'dem-2', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-sd', criteria_id: null, demand_run_date: daysAgo(30), due_date: daysAgo(5), amount: 50000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', created_at: daysAgo(30)+'T00:00:00Z', updated_at: daysAgo(30)+'T00:00:00Z' },
-    { id: 'dem-3', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(8), due_date: daysFromNow(2), amount: 18000, amount_paid: 18000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(8)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
-    { id: 'dem-4', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(15), due_date: daysFromNow(10), amount: 8500, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'TPA', created_at: daysAgo(15)+'T00:00:00Z', updated_at: daysAgo(15)+'T00:00:00Z' },
-    { id: 'dem-5', object_id: 'obj-4', owner_id: 'own-4', demand_type_id: 'dt-loan', criteria_id: null, demand_run_date: daysAgo(20), due_date: daysAgo(2), amount: 22000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(20)+'T00:00:00Z', updated_at: daysAgo(20)+'T00:00:00Z' },
-    { id: 'dem-6', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-tax', criteria_id: null, demand_run_date: daysAgo(5), due_date: daysFromNow(25), amount: 45000, amount_paid: 20000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'EXCEL', created_at: daysAgo(5)+'T00:00:00Z', updated_at: daysAgo(2)+'T00:00:00Z' },
-    { id: 'dem-7', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-insurance', criteria_id: null, demand_run_date: daysAgo(12), due_date: daysFromNow(18), amount: 12000, amount_paid: 12000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(12)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
-    { id: 'dem-8', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-advance', criteria_id: null, demand_run_date: daysAgo(3), due_date: daysFromNow(7), amount: 15000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', created_at: daysAgo(3)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
-    { id: 'dem-9', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysAgo(1), amount: 3200, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
-    { id: 'dem-10', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(7), due_date: daysFromNow(3), amount: 30000, amount_paid: 15000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', created_at: daysAgo(7)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+    { id: 'dem-1', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysFromNow(5), amount: 25000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 4500, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-2', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-sd', criteria_id: null, demand_run_date: daysAgo(30), due_date: daysAgo(5), amount: 50000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(30)+'T00:00:00Z', updated_at: daysAgo(30)+'T00:00:00Z' },
+    { id: 'dem-3', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(8), due_date: daysFromNow(2), amount: 18000, amount_paid: 18000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 2746, created_at: daysAgo(8)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-4', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(15), due_date: daysFromNow(10), amount: 8500, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'TPA', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(15)+'T00:00:00Z', updated_at: daysAgo(15)+'T00:00:00Z' },
+    { id: 'dem-5', object_id: 'obj-4', owner_id: 'own-4', demand_type_id: 'dt-loan', criteria_id: null, demand_run_date: daysAgo(20), due_date: daysAgo(2), amount: 22000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 3960, created_at: daysAgo(20)+'T00:00:00Z', updated_at: daysAgo(20)+'T00:00:00Z' },
+    { id: 'dem-6', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-tax', criteria_id: null, demand_run_date: daysAgo(5), due_date: daysFromNow(25), amount: 45000, amount_paid: 20000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'EXCEL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(5)+'T00:00:00Z', updated_at: daysAgo(2)+'T00:00:00Z' },
+    { id: 'dem-7', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-insurance', criteria_id: null, demand_run_date: daysAgo(12), due_date: daysFromNow(18), amount: 12000, amount_paid: 12000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 1831, created_at: daysAgo(12)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+    { id: 'dem-8', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-advance', criteria_id: null, demand_run_date: daysAgo(3), due_date: daysFromNow(7), amount: 15000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(3)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-9', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysAgo(1), amount: 3200, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 12, gst_type: 'exclusive', gst_amount: 384, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-10', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(7), due_date: daysFromNow(3), amount: 30000, amount_paid: 15000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 5400, created_at: daysAgo(7)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
   ];
 }
 
@@ -230,6 +230,10 @@ export const dccService = {
         last_paid_amount: lastPay?.amount ?? null,
         avg_overdue_days: avgOverdueDays,
         status: d.status,
+        include_gst: d.include_gst ?? false,
+        gst_pct: d.gst_pct ?? 0,
+        gst_type: d.gst_type ?? 'exclusive',
+        gst_amount: d.gst_amount ?? 0,
         region: obj?.region ?? null,
         group_name: obj?.group_name ?? null,
         subgroup: obj?.subgroup ?? null,
@@ -355,18 +359,45 @@ export const dccService = {
 
     const startedAt = new Date().toISOString();
 
-    const demandRows = rows.map((r) => ({
-      object_id: r.object_id,
-      owner_id: r.owner_id,
-      demand_type_id: r.demand_type_id,
-      criteria_id: criteriaId ?? null,
-      demand_run_date: r.run_date,
-      due_date: r.due_date,
-      amount: r.amount,
-      amount_paid: 0,
-      status: 'DUE' as const,
-      generation_source: source,
-    }));
+    // Fetch GST config from payable_criteria_mt if criteriaId is provided
+    let gstConfig = { include_gst: false, gst_pct: 0, gst_type: 'exclusive' as 'inclusive' | 'exclusive' };
+    if (criteriaId) {
+      const { data: pc } = await supabase
+        .from('payable_criteria_mt')
+        .select('include_gst, default_gst_pct')
+        .eq('id', criteriaId)
+        .maybeSingle();
+      if (pc) {
+        const p = pc as { include_gst: boolean; default_gst_pct: number | null };
+        gstConfig = {
+          include_gst: p.include_gst ?? false,
+          gst_pct: p.default_gst_pct ?? 0,
+          gst_type: 'exclusive',
+        };
+      }
+    }
+
+    const demandRows = rows.map((r) => {
+      const gstAmount = gstConfig.include_gst && gstConfig.gst_pct > 0
+        ? Math.round(r.amount * gstConfig.gst_pct / 100)
+        : 0;
+      return {
+        object_id: r.object_id,
+        owner_id: r.owner_id,
+        demand_type_id: r.demand_type_id,
+        criteria_id: criteriaId ?? null,
+        demand_run_date: r.run_date,
+        due_date: r.due_date,
+        amount: r.amount,
+        amount_paid: 0,
+        status: 'DUE' as const,
+        generation_source: source,
+        include_gst: gstConfig.include_gst,
+        gst_pct: gstConfig.gst_pct,
+        gst_type: gstConfig.gst_type,
+        gst_amount: gstAmount,
+      };
+    });
 
     const { data: inserted, error: insErr } = await supabase
       .from(DEMANDS)
@@ -680,6 +711,7 @@ export const dccService = {
           total_collected: 0,
           total_outstanding: 0,
           overdue_amount: 0,
+          total_gst: 0,
           collection_rate: 0,
           demand_count: 0,
           overdue_count: 0,
@@ -689,6 +721,7 @@ export const dccService = {
       groupMap[key].total_collected += t.amount_paid;
       groupMap[key].total_outstanding += t.amount_due;
       groupMap[key].overdue_amount += t.overdue_amount;
+      groupMap[key].total_gst += t.gst_amount;
       groupMap[key].demand_count++;
       if (t.status === 'OVERDUE') groupMap[key].overdue_count++;
     }
@@ -713,6 +746,7 @@ export const dccService = {
           total_collected: 0,
           total_outstanding: 0,
           overdue_amount: 0,
+          total_gst: 0,
           demand_count: 0,
           overdue_count: 0,
         };
@@ -721,6 +755,7 @@ export const dccService = {
       groupMap[key].total_collected += t.amount_paid;
       groupMap[key].total_outstanding += t.amount_due;
       groupMap[key].overdue_amount += t.overdue_amount;
+      groupMap[key].total_gst += t.gst_amount;
       groupMap[key].demand_count++;
       if (t.status === 'OVERDUE') groupMap[key].overdue_count++;
     }

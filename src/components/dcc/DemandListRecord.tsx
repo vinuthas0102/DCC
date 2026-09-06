@@ -116,6 +116,8 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <span className="mx-3 h-8 w-px bg-blue-100" />
             <LV label="Penalty" value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'} valueCls={tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-400'} />
             <span className="mx-3 h-8 w-px bg-blue-100" />
+            <LV label="GST" value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'} valueCls={tile.include_gst && tile.gst_amount > 0 ? 'text-slate-700' : 'text-slate-400'} />
+            <span className="mx-3 h-8 w-px bg-blue-100" />
             <LV label="Last Paid Date" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} valueCls="text-slate-600" />
             <span className="mx-3 h-8 w-px bg-blue-100" />
             <LV label="Last Paid Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINR(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />

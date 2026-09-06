@@ -19,7 +19,7 @@ import { useAuthStore } from '../stores/authStore';
 import { generatePaymentReceipt, receiptNumber } from '../utils/dccReceipt';
 import {
   DCC_STATUS, DCC_INPUT_CLS, DCC_LABEL_CLS,
-  fmtINR, fmtDate, fmtDateShort,
+  fmtINR, fmtDate, fmtDateShort, computeGst,
 } from '../constants/dccTheme';
 import { getDemandComponentConfig } from '../constants/demandComponents';
 
@@ -487,6 +487,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     <tr><td>Amount Due</td><td>${fmtINR(tile.amount_due)}</td></tr>
     <tr><td>Due Date</td><td>${fmtDate(tile.due_date)}</td></tr>
     <tr><td>Overdue Amount</td><td>${fmtINR(tile.overdue_amount)}</td></tr>
+    ${tile.include_gst && tile.gst_pct > 0 ? `<tr><td>GST (${tile.gst_pct}% — ${tile.gst_type === 'inclusive' ? 'Inclusive' : 'Exclusive'})</td><td>${fmtINR(tile.gst_amount)}</td></tr><tr><td>CGST (${tile.gst_pct / 2}%)</td><td>${fmtINR(Math.round(tile.gst_amount / 2))}</td></tr><tr><td>SGST (${tile.gst_pct / 2}%)</td><td>${fmtINR(tile.gst_amount - Math.round(tile.gst_amount / 2))}</td></tr>` : ''}
     <tr><td>Last Paid</td><td>${tile.last_paid_date ? fmtINR(tile.last_paid_amount ?? 0) + ' on ' + fmtDate(tile.last_paid_date) : '—'}</td></tr>
     </tbody></table>
     <div class="footer">Total Outstanding: ${fmtINR(tile.amount_due)}</div>
@@ -746,7 +747,9 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const isSingleOpen = allOpenCount === 1;
 
           const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
+          const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
           const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
+          const finalWithGst = tile.include_gst && tile.gst_type === 'exclusive' ? netPayable + gst.gstAmount : netPayable;
 
           const penaltyAmount = openRows.reduce((sum, row) => sum + (row.charges['penalty'] ?? 0), 0);
           const appliedPenaltyPct = penaltyAmount > 0 ? penaltyPct * 100 : 0;
@@ -808,18 +811,34 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                     <span className="text-slate-500">Early Discount ({earlyDisc.pct}%)</span>
                     <span className="font-semibold text-emerald-700 tabular-nums">{earlyDisc.discount > 0 ? `-${fmtINR(earlyDisc.discount)}` : '—'}</span>
                   </div>
+                  {tile.include_gst && tile.gst_pct > 0 && (
+                    <>
+                      <div className="flex items-baseline justify-between gap-4 text-xs">
+                        <span className="text-slate-500">GST ({tile.gst_pct}% — {tile.gst_type === 'inclusive' ? 'Incl.' : 'Excl.'})</span>
+                        <span className="font-semibold text-slate-700 tabular-nums">{fmtINR(gst.gstAmount)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4 text-[11px] pl-3">
+                        <span className="text-slate-400">CGST ({tile.gst_pct / 2}%)</span>
+                        <span className="font-medium text-slate-500 tabular-nums">{fmtINR(gst.cgstAmount)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4 text-[11px] pl-3">
+                        <span className="text-slate-400">SGST ({tile.gst_pct / 2}%)</span>
+                        <span className="font-medium text-slate-500 tabular-nums">{fmtINR(gst.sgstAmount)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-baseline justify-between gap-4 border-t border-slate-100 pt-1.5 text-xs">
                     <span className="font-bold text-slate-700">Final Amount Payable</span>
-                    <span className="font-black text-slate-900 tabular-nums">{fmtINR(netPayable)}</span>
+                    <span className="font-black text-slate-900 tabular-nums">{fmtINR(finalWithGst)}</span>
                   </div>
                 </div>
                 {!isPaidOrExempted && (canRecordPayment || isGovtOfficial) && (
                   <div className="flex justify-end border-t border-slate-100 pt-3">
                     <button
-                      onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(netPayable); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
+                      onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(finalWithGst); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
                       className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-md shadow-sm transition-colors"
                     >
-                      <Wallet size={14} /> Pay Outstanding: {fmtINR(netPayable)}
+                      <Wallet size={14} /> Pay Outstanding: {fmtINR(finalWithGst)}
                     </button>
                   </div>
                 )}

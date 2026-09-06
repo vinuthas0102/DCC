@@ -177,6 +177,7 @@ export function generatePaymentReceipt({ payment, tile, demand }: ReceiptContext
           <tr><td>Total Demand Amount</td><td class="value">${fmtINR(tile.total_amount)}</td></tr>
           <tr><td>Total Amount Paid</td><td class="value">${fmtINR(tile.amount_paid)}</td></tr>
           <tr><td>Outstanding Balance</td><td class="value">${fmtINR(tile.amount_due)}</td></tr>
+          ${tile.include_gst && tile.gst_amount > 0 ? `<tr><td>GST (${tile.gst_pct}% — ${tile.gst_type === 'inclusive' ? 'Inclusive' : 'Exclusive'})</td><td class="value">${fmtINR(tile.gst_amount)}</td></tr><tr><td>CGST (${tile.gst_pct / 2}%)</td><td class="value">${fmtINR(Math.round(tile.gst_amount / 2))}</td></tr><tr><td>SGST (${tile.gst_pct / 2}%)</td><td class="value">${fmtINR(tile.gst_amount - Math.round(tile.gst_amount / 2))}</td></tr>` : ''}
           <tr><td>Demand Status</td><td><span class="status-pill ${tile.status === 'PAID' ? 'status-paid' : 'status-paid'}">${tile.status}</span></td></tr>
         </tbody>
       </table>

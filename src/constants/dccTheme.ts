@@ -84,3 +84,29 @@ export const fmtDate = (d: string | null) =>
 
 export const fmtDateShort = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
+
+// ── GST helper ──────────────────────────────────────────────────────────────
+// Given the base amount and GST config, returns total GST, CGST (half), SGST
+// (half), and the net payable (base + GST for exclusive; base for inclusive).
+export interface GstBreakdown {
+  gstAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  netPayable: number;
+}
+
+export const computeGst = (
+  baseAmount: number,
+  gstPct: number,
+  gstType: 'inclusive' | 'exclusive',
+  includeGst: boolean,
+): GstBreakdown => {
+  if (!includeGst || gstPct <= 0) {
+    return { gstAmount: 0, cgstAmount: 0, sgstAmount: 0, netPayable: baseAmount };
+  }
+  const gst = Math.round(baseAmount * gstPct / 100);
+  const cgst = Math.round(gst / 2);
+  const sgst = gst - cgst;
+  const net = gstType === 'exclusive' ? baseAmount + gst : baseAmount;
+  return { gstAmount: gst, cgstAmount: cgst, sgstAmount: sgst, netPayable: net };
+};

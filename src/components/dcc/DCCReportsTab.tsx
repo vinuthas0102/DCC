@@ -296,6 +296,7 @@ const ByTypeTable: React.FC<{ rows: DccReportRow[] }> = ({ rows }) => (
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Collected</th>
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Outstanding</th>
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Overdue</th>
+          <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Total GST</th>
           <th className="px-3 py-2 text-center text-[10px] font-bold uppercase text-slate-500">Rate</th>
         </tr>
       </thead>
@@ -308,6 +309,7 @@ const ByTypeTable: React.FC<{ rows: DccReportRow[] }> = ({ rows }) => (
             <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINR(r.total_collected)}</td>
             <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINR(r.total_outstanding)}</td>
             <td className="px-3 py-2 text-xs text-right font-semibold text-red-700">{fmtINR(r.overdue_amount)}</td>
+            <td className="px-3 py-2 text-xs text-right font-semibold text-slate-700">{fmtINR(r.total_gst ?? 0)}</td>
             <td className="px-3 py-2 text-center">
               <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${
                 r.collection_rate >= 75 ? 'bg-emerald-50 text-emerald-700' :
@@ -333,6 +335,7 @@ const ByOwnerTable: React.FC<{ rows: DccOwnerReportRow[] }> = ({ rows }) => (
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Collected</th>
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Outstanding</th>
           <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Overdue</th>
+          <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Total GST</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50">
@@ -344,6 +347,7 @@ const ByOwnerTable: React.FC<{ rows: DccOwnerReportRow[] }> = ({ rows }) => (
             <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINR(r.total_collected)}</td>
             <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINR(r.total_outstanding)}</td>
             <td className="px-3 py-2 text-xs text-right font-semibold text-red-700">{fmtINR(r.overdue_amount)}</td>
+            <td className="px-3 py-2 text-xs text-right font-semibold text-slate-700">{fmtINR(r.total_gst ?? 0)}</td>
           </tr>
         ))}
       </tbody>
@@ -363,6 +367,7 @@ const DetailedTable: React.FC<{ rows: DccTile[] }> = ({ rows }) => (
             <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Total</th>
             <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Paid</th>
             <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">Due</th>
+            <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500">GST</th>
             <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500">Due Date</th>
             <th className="px-3 py-2 text-center text-[10px] font-bold uppercase text-slate-500">Status</th>
           </tr>
@@ -376,6 +381,7 @@ const DetailedTable: React.FC<{ rows: DccTile[] }> = ({ rows }) => (
               <td className="px-3 py-2 text-xs text-right font-semibold text-slate-900">{fmtINR(t.total_amount)}</td>
               <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINR(t.amount_paid)}</td>
               <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINR(t.amount_due)}</td>
+              <td className="px-3 py-2 text-xs text-right font-semibold text-slate-700">{t.include_gst && t.gst_amount > 0 ? fmtINR(t.gst_amount) : '—'}</td>
               <td className="px-3 py-2 text-xs text-slate-600">{fmtDate(t.due_date)}</td>
               <td className="px-3 py-2 text-center">
                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${
@@ -496,27 +502,29 @@ export const DCCReportsTab: React.FC = () => {
 
     if (criteria.reportType === 'by_type') {
       title = 'MIS Report — By Demand Type';
-      headers = ['Demand Type', 'Count', 'Total Demand', 'Collected', 'Outstanding', 'Overdue Amt', 'Collection Rate'];
+      headers = ['Demand Type', 'Count', 'Total Demand', 'Collected', 'Outstanding', 'Overdue Amt', 'Total GST', 'Collection Rate'];
       rows = byTypeRows.map((r) => [
         r.demand_type_label, String(r.demand_count), fmtINR(r.total_demand),
         fmtINR(r.total_collected), fmtINR(r.total_outstanding), fmtINR(r.overdue_amount),
-        `${r.collection_rate}%`,
+        fmtINR(r.total_gst ?? 0), `${r.collection_rate}%`,
       ]);
     } else if (criteria.reportType === 'by_owner' || criteria.reportType === 'overdue') {
       title = criteria.reportType === 'overdue'
         ? 'Exception Report — Overdue Demands'
         : 'MIS Report — By Owner';
-      headers = ['Owner', 'Demands', 'Total Demand', 'Collected', 'Outstanding', 'Overdue Amt'];
+      headers = ['Owner', 'Demands', 'Total Demand', 'Collected', 'Outstanding', 'Overdue Amt', 'Total GST'];
       rows = byOwnerRows.map((r) => [
         r.owner_name, String(r.demand_count), fmtINR(r.total_demand),
         fmtINR(r.total_collected), fmtINR(r.total_outstanding), fmtINR(r.overdue_amount),
+        fmtINR(r.total_gst ?? 0),
       ]);
     } else {
       title = 'Detailed Demand Ledger';
-      headers = ['Object Ref', 'Owner', 'Demand Type', 'Total', 'Paid', 'Due', 'Due Date', 'Status'];
+      headers = ['Object Ref', 'Owner', 'Demand Type', 'Total', 'Paid', 'Due', 'GST', 'Due Date', 'Status'];
       rows = detailedRows.map((t) => [
         t.object_ref, t.owner_name, t.demand_type_label,
         fmtINR(t.total_amount), fmtINR(t.amount_paid), fmtINR(t.amount_due),
+        t.include_gst && t.gst_amount > 0 ? fmtINR(t.gst_amount) : '—',
         fmtDate(t.due_date), t.status,
       ]);
     }
