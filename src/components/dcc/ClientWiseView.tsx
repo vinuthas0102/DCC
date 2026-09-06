@@ -104,20 +104,8 @@ const STRIP: Record<'PAID' | 'DUE' | 'OVERDUE', string> = {
   OVERDUE: 'bg-red-500',
 };
 
-// ── Status badge ─────────────────────────────────────────────────────────────
-const StatusBadge: React.FC<{ status: 'PAID' | 'DUE' | 'OVERDUE' }> = ({ status }) => {
-  const config = {
-    PAID: { label: 'PAID', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
-    DUE: { label: 'DUE', cls: 'bg-amber-50 text-amber-700 border-amber-300' },
-    OVERDUE: { label: 'OVERDUE', cls: 'bg-red-50 text-red-700 border-red-300' },
-  };
-  const s = config[status];
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${s.cls} shrink-0`}>
-      {s.label}
-    </span>
-  );
-};
+// ── Divider ───────────────────────────────────────────────────────────────────
+const Divider = () => <span className="h-6 w-px bg-slate-200 shrink-0" />;
 
 // ── Data point with icon ─────────────────────────────────────────────────────
 const DataPoint: React.FC<{
@@ -126,10 +114,10 @@ const DataPoint: React.FC<{
   value: React.ReactNode;
   valueCls?: string;
 }> = ({ icon, label, value, valueCls = 'text-slate-800' }) => (
-  <div className="flex items-center gap-1 min-w-0 shrink-0">
+  <div className="flex items-center gap-0.5 min-w-0 shrink-0">
     <span className="text-slate-400 shrink-0">{icon}</span>
     <div className="flex flex-col leading-tight min-w-0">
-      <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400 leading-none">{label}</span>
+      <span className="text-[7px] font-bold uppercase tracking-wide text-slate-400 leading-none">{label}</span>
       <span className={`text-[10px] font-bold tabular-nums truncate leading-tight whitespace-nowrap ${valueCls}`}>{value || '—'}</span>
     </div>
   </div>
@@ -144,10 +132,10 @@ const ClientSummaryCard: React.FC<{
 }> = ({ group, isExpanded, onToggle, onViewDetails }) => {
   const collectionPct = group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0;
   const runDateRange = group.runDateMin
-    ? `${fmtDateShort(group.runDateMin)}${group.runDateMax && group.runDateMin !== group.runDateMax ? ` – ${fmtDateShort(group.runDateMax)}` : ''}`
+    ? `${fmtDateShort(group.runDateMin)}${group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}`
     : '—';
   const dueDateRange = group.dueDateMin
-    ? `${fmtDateShort(group.dueDateMin)}${group.dueDateMax && group.dueDateMin !== group.dueDateMax ? ` – ${fmtDateShort(group.dueDateMax)}` : ''}`
+    ? `${fmtDateShort(group.dueDateMin)}${group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}`
     : '—';
 
   const outstandingCls =
@@ -160,121 +148,73 @@ const ClientSummaryCard: React.FC<{
   return (
     <div className="flex relative">
       {/* Left status strip */}
-      <div className={`w-1.5 shrink-0 ${STRIP[group.overallStatus]}`} />
+      <div className={`w-1 shrink-0 ${STRIP[group.overallStatus]}`} />
 
-      {/* Outstanding panel — top-right corner */}
-      <div className={`absolute top-2 right-2 z-10 flex flex-col items-end justify-center px-2.5 py-1 rounded-lg border ${outstandingCls.bg} ${outstandingCls.border}`}>
-        <span className={`text-[8px] font-bold uppercase tracking-wide leading-none ${outstandingCls.label}`}>
-          Outstanding
-        </span>
-        <span className={`text-sm font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
-          {fmtINR(group.totalOutstanding)}
-        </span>
-        <span className="text-[8px] text-slate-400 leading-none">{collectionPct}% collected</span>
-      </div>
-
-      <div className="flex-1 px-4 py-2">
-        {/* ── Row 1: Client identity + data points + actions ── */}
-        <div className="flex items-center gap-3 min-w-0 pr-32">
-          {/* Avatar + Client name */}
-          <div className="flex items-center gap-2.5 shrink-0 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {group.ownerName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-sm font-bold text-slate-900 truncate max-w-[160px]">{group.ownerName}</span>
-              <span className="flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-[160px]">
-                <Phone size={9} /> {group.ownerContact || '—'}
-              </span>
-            </div>
+      <div className="flex-1 flex items-center gap-2 px-3 py-1.5 min-w-0">
+        {/* Avatar + Client name */}
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+            {group.ownerName.charAt(0).toUpperCase()}
           </div>
-
-          {/* Data points — single row, no wrapping */}
-          <div className="flex items-center gap-2.5 flex-nowrap overflow-hidden min-w-0 flex-1">
-            <DataPoint
-              icon={<Building2 size={11} />}
-              label="Properties"
-              value={group.propertyCount}
-              valueCls="text-blue-700"
-            />
-            <DataPoint
-              icon={<FileText size={11} />}
-              label="Demands"
-              value={group.demandCount}
-              valueCls="text-slate-700"
-            />
-            <DataPoint
-              icon={<CalendarDays size={11} />}
-              label="Run Date"
-              value={runDateRange}
-              valueCls="text-slate-600"
-            />
-            <DataPoint
-              icon={<CalendarDays size={11} />}
-              label="Due Date"
-              value={dueDateRange}
-              valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}
-            />
-            {/* Demand type tags */}
-            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-              {group.demandTypes.slice(0, 2).map((dt) => (
-                <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-semibold shrink-0 whitespace-nowrap">
-                  {dt.label} · {dt.count}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
-              title={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            <button
-              onClick={onViewDetails}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-              title="View Details"
-            >
-              Details <ChevronRight size={11} />
-            </button>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[12px] font-bold text-slate-900 truncate max-w-[140px]">{group.ownerName}</span>
+            <span className="flex items-center gap-0.5 text-[9px] text-slate-400 truncate max-w-[140px]">
+              <Phone size={8} /> {group.ownerContact || '—'}
+            </span>
           </div>
         </div>
 
-        {/* ── Row 2: Financial summary ── */}
-        <div className="flex items-center gap-2.5 mt-1.5 pt-1.5 border-t border-slate-100 pr-32">
-          <DataPoint
-            icon={<Wallet size={11} />}
-            label="Total Demand"
-            value={fmtINR(group.totalDemand)}
-            valueCls="text-slate-800"
-          />
+        <Divider />
 
-          <DataPoint
-            icon={<TrendingUp size={11} />}
-            label="Paid"
-            value={fmtINR(group.totalPaid)}
-            valueCls="text-emerald-600"
-          />
+        {/* Metrics */}
+        <DataPoint icon={<Building2 size={10} />} label="Prop" value={group.propertyCount} valueCls="text-blue-700" />
+        <DataPoint icon={<FileText size={10} />} label="Dem" value={group.demandCount} valueCls="text-slate-700" />
+        <DataPoint icon={<CalendarDays size={10} />} label="Run" value={runDateRange} valueCls="text-slate-600" />
+        <DataPoint icon={<CalendarDays size={10} />} label="Due" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'} />
 
-          {group.overdueAmount > 0 && (
-            <DataPoint
-              icon={<AlertTriangle size={11} />}
-              label="Overdue"
-              value={fmtINR(group.overdueAmount)}
-              valueCls="text-red-600"
-            />
-          )}
+        <Divider />
 
-          <DataPoint
-            icon={<TrendingUp size={11} />}
-            label="Collected"
-            value={`${collectionPct}%`}
-            valueCls="text-slate-700"
-          />
+        {/* Financial */}
+        <DataPoint icon={<Wallet size={10} />} label="Demand" value={fmtINR(group.totalDemand)} valueCls="text-slate-800" />
+        <DataPoint icon={<TrendingUp size={10} />} label="Paid" value={fmtINR(group.totalPaid)} valueCls="text-emerald-600" />
+        {group.overdueAmount > 0 && (
+          <DataPoint icon={<AlertTriangle size={10} />} label="OD" value={fmtINR(group.overdueAmount)} valueCls="text-red-600" />
+        )}
+        <DataPoint icon={<TrendingUp size={10} />} label="Coll" value={`${collectionPct}%`} valueCls="text-slate-700" />
+
+        {/* Demand type tags */}
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+          {group.demandTypes.slice(0, 2).map((dt) => (
+            <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap">
+              {dt.label}·{dt.count}
+            </span>
+          ))}
+        </div>
+
+        {/* Outstanding badge — inline */}
+        <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
+          <span className={`text-[7px] font-bold uppercase tracking-wide leading-none ${outstandingCls.label}`}>Outstanding</span>
+          <span className={`text-[11px] font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
+            {fmtINR(group.totalOutstanding)}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          <button
+            onClick={onToggle}
+            className="flex items-center justify-center w-6 h-6 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
+            title={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+          <button
+            onClick={onViewDetails}
+            className="flex items-center gap-0.5 px-2 py-1 rounded-md text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+            title="View Details"
+          >
+            Details <ChevronRight size={10} />
+          </button>
         </div>
       </div>
     </div>
@@ -413,7 +353,7 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-1.5">
       {clientGroups.map((group) => {
         const isExpanded = expandedClients.has(group.ownerId);
         return (

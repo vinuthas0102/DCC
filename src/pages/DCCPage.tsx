@@ -1175,7 +1175,7 @@ export const DCCPage: React.FC = () => {
             chatTileId={chatTileId}
           />
         ) : (
-          <div className="flex flex-col gap-2.5 min-w-0 overflow-x-auto pb-2">
+          <div className="flex flex-col gap-1 min-w-0 overflow-x-auto pb-2">
             {filteredTiles.map((tile, idx) => (
               <DemandListRecord
                 key={tile.id}
@@ -1183,6 +1183,7 @@ export const DCCPage: React.FC = () => {
                 idx={idx}
                 onViewDetails={handleViewDetails}
                 onChat={handleOpenChat}
+                onShowDuePayment={handleShowDuePayment}
                 isChatActive={chatTileId === tile.id}
               />
             ))}
