@@ -31,7 +31,7 @@ import { DCCReportsTab } from '../components/dcc/DCCReportsTab';
 import { ClientWiseView } from '../components/dcc/ClientWiseView';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { useViewPreference } from '../hooks/useViewPreference';
-import { DataTable, type Column } from '../components/ui/DataTable';
+
 import type { ViewMode } from '../components/ui/ViewSwitcher';
 import SplitLayout from '../components/ui/SplitLayout';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
@@ -39,7 +39,8 @@ import { ChatDeliveryModePicker } from '../components/ui/ChatDeliveryModePicker'
 import type { ChatDeliveryMode } from '../types/dcc';
 import {
   DCC_STATUS,
-  fmtINR, fmtDate, fmtDateShort,
+  DEMAND_TYPE_COLORS,
+  fmtINR, fmtDateShort,
 } from '../constants/dccTheme';
 
 type DeliveryModes = ChatDeliveryMode[];
@@ -345,134 +346,184 @@ const DccChatPanel: React.FC<{
 };
 
 // ── Table View ──────────────────────────────────────────────────────────────────
+type SortDir = 'asc' | 'desc';
+type SortKey = 'status' | 'object_description' | 'owner_name' | 'demand_type_label' | 'demand_run_date' | 'due_date' | 'total_amount' | 'amount_paid' | 'amount_due';
+
 const DemandTable: React.FC<{
   tiles: DccTile[];
   onRowClick: (tile: DccTile) => void;
   onShowDuePayment: (tile: DccTile) => void;
 }> = ({ tiles, onRowClick, onShowDuePayment }) => {
-  const columns: Column<DccTile>[] = [
-    {
-      key: 'status',
-      label: 'Status',
-      sortable: true,
-      width: '80px',
-      render: (t) => {
-        const st = DCC_STATUS[t.status];
-        return (
-          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-            {st.label}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'object_description',
-      label: 'Object',
-      sortable: true,
-      render: (t) => (
-        <div className="min-w-0">
-          <div className="font-semibold text-slate-900 truncate text-xs">{t.object_description || t.object_ref}</div>
-          <div className="text-[10px] text-slate-400 truncate">{t.object_ref} · {t.object_type}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'owner_name',
-      label: 'Owner',
-      sortable: true,
-      render: (t) => (
-        <div className="min-w-0">
-          <div className="font-medium text-slate-700 truncate text-xs">{t.owner_name}</div>
-          <div className="text-[10px] text-slate-400 truncate">{t.owner_contact || '—'}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'demand_type_label',
-      label: 'Type',
-      sortable: true,
-      render: (t) => (
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{t.demand_type_label}</span>
-      ),
-    },
-    {
-      key: 'demand_run_date',
-      label: 'Run Date',
-      sortable: true,
-      render: (t) => <span className="text-[10px] text-slate-600">{fmtDateShort(t.demand_run_date)}</span>,
-    },
-    {
-      key: 'due_date',
-      label: 'Due Date',
-      sortable: true,
-      render: (t) => (
-        <span className={`text-[10px] font-medium ${t.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
-          {fmtDateShort(t.due_date)}
-        </span>
-      ),
-    },
-    {
-      key: 'total_amount',
-      label: 'Total',
-      sortable: true,
-      render: (t) => <span className="text-[10px] font-semibold text-slate-700">{fmtINR(t.total_amount)}</span>,
-    },
-    {
-      key: 'amount_paid',
-      label: 'Paid',
-      sortable: true,
-      render: (t) => <span className="text-[10px] font-semibold text-emerald-600">{fmtINR(t.amount_paid)}</span>,
-    },
-    {
-      key: 'amount_due',
-      label: 'Due Amt',
-      sortable: true,
-      render: (t) => <span className="text-xs font-bold text-slate-900">{fmtINR(t.amount_due)}</span>,
-    },
-    {
-      key: 'overdue_amount',
-      label: 'Overdue',
-      sortable: true,
-      render: (t) => (
-        <span className={`text-[10px] font-semibold ${t.overdue_amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-          {t.overdue_amount > 0 ? fmtINR(t.overdue_amount) : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: '',
-      sortable: false,
-      render: (t) => (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); onRowClick(t); }}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <Eye size={11} />
-          </button>
-          {(t.status === 'DUE' || t.status === 'OVERDUE') && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onShowDuePayment(t); }}
-              title="Show Due Payment"
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-600 hover:bg-amber-50 transition-colors"
-            >
-              <CalendarDays size={11} />
-            </button>
-          )}
-        </div>
-      ),
-    },
-  ];
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const sortedTiles = useMemo(() => {
+    if (!sortKey) return tiles;
+    const statusRank: Record<string, number> = { OVERDUE: 0, DUE: 1, DISPUTED: 2, EXEMPTED: 3, PAID: 4 };
+    return [...tiles].sort((a, b) => {
+      let av: string | number = (a as any)[sortKey] ?? '';
+      let bv: string | number = (b as any)[sortKey] ?? '';
+      if (sortKey === 'status') { av = statusRank[av as string] ?? 5; bv = statusRank[bv as string] ?? 5; }
+      if (typeof av === 'number' && typeof bv === 'number') return sortDir === 'asc' ? av - bv : bv - av;
+      const cmp = String(av) > String(bv) ? 1 : String(av) < String(bv) ? -1 : 0;
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [tiles, sortKey, sortDir]);
+
+  const SortIcon: React.FC<{ k: SortKey }> = ({ k }) => {
+    if (sortKey !== k) return <ChevronDown size={9} className="text-slate-300" />;
+    return sortDir === 'asc'
+      ? <ChevronUp size={9} className="text-slate-600" />
+      : <ChevronDown size={9} className="text-slate-600" />;
+  };
+
+  const TH = 'py-2 px-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap';
+  const TD = 'py-2 px-2.5 text-xs align-middle';
+  const ACTION_STICKY = 'sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] z-[5]';
 
   return (
-    <DataTable
-      columns={columns}
-      data={tiles}
-      keyExtractor={(t) => t.id}
-      onRowClick={onRowClick}
-      emptyMessage="No demands found"
-    />
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="overflow-y-auto max-h-full">
+        <table className="w-full" style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            <col className="w-[90px]" />
+            <col style={{ width: 'minmax(180px,1.5fr)' }} />
+            <col style={{ width: 'minmax(150px,1.2fr)' }} />
+            <col className="w-[90px]" />
+            <col className="w-[70px]" />
+            <col className="w-[70px]" />
+            <col className="w-[90px]" />
+            <col className="w-[80px]" />
+            <col className="w-[95px]" />
+            <col className="w-[110px]" />
+          </colgroup>
+          <thead>
+            <tr className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('status')}>
+                <span className="inline-flex items-center gap-1">Status <SortIcon k="status" /></span>
+              </th>
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('object_description')}>
+                <span className="inline-flex items-center gap-1">Object <SortIcon k="object_description" /></span>
+              </th>
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('owner_name')}>
+                <span className="inline-flex items-center gap-1">Owner <SortIcon k="owner_name" /></span>
+              </th>
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('demand_type_label')}>
+                <span className="inline-flex items-center gap-1">Type <SortIcon k="demand_type_label" /></span>
+              </th>
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('demand_run_date')}>
+                <span className="inline-flex items-center gap-1">Run <SortIcon k="demand_run_date" /></span>
+              </th>
+              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('due_date')}>
+                <span className="inline-flex items-center gap-1">Due <SortIcon k="due_date" /></span>
+              </th>
+              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('total_amount')}>
+                <span className="inline-flex items-center gap-1">Total <SortIcon k="total_amount" /></span>
+              </th>
+              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_paid')}>
+                <span className="inline-flex items-center gap-1">Paid <SortIcon k="amount_paid" /></span>
+              </th>
+              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_due')}>
+                <span className="inline-flex items-center gap-1">Due Amt <SortIcon k="amount_due" /></span>
+              </th>
+              <th className={`${TH} ${ACTION_STICKY} text-center`}>Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {sortedTiles.map((t, idx) => {
+              const st = DCC_STATUS[t.status];
+              const canPay = t.status === 'DUE' || t.status === 'OVERDUE';
+              return (
+                <tr
+                  key={t.id}
+                  onClick={() => onRowClick(t)}
+                  className={`cursor-pointer transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                >
+                  {/* Status */}
+                  <td className={TD}>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border} whitespace-nowrap`}>
+                      {st.label}
+                      {t.status === 'OVERDUE' && t.avg_overdue_days > 0 && <span className="ml-0.5">·{t.avg_overdue_days}d</span>}
+                    </span>
+                  </td>
+                  {/* Object */}
+                  <td className={TD}>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 truncate text-xs leading-tight">{t.object_description || t.object_ref}</div>
+                      <div className="text-[10px] text-slate-400 truncate leading-tight">{t.object_ref} · {t.object_type}</div>
+                    </div>
+                  </td>
+                  {/* Owner */}
+                  <td className={TD}>
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-700 truncate text-xs leading-tight">{t.owner_name}</div>
+                      <div className="text-[10px] text-slate-400 truncate leading-tight">{t.owner_contact || '—'}</div>
+                    </div>
+                  </td>
+                  {/* Type */}
+                  <td className={TD}>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEMAND_TYPE_COLORS[t.demand_type_code] || 'bg-slate-400'}`} />
+                      {t.demand_type_label}
+                    </span>
+                  </td>
+                  {/* Run Date */}
+                  <td className={TD}>
+                    <span className="text-xs text-slate-600 whitespace-nowrap">{fmtDateShort(t.demand_run_date)}</span>
+                  </td>
+                  {/* Due Date */}
+                  <td className={TD}>
+                    <span className={`text-xs font-medium whitespace-nowrap ${t.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
+                      {fmtDateShort(t.due_date)}
+                    </span>
+                  </td>
+                  {/* Total */}
+                  <td className={`${TD} text-right`}>
+                    <span className="text-xs font-medium text-slate-700 tabular-nums whitespace-nowrap">{fmtINR(t.total_amount)}</span>
+                  </td>
+                  {/* Paid */}
+                  <td className={`${TD} text-right`}>
+                    <span className="text-xs font-semibold text-emerald-600 tabular-nums whitespace-nowrap">{fmtINR(t.amount_paid)}</span>
+                  </td>
+                  {/* Due Amt */}
+                  <td className={`${TD} text-right`}>
+                    <span className={`text-xs font-bold tabular-nums whitespace-nowrap ${t.amount_due > 0 ? 'text-red-600' : 'text-slate-700'}`}>
+                      {fmtINR(t.amount_due)}
+                    </span>
+                  </td>
+                  {/* Actions — pinned right */}
+                  <td className={`${TD} ${ACTION_STICKY}`}>
+                    <div className="flex items-center justify-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onRowClick(t); }}
+                        title="View Details"
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors shrink-0"
+                      >
+                        <Eye size={11} /> View
+                      </button>
+                      {canPay && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onShowDuePayment(t); }}
+                          title="Due Payment"
+                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors shrink-0"
+                        >
+                          <CalendarDays size={11} /> Pay
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
