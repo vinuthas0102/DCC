@@ -45,7 +45,7 @@ import {
 type DeliveryModes = ChatDeliveryMode[];
 
 type StatusKey = DccTile['status'];
-type DpKey = 'ALL' | 'PAID' | 'DUE' | 'OVERDUE';
+type DpKey = 'ALL' | 'PAID' | 'DUE' | 'OVERDUE' | 'RATE';
 
 // ── KPI config ─────────────────────────────────────────────────────────────────
 const KPI_CONFIG: {
@@ -55,14 +55,12 @@ const KPI_CONFIG: {
   iconBg: string;
   iconText: string;
   accentBar: string;
-  trendColor: string;
-  sparkColor: string;
-  sparkPath: string;
 }[] = [
-  { key: 'ALL',     label: 'Total Demands',  icon: Receipt,       iconBg: 'bg-blue-100',     iconText: 'text-blue-600',    accentBar: 'bg-blue-500',    trendColor: 'text-blue-600',   sparkColor: '#3b82f6', sparkPath: 'M0,18 L8,14 L16,16 L24,10 L32,12 L40,6 L48,8 L56,4' },
-  { key: 'PAID',    label: 'Total Paid',     icon: CheckCircle2, iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', accentBar: 'bg-emerald-500', trendColor: 'text-emerald-600', sparkColor: '#10b981', sparkPath: 'M0,20 L8,16 L16,12 L24,14 L32,8 L40,10 L48,4 L56,2' },
-  { key: 'DUE',     label: 'Total Due',      icon: Clock,        iconBg: 'bg-amber-100',   iconText: 'text-amber-600',   accentBar: 'bg-amber-500',   trendColor: 'text-amber-600',   sparkColor: '#f59e0b', sparkPath: 'M0,8 L8,12 L16,10 L24,14 L32,12 L40,16 L48,14 L56,18' },
-  { key: 'OVERDUE', label: 'Total Overdue',  icon: AlertTriangle,iconBg: 'bg-red-100',     iconText: 'text-red-600',     accentBar: 'bg-red-500',     trendColor: 'text-red-600',     sparkColor: '#ef4444', sparkPath: 'M0,4 L8,8 L16,6 L24,12 L32,10 L40,16 L48,14 L56,20' },
+  { key: 'ALL',     label: 'Total Demands',  icon: Receipt,       iconBg: 'bg-blue-100',     iconText: 'text-blue-600',    accentBar: 'bg-blue-500' },
+  { key: 'PAID',    label: 'Total Paid',     icon: CheckCircle2, iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', accentBar: 'bg-emerald-500' },
+  { key: 'DUE',     label: 'Total Due',      icon: Clock,        iconBg: 'bg-amber-100',   iconText: 'text-amber-600',   accentBar: 'bg-amber-500' },
+  { key: 'OVERDUE', label: 'Total Overdue',  icon: AlertTriangle,iconBg: 'bg-red-100',     iconText: 'text-red-600',     accentBar: 'bg-red-500' },
+  { key: 'RATE',    label: 'Collection Rate', icon: TrendingUp,   iconBg: 'bg-teal-100',    iconText: 'text-teal-600',    accentBar: 'bg-teal-500' },
 ];
 
 // ── Icon-only View Mode Toggle ──────────────────────────────────────────────────
@@ -972,98 +970,65 @@ export const DCCPage: React.FC = () => {
       {mainTab === 'dashboard' && (() => {
         const dashboardContent = (
       <div className="h-full flex flex-col bg-[linear-gradient(135deg,#f5f9ff_0%,#eef5ff_48%,#f8fbff_100%)]">
-      {/* KPI Cards — 5-card reference layout */}
-      <div className="px-4 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-3 shrink-0">
+      {/* KPI Cards — compact single-row bar */}
+      <div className="px-4 pt-2.5 flex flex-row flex-nowrap gap-3 mb-2 shrink-0">
         {KPI_CONFIG.map(dp => {
           const Icon = dp.icon;
+          const isRate = dp.key === 'RATE';
           const value =
+            isRate ? `${collectionRate}%` :
             dp.key === 'ALL' ? tiles.length :
             dp.key === 'PAID' ? summary?.paid_count ?? 0 :
             dp.key === 'DUE' ? summary?.due_count ?? 0 :
             summary?.overdue_count ?? 0;
           const amount =
+            isRate ? totalAmount :
             dp.key === 'ALL' ? totalAmount :
             dp.key === 'PAID' ? summary?.total_paid ?? 0 :
             dp.key === 'DUE' ? summary?.total_due ?? 0 :
             summary?.total_overdue ?? 0;
           const isSelected = dpFilter === dp.key;
           const totalForRate = (summary?.total_paid ?? 0) + (summary?.total_due ?? 0) + (summary?.total_overdue ?? 0);
-          const ratePct = totalForRate > 0
-            ? Math.round(((dp.key === 'ALL' || dp.key === 'PAID' ? summary?.total_paid ?? 0 : amount) / totalForRate) * 100)
-            : 0;
-          const displayRate = dp.key === 'OVERDUE' ? 100 - ratePct : ratePct;
-          const trendUp = dp.key !== 'OVERDUE';
+          const sharePct = totalForRate > 0 && !isRate
+            ? Math.round((amount / totalForRate) * 100)
+            : isRate ? collectionRate : 0;
+          const shareColor =
+            dp.key === 'PAID' || dp.key === 'RATE' ? 'text-emerald-600' :
+            dp.key === 'OVERDUE' ? 'text-red-600' :
+            dp.key === 'DUE' ? 'text-amber-600' :
+            'text-blue-600';
           return (
             <motion.button
               key={dp.key}
-              whileHover={{ scale: 1.02, y: -2 }}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              onClick={() => { setDpFilter(prev => prev === dp.key ? 'ALL' : dp.key); setSubDpFilter(null); }}
-              className={`relative text-left min-h-[112px] rounded-xl bg-white px-4 py-3.5 overflow-hidden transition-all border ${
+              onClick={() => { if (!isRate) { setDpFilter(prev => prev === dp.key ? 'ALL' : dp.key); setSubDpFilter(null); } }}
+              className={`relative text-left flex-1 min-w-0 rounded-lg bg-white px-3.5 py-2.5 overflow-hidden transition-all border ${
                 isSelected
-                  ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_8px_24px_rgba(37,99,235,0.14)]'
-                  : 'border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+                  ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_4px_12px_rgba(37,99,235,0.12)]'
+                  : 'border-slate-200 shadow-sm hover:border-slate-300'
               }`}
             >
-              <div className={`absolute top-0 left-0 right-0 h-1 ${dp.accentBar} ${isSelected ? 'opacity-100' : 'opacity-80'}`} />
-              {isSelected && (
-                <span className="absolute top-2 right-2 flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white shadow-sm">
-                  <ChevronDown size={11} />
+              <div className={`absolute top-0 left-0 right-0 h-0.5 ${dp.accentBar} ${isSelected ? 'opacity-100' : 'opacity-70'}`} />
+              <div className="flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
+                  <Icon size={14} strokeWidth={2} />
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 truncate leading-tight">
+                  {dp.label}
                 </span>
-              )}
-              <div className="flex items-center gap-2.5">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
-                  <Icon size={22} strokeWidth={2} />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[13px] font-bold text-slate-800 truncate leading-tight">{dp.label}</span>
-                  <span className="text-[10px] text-slate-400 font-medium leading-tight">{dp.key === 'ALL' ? 'All records' : `${dp.key.toLowerCase()} records`}</span>
-                </div>
               </div>
-              <div className="mt-2.5 flex items-end justify-between gap-2">
-                <div className="flex flex-col leading-none">
-                  <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
-                  <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">{fmtINR(amount)}</span>
-                </div>
-                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                  <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">
-                    <path d={dp.sparkPath} fill="none" stroke={dp.sparkColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className={`text-[11px] font-bold tabular-nums ${trendUp ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {trendUp ? '↑' : '↓'} {displayRate}%
-                  </span>
-                </div>
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span className="text-sm font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
+                <span className="text-[10px] font-bold text-slate-500 tabular-nums leading-none truncate">{isRate ? `of ${fmtINR(amount)}` : fmtINR(amount)}</span>
+                <span className={`ml-auto text-[10px] font-bold tabular-nums leading-none ${shareColor}`}>
+                  {sharePct}%
+                </span>
               </div>
             </motion.button>
           );
         })}
-
-        {/* Collection Rate KPI */}
-        <div className="relative text-left min-h-[112px] rounded-xl bg-white px-4 py-3.5 overflow-hidden border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500" />
-          <div className="flex items-center gap-2.5">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-teal-100 text-teal-600 shrink-0">
-              <TrendingUp size={22} strokeWidth={2} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[13px] font-bold text-slate-800 truncate leading-tight">Collection Rate</span>
-              <span className="text-[10px] text-slate-400 font-medium leading-tight">overall collection</span>
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-end justify-between gap-2">
-            <div className="flex flex-col leading-none">
-              <span className="text-[26px] font-extrabold text-slate-900 tabular-nums leading-none">{collectionRate}%</span>
-              <span className="text-[11px] font-bold text-slate-500 tabular-nums mt-1 leading-none">of {fmtINR(totalAmount)}</span>
-            </div>
-            <div className="flex flex-col items-end gap-0.5 shrink-0">
-              <svg width="56" height="24" viewBox="0 0 56 24" className="overflow-visible">
-                <path d="M0,20 L8,16 L16,14 L24,10 L32,8 L40,6 L48,4 L56,2" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-[11px] font-bold text-emerald-600 tabular-nums">↑ {collectionRate}%</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Sub-DP Drilldown Ribbon */}
