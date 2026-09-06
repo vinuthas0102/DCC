@@ -352,8 +352,7 @@ type SortKey = 'status' | 'object_description' | 'owner_name' | 'demand_type_lab
 const DemandTable: React.FC<{
   tiles: DccTile[];
   onRowClick: (tile: DccTile) => void;
-  onShowDuePayment: (tile: DccTile) => void;
-}> = ({ tiles, onRowClick, onShowDuePayment }) => {
+}> = ({ tiles, onRowClick }) => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -437,7 +436,6 @@ const DemandTable: React.FC<{
           <tbody className="divide-y divide-slate-100">
             {sortedTiles.map((t, idx) => {
               const st = DCC_STATUS[t.status];
-              const canPay = t.status === 'DUE' || t.status === 'OVERDUE';
               return (
                 <tr
                   key={t.id}
@@ -506,15 +504,7 @@ const DemandTable: React.FC<{
                       >
                         <Eye size={11} /> View
                       </button>
-                      {canPay && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onShowDuePayment(t); }}
-                          title="Due Payment"
-                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors shrink-0"
-                        >
-                          <CalendarDays size={11} /> Pay
-                        </button>
-                      )}
+
                     </div>
                   </td>
                 </tr>
@@ -1083,7 +1073,6 @@ export const DCCPage: React.FC = () => {
           <DemandTable
             tiles={filteredTiles}
             onRowClick={handleViewDetails}
-            onShowDuePayment={handleShowDuePayment}
           />
         ) : viewMode === 'client' ? (
           <ClientWiseView
