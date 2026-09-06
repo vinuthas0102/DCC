@@ -42,6 +42,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Detail stays in the console for developers, never on screen.
+    console.error('Unhandled application error:', error, errorInfo);
     this.setState({ error, errorInfo });
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -109,9 +111,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
           {this.state.error && (
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-              <p className="text-sm font-medium text-gray-900 mb-1">Error Details:</p>
-              <p className="text-sm text-gray-600 font-mono break-words">
-                {this.state.error.message}
+              <p className="text-sm font-medium text-gray-900 mb-1">What happened:</p>
+              <p className="text-sm text-gray-600 break-words">
+                Something went wrong while loading this screen. The technical details have
+                been recorded for the team.
               </p>
             </div>
           )}

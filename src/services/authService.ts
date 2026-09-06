@@ -1,6 +1,16 @@
 import { supabase, validateSession, refreshSession } from '../lib/supabase';
 import { UserDTO, LoginCredentials, CreateUserDTO, ProfileMetadata } from '../types';
 
+/*
+ * SECURITY: while DEMO_MODE is true nobody actually signs in — every visitor is
+ * served a stand-in profile and the browser talks to the database as the public
+ * (anonymous) role. Because of that, the demand, owner, payment and installment
+ * tables still carry "anon" read policies so the screens have data to show, which
+ * means those records are readable by anyone holding the publishable key.
+ * Before going live: set DEMO_MODE to false, provision real accounts, and drop the
+ * anon SELECT policies on the dcc_* and payable_* tables. The authenticated
+ * policies that scope rows to admins, managers and the owning user already exist.
+ */
 const DEMO_MODE = true;
 
 const DEMO_METADATA: ProfileMetadata = {
@@ -121,13 +131,7 @@ export const authService = {
     if (userError) throw userError;
     if (!userData) throw new Error('User data not found');
 
-    if (credentials.role && userData) {
-      await supabase
-        .from('users')
-        .update({ role: credentials.role })
-        .eq('id', userData.id);
-      userData.role = credentials.role;
-    }
+    // The role is decided by the server-side record, never by the sign-in form.
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -303,10 +307,11 @@ export const authService = {
 
   switchRole: async (userId: string, newRole: string): Promise<void> => {
     if (DEMO_MODE) return Promise.resolve();
-    const { error } = await supabase
-      .from('users')
-      .update({ role: newRole })
-      .eq('id', userId);
+    // Role changes are performed by an administrator-only database routine.
+    const { error } = await supabase.rpc('set_user_role', {
+      p_user_id: userId,
+      p_role: newRole,
+    });
 
     if (error) throw error;
 

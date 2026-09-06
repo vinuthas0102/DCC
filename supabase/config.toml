@@ -1,5 +1,2 @@
-[functions.seed-demo-user]
-verify_jwt = false
-
 [functions.dcc-run-scheduled-reports]
-verify_jwt = false
+verify_jwt = true

@@ -61,8 +61,11 @@ export const LoginPage: React.FC = () => {
       try { localStorage.removeItem('dccView'); } catch { /* ignore */ }
       addToast('Login successful', 'success');
       navigate(ROUTES.DASHBOARD);
-    } catch (error: any) {
-      addToast(error.message || 'Login failed', 'error');
+    } catch (error) {
+      // Keep the underlying reason out of the interface: it can disclose
+      // internal database detail and whether an account exists.
+      console.error('Login failed:', error);
+      addToast('Sign in failed. Please check your details and try again.', 'error');
     } finally {
       setLoading(false);
     }

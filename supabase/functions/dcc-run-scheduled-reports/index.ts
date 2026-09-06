@@ -32,6 +32,46 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Only an administrator or estate manager may trigger a scheduling sweep.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Not authorised" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { data: caller, error: callerError } = await supabaseAdmin.auth.getUser(token);
+
+    if (callerError || !caller?.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Not authorised" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { data: callerRow } = await supabaseAdmin
+      .from("users")
+      .select("role")
+      .eq("id", caller.user.id)
+      .maybeSingle();
+
+    const callerRole =
+      ((caller.user.app_metadata as Record<string, unknown> | null)?.role as string | undefined) ??
+      (callerRow?.role as string | undefined) ??
+      null;
+
+    if (callerRole !== "admin" && callerRole !== "manager") {
+      return new Response(
+        JSON.stringify({ success: false, error: "Not authorised" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const now = new Date().toISOString();
 
     // Find all active schedules whose next_run_at has passed
@@ -68,12 +108,14 @@ Deno.serve(async (req: Request) => {
           .eq("id", schedule.id);
 
         if (updateError) {
-          errors.push(`${schedule.id}: ${updateError.message}`);
+          console.error(`Schedule ${schedule.id} update failed:`, updateError);
+          errors.push(schedule.id);
         } else {
           processed.push(schedule.id);
         }
       } catch (err) {
-        errors.push(`${schedule.id}: ${err instanceof Error ? err.message : "unknown"}`);
+        console.error(`Schedule ${schedule.id} failed:`, err);
+        errors.push(schedule.id);
       }
     }
 
@@ -91,7 +133,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: "The scheduled report run could not be completed.",
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
