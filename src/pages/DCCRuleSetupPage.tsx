@@ -49,6 +49,23 @@ import { RuleFilterModal, emptyRuleFilterState, countActiveRuleFilters, type Rul
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
+const fmtINR = (n: number | null) =>
+  n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
+
+const SOURCE_BADGE: Record<string, string> = {
+  TPA: 'bg-blue-100 text-blue-700 border border-blue-200',
+  EXCEL: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  AUTO: 'bg-amber-100 text-amber-700 border border-amber-200',
+  MANUAL: 'bg-slate-100 text-slate-700 border border-slate-200',
+};
+
+const SOURCE_ROW_STYLE: Record<string, string> = {
+  TPA: 'bg-blue-50/55 border-l-blue-400',
+  EXCEL: 'bg-emerald-50/55 border-l-emerald-400',
+  AUTO: 'bg-amber-50/55 border-l-amber-400',
+  MANUAL: 'bg-slate-50/80 border-l-slate-400',
+};
+
 const emptyDiscountSlab = (): DiscountSlabRow => ({
   days_offset: 0,
   discount_pct: 0,
@@ -606,7 +623,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                 <p className="text-xs mt-1">Click "New Rule" to create one</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-200">
+              <div className="space-y-1.5 p-2">
                 {filtered.map((rec, idx) => {
                   const isActive = selectedId === rec.id;
                   const hasRun = rec.next_run_date !== null;
@@ -625,16 +642,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const excs = rec.collection_exceptions ?? [];
                   const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
                   const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
-
-                  const metaParts: string[] = [];
-                  metaParts.push(rec.object_type ?? '—');
-                  metaParts.push(ownerName);
-                  metaParts.push(freqLabel);
-                  if (demandAmt != null) metaParts.push(`Rs ${demandAmt.toLocaleString('en-IN')}`);
-                  if (gstPct != null && gstPct > 0) metaParts.push(`GST ${gstPct}%`);
-                  if (hasRun) metaParts.push(`Next ${fmtDate(rec.next_run_date)}`);
-                  else metaParts.push('No run yet');
-                  if (rec.next_instalment_seq != null) metaParts.push(`Inst #${rec.next_instalment_seq}`);
+                  const srcKey = (rec.import_source ?? 'MANUAL') as string;
+                  const rowStyle = SOURCE_ROW_STYLE[srcKey] ?? 'bg-white border-l-slate-300';
 
                   const specChips: { label: string; cls: string }[] = [];
                   rec.available_payment_modes.forEach(m =>
@@ -663,30 +672,53 @@ export const DCCRuleSetupPage: React.FC = () => {
                     <div
                       key={rec.id}
                       onClick={() => handleSelect(rec)}
-                      className={`group flex items-center gap-2 pl-3 pr-2 py-1 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : idx % 2 === 1 ? 'bg-slate-50/40 hover:bg-slate-100/60' : 'hover:bg-slate-50'}`}
+                      className={`group flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 cursor-pointer transition-all relative ${isActive ? 'ring-2 ring-emerald-400/40 border-emerald-400' : ''} ${rowStyle} hover:shadow-sm`}
                     >
-                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-r" />}
-                      <div className="min-w-0 flex-1 flex flex-col">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`text-[9px] font-bold px-1.5 py-px rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                            {rec.payable_transaction_type}
-                          </span>
-                          <span className="text-[12px] font-semibold text-slate-900 truncate">{dtLabel}</span>
+                      {/* Left: primary info */}
+                      <span className="text-[10px] font-bold text-slate-300 w-5 text-right shrink-0">{idx + 1}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[srcKey] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                        {srcKey}
+                      </span>
+                      <div className="min-w-0 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-700 truncate">{dtLabel}</span>
                           {rec.include_gst && (
                             <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-px rounded shrink-0">GST</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-px min-w-0">
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-px">
                           <Building2 size={9} className="shrink-0 text-slate-400" />
-                          <span className="truncate">{metaParts.join('  ·  ')}</span>
-                          {specChips.length > 0 && specChips.map((c, i) => (
-                            <span key={i} className={`text-[8px] font-semibold px-1 py-px rounded shrink-0 ${c.cls}`}>
-                              {c.label}
-                            </span>
-                          ))}
+                          <span className="truncate">{rec.object_type ?? '—'}  ·  {ownerName}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+
+                      {/* Middle: rule summary */}
+                      <div className="hidden lg:grid flex-1 min-w-0 grid-cols-3 gap-4 mx-2">
+                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Default Amount</div>
+                          <div className="mt-0.5 text-xs font-bold text-slate-700 truncate">{fmtINR(demandAmt)}</div>
+                        </div>
+                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Next Run</div>
+                          <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{hasRun ? fmtDate(rec.next_run_date) : 'No run yet'}</div>
+                        </div>
+                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Frequency</div>
+                          <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{freqLabel}</div>
+                        </div>
+                      </div>
+
+                      {/* Right: spec chips, status, actions */}
+                      <div className="ml-auto flex items-center gap-2 shrink-0">
+                        {specChips.length > 0 && (
+                          <div className="hidden xl:flex items-center gap-1">
+                            {specChips.map((c, i) => (
+                              <span key={i} className={`text-[8px] font-semibold px-1 py-px rounded shrink-0 ${c.cls}`}>
+                                {c.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {rec.is_active ? (
                           <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-px rounded">
                             <CheckCircle2 size={9} /> Active
