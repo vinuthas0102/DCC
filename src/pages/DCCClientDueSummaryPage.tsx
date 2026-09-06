@@ -71,7 +71,7 @@ const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }>
   </div>
 );
 
-// ── KPI Card with gradient accent and animation ──────────────────────────────
+// ── KPI Card — compact, single-row enterprise style ───────────────────────────
 const KpiCard: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -79,34 +79,34 @@ const KpiCard: React.FC<{
   subValue?: string;
   active: boolean;
   onClick: () => void;
-  gradient: string;
   iconBg: string;
   activeRing: string;
   delay: number;
-}> = ({ icon, label, value, subValue, active, onClick, gradient, iconBg, activeRing, delay }) => (
+}> = ({ icon, label, value, subValue, active, onClick, iconBg, activeRing, delay }) => (
   <motion.button
-    initial={{ opacity: 0, y: 10 }}
+    initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, delay }}
-    whileHover={{ scale: 1.02, y: -1 }}
+    transition={{ duration: 0.25, delay }}
+    whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className={`relative bg-white rounded-xl border shadow-sm overflow-hidden text-left transition-all duration-200 hover:shadow-lg ${
+    className={`relative bg-white rounded-lg border shadow-sm overflow-hidden text-left transition-all duration-200 hover:shadow-md ${
       active ? `${activeRing} border-2` : 'border-slate-200 hover:border-slate-300'
     }`}
   >
-    <div className={`h-1 ${gradient} shrink-0`} />
-    <div className="px-3 py-2.5">
-      <div className="flex items-center gap-2 mb-1">
-        <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+    <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center shrink-0`}>
           {icon}
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</span>
+        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-500 leading-tight truncate">{label}</span>
       </div>
-      <div className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{value}</div>
-      {subValue && (
-        <div className="text-[10px] text-slate-400 mt-0.5">{subValue}</div>
-      )}
+      <div className="flex flex-col items-end shrink-0">
+        <span className="text-xs font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
+        {subValue && (
+          <span className="text-[8px] text-slate-400 leading-tight mt-0.5 whitespace-nowrap">{subValue}</span>
+        )}
+      </div>
     </div>
   </motion.button>
 );
@@ -598,55 +598,62 @@ export const DCCClientDueSummaryModal: React.FC<DCCClientDueSummaryModalProps> =
 
         {/* KPI Cards + Controls */}
         {!loading && !error && tiles.length > 0 && (
-          <div className="px-4 pt-3 pb-2 shrink-0 space-y-2.5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <div className="px-4 pt-3 pb-2 shrink-0 space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
               <KpiCard
-                icon={<Receipt size={14} className="text-white" />}
+                icon={<Receipt size={12} className="text-white" />}
                 label="Total Demand"
                 value={fmtINR(totalDemand)}
                 subValue={`${tiles.length} demands`}
                 active={activeKpi === 'ALL'}
                 onClick={() => handleKpiClick('ALL')}
-                gradient="bg-gradient-to-r from-blue-500 to-blue-600"
                 iconBg="bg-blue-500"
                 activeRing="ring-2 ring-blue-400"
                 delay={0}
               />
               <KpiCard
-                icon={<CheckCircle2 size={14} className="text-white" />}
+                icon={<CheckCircle2 size={12} className="text-white" />}
                 label="Total Paid"
                 value={fmtINR(totalPaid)}
-                subValue={`${collectionRate}% collection rate`}
+                subValue="Collected"
                 active={activeKpi === 'PAID'}
                 onClick={() => handleKpiClick('PAID')}
-                gradient="bg-gradient-to-r from-emerald-500 to-emerald-600"
                 iconBg="bg-emerald-500"
                 activeRing="ring-2 ring-emerald-400"
-                delay={0.05}
+                delay={0.04}
               />
               <KpiCard
-                icon={<Wallet size={14} className="text-white" />}
+                icon={<Wallet size={12} className="text-white" />}
                 label="Outstanding"
                 value={fmtINR(totalOutstanding)}
-                subValue="Pending payments"
+                subValue="Pending"
                 active={activeKpi === 'OUTSTANDING'}
                 onClick={() => handleKpiClick('OUTSTANDING')}
-                gradient="bg-gradient-to-r from-amber-500 to-orange-500"
                 iconBg="bg-amber-500"
                 activeRing="ring-2 ring-amber-400"
-                delay={0.1}
+                delay={0.08}
               />
               <KpiCard
-                icon={<AlertTriangle size={14} className="text-white" />}
+                icon={<AlertTriangle size={12} className="text-white" />}
                 label="Overdue"
                 value={fmtINR(overdueAmount)}
-                subValue="Penalty accrued"
+                subValue="Penalty"
                 active={activeKpi === 'OVERDUE'}
                 onClick={() => handleKpiClick('OVERDUE')}
-                gradient="bg-gradient-to-r from-red-500 to-red-600"
                 iconBg="bg-red-500"
                 activeRing="ring-2 ring-red-400"
-                delay={0.15}
+                delay={0.12}
+              />
+              <KpiCard
+                icon={<TrendingUp size={12} className="text-white" />}
+                label="Collection Rate"
+                value={`${collectionRate}%`}
+                subValue={`${propertyCount} properties`}
+                active={activeKpi === 'ALL'}
+                onClick={() => handleKpiClick('ALL')}
+                iconBg="bg-slate-700"
+                activeRing="ring-2 ring-slate-500"
+                delay={0.16}
               />
             </div>
 
