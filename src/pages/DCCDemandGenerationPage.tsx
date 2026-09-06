@@ -307,7 +307,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Right column: rule cards grid */}
+              {/* Right column: rule dropdowns */}
               <div className="lg:col-span-8">
                 {loadingRules ? (
                   <div className="flex items-center justify-center py-12">
@@ -320,59 +320,17 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <p className="text-xs mt-1">Create rules in Rule Setup first</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {rules.map((rule, idx) => {
-                      const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
-                      const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
-                      const selected = selectedRuleIds.has(rule.id);
-                      const gradient = RULE_ICON_COLORS[idx % RULE_ICON_COLORS.length];
-                      return (
-                        <div
-                          key={rule.id}
-                          className={`rounded-lg border p-3.5 cursor-pointer transition-all duration-150 ${selected ? 'border-emerald-400 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
-                          onClick={() => toggleRule(rule.id)}
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0`}>
-                              <FileText size={15} className="text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-bold text-slate-900 truncate">{dtLabel}</div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">{rule.object_type ?? '—'}</div>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() => toggleRule(rule.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0 mt-0.5"
-                            />
-                          </div>
-
-                          <div className="mt-2.5 flex items-center gap-2 text-[10px] text-slate-500">
-                            <span className="flex items-center gap-0.5">
-                              <Users size={10} /> {matchingCount} obj{matchingCount !== 1 ? 's' : ''}
-                            </span>
-                            <span className="text-slate-300">|</span>
-                            <span className="truncate">{frequencyCodeLabel(rule.generation_frequency_code)}</span>
-                          </div>
-
-                          {selected && (
-                            <div className="mt-2.5 pt-2.5 border-t border-emerald-100" onClick={(e) => e.stopPropagation()}>
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Amount (₹)</label>
-                              <input
-                                type="number"
-                                value={autoAmount[rule.id] ?? 1000}
-                                onChange={e => setAutoAmount(prev => ({ ...prev, [rule.id]: Number(e.target.value) }))}
-                                className="w-full px-2 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500"
-                                placeholder="Amount"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <RuleDropdownSection
+                    rules={rules}
+                    demandTypes={demandTypes}
+                    objects={objects}
+                    selectedRuleIds={selectedRuleIds}
+                    autoAmount={autoAmount}
+                    onToggleRule={toggleRule}
+                    onAmountChange={(id, val) => setAutoAmount(prev => ({ ...prev, [id]: val }))}
+                    onAddRule={(id) => toggleRule(id)}
+                    onRemoveRule={(id) => toggleRule(id)}
+                  />
                 )}
               </div>
             </div>
