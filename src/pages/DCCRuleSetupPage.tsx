@@ -606,8 +606,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                 <p className="text-xs mt-1">Click "New Rule" to create one</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {filtered.map((rec) => {
+              <div className="divide-y divide-slate-200">
+                {filtered.map((rec, idx) => {
                   const isActive = selectedId === rec.id;
                   const hasRun = rec.next_run_date !== null;
                   const dtLabel = demandTypes.find(d => d.id === rec.demand_type_id)?.label ?? '—';
@@ -625,25 +625,6 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const excs = rec.collection_exceptions ?? [];
                   const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
                   const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
-                  const specChips: { label: string; cls: string }[] = [];
-                  if (adv && adv.advance_value > 0)
-                    specChips.push({ label: `Adv ${adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}`, cls: 'bg-amber-50 text-amber-700' });
-                  if (inst && inst.installment_value > 0)
-                    specChips.push({ label: `Inst ${inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}`, cls: 'bg-violet-50 text-violet-700' });
-                  if (activePenaltySlabs.length > 0)
-                    specChips.push({ label: `Penalty ${activePenaltySlabs.length} slab${activePenaltySlabs.length > 1 ? 's' : ''}`, cls: 'bg-red-50 text-red-700' });
-                  if (activeDiscounts.length > 0)
-                    specChips.push({ label: `Disc ${activeDiscounts.length} slab${activeDiscounts.length > 1 ? 's' : ''}`, cls: 'bg-emerald-50 text-emerald-700' });
-                  if (alert && alert.days_before_due > 0)
-                    specChips.push({ label: `Alert ${alert.days_before_due}d`, cls: 'bg-sky-50 text-sky-700' });
-                  if (inc && inc.increase_pct > 0)
-                    specChips.push({ label: `Inc +${inc.increase_pct}%/${inc.increase_after_months}mo`, cls: 'bg-teal-50 text-teal-700' });
-                  if (grid.length > 0)
-                    specChips.push({ label: `Grid ${grid.length}`, cls: 'bg-indigo-50 text-indigo-700' });
-                  if (excs.length > 0)
-                    specChips.push({ label: `Exc ${excs.length}`, cls: 'bg-slate-100 text-slate-600' });
-                  if (fp)
-                    specChips.push({ label: `FullPay ${fp.days_offset ?? 0}d`, cls: 'bg-gray-50 text-gray-500' });
 
                   const metaParts: string[] = [];
                   metaParts.push(rec.object_type ?? '—');
@@ -655,58 +636,70 @@ export const DCCRuleSetupPage: React.FC = () => {
                   else metaParts.push('No run yet');
                   if (rec.next_instalment_seq != null) metaParts.push(`Inst #${rec.next_instalment_seq}`);
 
+                  const specChips: { label: string; cls: string }[] = [];
+                  rec.available_payment_modes.forEach(m =>
+                    specChips.push({ label: PAYMENT_MODE_LABELS[m], cls: 'bg-blue-50 text-blue-700' })
+                  );
+                  if (adv && adv.advance_value > 0)
+                    specChips.push({ label: `Adv ${adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}`, cls: 'bg-amber-50 text-amber-700' });
+                  if (inst && inst.installment_value > 0)
+                    specChips.push({ label: `Inst ${inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}`, cls: 'bg-violet-50 text-violet-700' });
+                  if (activePenaltySlabs.length > 0)
+                    specChips.push({ label: `Penalty ${activePenaltySlabs.length}`, cls: 'bg-red-50 text-red-700' });
+                  if (activeDiscounts.length > 0)
+                    specChips.push({ label: `Disc ${activeDiscounts.length}`, cls: 'bg-emerald-50 text-emerald-700' });
+                  if (alert && alert.days_before_due > 0)
+                    specChips.push({ label: `Alert ${alert.days_before_due}d`, cls: 'bg-sky-50 text-sky-700' });
+                  if (inc && inc.increase_pct > 0)
+                    specChips.push({ label: `Inc +${inc.increase_pct}%/${inc.increase_after_months}mo`, cls: 'bg-teal-50 text-teal-700' });
+                  if (grid.length > 0)
+                    specChips.push({ label: `Grid ${grid.length}`, cls: 'bg-indigo-50 text-indigo-700' });
+                  if (excs.length > 0)
+                    specChips.push({ label: `Exc ${excs.length}`, cls: 'bg-slate-100 text-slate-600' });
+                  if (fp)
+                    specChips.push({ label: `FullPay ${fp.days_offset ?? 0}d`, cls: 'bg-gray-50 text-gray-500' });
+
                   return (
                     <div
                       key={rec.id}
                       onClick={() => handleSelect(rec)}
-                      className={`group flex items-center gap-3 pl-3.5 pr-2.5 py-2 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+                      className={`group flex items-center gap-2 pl-3 pr-2 py-1 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : idx % 2 === 1 ? 'bg-slate-50/40 hover:bg-slate-100/60' : 'hover:bg-slate-50'}`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-r" />}
-                      {/* Left: identity */}
-                      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      <div className="min-w-0 flex-1 flex flex-col">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`text-[9px] font-bold px-1.5 py-px rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
                             {rec.payable_transaction_type}
                           </span>
                           <span className="text-[12px] font-semibold text-slate-900 truncate">{dtLabel}</span>
                           {rec.include_gst && (
-                            <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded shrink-0">GST</span>
+                            <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-px rounded shrink-0">GST</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate">
-                          <Building2 size={10} className="shrink-0 text-slate-400" />
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-px min-w-0">
+                          <Building2 size={9} className="shrink-0 text-slate-400" />
                           <span className="truncate">{metaParts.join('  ·  ')}</span>
+                          {specChips.length > 0 && specChips.map((c, i) => (
+                            <span key={i} className={`text-[8px] font-semibold px-1 py-px rounded shrink-0 ${c.cls}`}>
+                              {c.label}
+                            </span>
+                          ))}
                         </div>
-                        {specChips.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                            {rec.available_payment_modes.map(m => (
-                              <span key={m} className="text-[8px] font-semibold px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
-                                {PAYMENT_MODE_LABELS[m]}
-                              </span>
-                            ))}
-                            {specChips.map((c, i) => (
-                              <span key={i} className={`text-[8px] font-semibold px-1 py-0.5 rounded border border-transparent ${c.cls}`}>
-                                {c.label}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                      {/* Right: status + action */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {rec.is_active ? (
-                          <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            <CheckCircle2 size={10} /> Active
+                          <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-px rounded">
+                            <CheckCircle2 size={9} /> Active
                           </span>
                         ) : (
-                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">INACTIVE</span>
+                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-px rounded">INACTIVE</span>
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
-                          className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-0.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={11} />
                         </button>
                       </div>
                     </div>
