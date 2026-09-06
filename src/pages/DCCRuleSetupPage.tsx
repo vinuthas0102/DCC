@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   SlidersHorizontal, Plus, Search, Trash2, Save, X, ChevronDown,
   ChevronRight, Percent, IndianRupee, Calendar, AlertCircle, Loader2,
-  CheckCircle2, Clock, Layers, Tag, Building2, User, ArrowLeft,
-  TrendingUp, Upload, Zap, Filter,
+  CheckCircle2, Layers, Tag, Building2, ArrowLeft,
+  TrendingUp, Upload, Filter,
 } from 'lucide-react';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { dccService } from '../services/dccService';
@@ -613,8 +613,6 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const dtLabel = demandTypes.find(d => d.id === rec.demand_type_id)?.label ?? '—';
                   const ownerName = owners.find(o => o.id === rec.object_owner_id)?.name ?? '—';
                   const freqLabel = frequencyCodeLabel(rec.generation_frequency_code ?? 1);
-                  const dueRef = rec.due_date_reference ? DUE_DATE_REFERENCE_LABELS[rec.due_date_reference] : null;
-                  const grace = rec.grace_period_days ?? 0;
                   const demandAmt = rec.default_demand_amount;
                   const gstPct = rec.default_gst_pct;
                   const fp = rec.full_payment_spec;
@@ -627,162 +625,89 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const excs = rec.collection_exceptions ?? [];
                   const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
                   const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
-                  const fullPaymentReference = fp?.reference_date
-                    ? fp.reference_date.replace(/_/g, ' ').split(' ').slice(0, 2).join(' ')
-                    : null;
-                  const excByType: Record<string, number> = {};
-                  excs.forEach(e => { excByType[e.exception_type] = (excByType[e.exception_type] ?? 0) + 1; });
+                  const specChips: { label: string; cls: string }[] = [];
+                  if (adv && adv.advance_value > 0)
+                    specChips.push({ label: `Adv ${adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}`, cls: 'bg-amber-50 text-amber-700' });
+                  if (inst && inst.installment_value > 0)
+                    specChips.push({ label: `Inst ${inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}`, cls: 'bg-violet-50 text-violet-700' });
+                  if (activePenaltySlabs.length > 0)
+                    specChips.push({ label: `Penalty ${activePenaltySlabs.length} slab${activePenaltySlabs.length > 1 ? 's' : ''}`, cls: 'bg-red-50 text-red-700' });
+                  if (activeDiscounts.length > 0)
+                    specChips.push({ label: `Disc ${activeDiscounts.length} slab${activeDiscounts.length > 1 ? 's' : ''}`, cls: 'bg-emerald-50 text-emerald-700' });
+                  if (alert && alert.days_before_due > 0)
+                    specChips.push({ label: `Alert ${alert.days_before_due}d`, cls: 'bg-sky-50 text-sky-700' });
+                  if (inc && inc.increase_pct > 0)
+                    specChips.push({ label: `Inc +${inc.increase_pct}%/${inc.increase_after_months}mo`, cls: 'bg-teal-50 text-teal-700' });
+                  if (grid.length > 0)
+                    specChips.push({ label: `Grid ${grid.length}`, cls: 'bg-indigo-50 text-indigo-700' });
+                  if (excs.length > 0)
+                    specChips.push({ label: `Exc ${excs.length}`, cls: 'bg-slate-100 text-slate-600' });
+                  if (fp)
+                    specChips.push({ label: `FullPay ${fp.days_offset ?? 0}d`, cls: 'bg-gray-50 text-gray-500' });
+
+                  const metaParts: string[] = [];
+                  metaParts.push(rec.object_type ?? '—');
+                  metaParts.push(ownerName);
+                  metaParts.push(freqLabel);
+                  if (demandAmt != null) metaParts.push(`Rs ${demandAmt.toLocaleString('en-IN')}`);
+                  if (gstPct != null && gstPct > 0) metaParts.push(`GST ${gstPct}%`);
+                  if (hasRun) metaParts.push(`Next ${fmtDate(rec.next_run_date)}`);
+                  else metaParts.push('No run yet');
+                  if (rec.next_instalment_seq != null) metaParts.push(`Inst #${rec.next_instalment_seq}`);
+
                   return (
                     <div
                       key={rec.id}
                       onClick={() => handleSelect(rec)}
-                      className={`px-3 py-1.5 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+                      className={`group flex items-center gap-3 pl-3.5 pr-2.5 py-2 cursor-pointer transition-colors relative ${isActive ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
                     >
-                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />}
-                      {/* Row 1: Header — type badge + demand type + status pills */}
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                          {rec.payable_transaction_type}
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-900 truncate flex-1">{dtLabel}</span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {rec.is_active ? (
-                            <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600"><CheckCircle2 size={9} />Active</span>
-                          ) : (
-                            <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded">INACTIVE</span>
+                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-r" />}
+                      {/* Left: identity */}
+                      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                            {rec.payable_transaction_type}
+                          </span>
+                          <span className="text-[12px] font-semibold text-slate-900 truncate">{dtLabel}</span>
+                          {rec.include_gst && (
+                            <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded shrink-0">GST</span>
                           )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
-                            className="p-0.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={11} />
-                          </button>
                         </div>
-                      </div>
-                      {/* Row 2: Keying — object type / owner / source / freq / location */}
-                      <div className="flex items-center gap-1.5 text-[9px] text-slate-500 flex-wrap mb-0.5">
-                        <span className="flex items-center gap-0.5"><Building2 size={9} />{rec.object_type ?? '—'}</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="flex items-center gap-0.5"><User size={9} />{ownerName}</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="flex items-center gap-0.5"><Tag size={9} />{rec.import_source ?? '—'}</span>
-                        {rec.tpa_url_id && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-slate-400 font-mono text-[8px]">{rec.tpa_url_id}</span>
-                          </>
-                        )}
-                        <span className="text-slate-300">|</span>
-                        <span className="flex items-center gap-0.5 text-emerald-600 font-medium"><Zap size={9} />{freqLabel}</span>
-                        {rec.location && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span>{rec.location}</span>
-                          </>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate">
+                          <Building2 size={10} className="shrink-0 text-slate-400" />
+                          <span className="truncate">{metaParts.join('  ·  ')}</span>
+                        </div>
+                        {specChips.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                            {rec.available_payment_modes.map(m => (
+                              <span key={m} className="text-[8px] font-semibold px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                                {PAYMENT_MODE_LABELS[m]}
+                              </span>
+                            ))}
+                            {specChips.map((c, i) => (
+                              <span key={i} className={`text-[8px] font-semibold px-1 py-0.5 rounded border border-transparent ${c.cls}`}>
+                                {c.label}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      {/* Row 3: Schedule + amounts + due date */}
-                      <div className="flex items-center gap-1.5 text-[9px] flex-wrap mb-0.5">
-                        <span className={`flex items-center gap-0.5 ${hasRun ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {hasRun ? <CheckCircle2 size={9} /> : <Clock size={9} />}
-                          {hasRun ? `Next: ${fmtDate(rec.next_run_date)}` : 'No run yet'}
-                        </span>
-                        {rec.last_run_date && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-slate-500">Last: {fmtDate(rec.last_run_date)}</span>
-                          </>
-                        )}
-                        {rec.first_btm_run_date && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-slate-500">First: {fmtDate(rec.first_btm_run_date)}</span>
-                          </>
-                        )}
-                        {rec.next_instalment_seq != null && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-sky-600 font-medium">Inst #{rec.next_instalment_seq}</span>
-                          </>
-                        )}
-                        {demandAmt != null && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="flex items-center gap-0.5 text-slate-600"><IndianRupee size={9} />{demandAmt.toLocaleString('en-IN')}</span>
-                          </>
-                        )}
-                        {gstPct != null && gstPct > 0 && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="flex items-center gap-0.5 text-slate-600"><Percent size={9} />{gstPct}%</span>
-                          </>
-                        )}
-                        {rec.include_gst && (
-                          <span className="text-emerald-600 font-medium">GST</span>
-                        )}
-                        {dueRef && (
-                          <>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-slate-600">Due: {dueRef.split(' ')[0]}{grace > 0 ? ` +${grace}d` : ''}</span>
-                          </>
-                        )}
-                      </div>
-                      {/* Row 4: Payment modes as pills */}
-                      <div className="flex items-center gap-0.5 flex-wrap mb-0.5">
-                        {rec.available_payment_modes.map(m => (
-                          <span key={m} className="text-[8px] font-semibold px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
-                            {PAYMENT_MODE_LABELS[m]}
+                      {/* Right: status + action */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {rec.is_active ? (
+                          <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            <CheckCircle2 size={10} /> Active
                           </span>
-                        ))}
-                      </div>
-                      {/* Row 5: Spec summaries — advance / installment / penalty / alert / increase / discounts / exceptions / grid */}
-                      <div className="flex items-center gap-1 flex-wrap text-[8px]">
-                        {adv && adv.advance_value > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
-                            Adv: {adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}{adv.days_offset > 0 ? ` +${adv.days_offset}d` : ''}
-                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">INACTIVE</span>
                         )}
-                        {inst && inst.installment_value > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">
-                            Inst: {inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}{inst.days_offset > 0 ? ` +${inst.days_offset}d` : ''}
-                          </span>
-                        )}
-                        {activePenaltySlabs.length > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-red-50 text-red-700 border border-red-100">
-                            Penalty: {activePenaltySlabs.length} slab{activePenaltySlabs.length > 1 ? 's' : ''} ({activePenaltySlabs.map(s => s.penalty_type === 'PERCENTAGE' ? `${s.penalty_value}%` : `Rs${s.penalty_value}`).join('/')})
-                          </span>
-                        )}
-                        {activeDiscounts.length > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
-                            Discount: {activeDiscounts.length} slab{activeDiscounts.length > 1 ? 's' : ''} ({activeDiscounts.map(d => `${d.discount_pct}%@${d.days_offset}d`).join(', ')})
-                          </span>
-                        )}
-                        {alert && alert.days_before_due > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-100">
-                            Alert: {alert.days_before_due}d before
-                          </span>
-                        )}
-                        {inc && inc.increase_pct > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-100">
-                            Increase: +{inc.increase_pct}% after {inc.increase_after_months}mo
-                          </span>
-                        )}
-                        {grid.length > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-                            Grid: {grid.length} rows
-                          </span>
-                        )}
-                        {excs.length > 0 && (
-                          <span className="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                            Exc: {Object.entries(excByType).map(([t, n]) => `${n}${t[0]}`).join(' ')}
-                          </span>
-                        )}
-                        {fp && (
-                          <span className="px-1 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-100">
-            Full Pay: {fp.days_offset ?? 0}d{fullPaymentReference ? ` ${fullPaymentReference}` : ''}
-                          </span>
-                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
+                          className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   );
