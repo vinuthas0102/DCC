@@ -4,7 +4,7 @@ import {
   CheckCircle2, AlertCircle, Play, History,
   RefreshCw, ChevronDown, ChevronRight,
   Filter, X, Clock, FileText, TrendingUp, Users,
-  Calendar, HelpCircle, Sparkles, Settings2,
+  Calendar, Sparkles,
   Eye, Plus, Check,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
@@ -40,6 +40,13 @@ const SOURCE_BADGE: Record<string, string> = {
   EXCEL: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
   AUTO: 'bg-amber-100 text-amber-700 border border-amber-200',
   MANUAL: 'bg-slate-100 text-slate-700 border border-slate-200',
+};
+
+const SOURCE_ROW_STYLE: Record<string, string> = {
+  TPA: 'bg-blue-50/55 border-l-blue-400',
+  EXCEL: 'bg-emerald-50/55 border-l-emerald-400',
+  AUTO: 'bg-amber-50/55 border-l-amber-400',
+  MANUAL: 'bg-slate-50/80 border-l-slate-400',
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -261,63 +268,30 @@ export const DCCDemandGenerationPage: React.FC = () => {
           </div>
 
           <div className="p-5">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              {/* Left column: date + help + generate button */}
-              <div className="lg:col-span-4 space-y-4">
-                <div>
-                  <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                    <Calendar size={12} /> Run Date
-                  </label>
-                  <input
-                    type="date"
-                    value={autoRunDate}
-                    onChange={e => setAutoRunDate(e.target.value)}
-                    className={inputCls + ' max-w-56'}
-                  />
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <HelpCircle size={13} className="text-slate-400" />
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">How it works?</span>
-                  </div>
-                  <ol className="space-y-1.5 text-[11px] text-slate-500 leading-relaxed">
-                    <li className="flex gap-2">
-                      <span className="font-bold text-slate-400 shrink-0">1.</span>
-                      <span>Select one or more active demand rules below.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-bold text-slate-400 shrink-0">2.</span>
-                      <span>Set the run date and per-rule amounts.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-bold text-slate-400 shrink-0">3.</span>
-                      <span>Click Generate — demands are created for every matching object.</span>
-                    </li>
-                  </ol>
-                </div>
-
-                <button
-                  onClick={handleAutoGenerate}
-                  disabled={selectedRuleIds.size === 0 || generating}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
-                  {generating ? 'Generating…' : `Generate (${selectedRuleIds.size} rule${selectedRuleIds.size !== 1 ? 's' : ''} selected)`}
-                </button>
+            <div className="grid grid-cols-1 lg:grid-cols-[13rem_minmax(0,1fr)_auto] items-end gap-3">
+              {/* Run date */}
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                  <Calendar size={12} /> Run Date
+                </label>
+                <input
+                  type="date"
+                  value={autoRunDate}
+                  onChange={e => setAutoRunDate(e.target.value)}
+                  className={inputCls}
+                />
               </div>
 
-              {/* Right column: rule dropdowns */}
-              <div className="lg:col-span-8">
+              {/* Rule dropdown */}
+              <div className="min-w-0">
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Demand Rules</label>
                 {loadingRules ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 size={20} className="animate-spin text-emerald-500" />
+                  <div className="flex items-center h-9 px-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <Loader2 size={16} className="animate-spin text-emerald-500" />
                   </div>
                 ) : rules.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <Settings2 size={32} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm font-medium">No active DCC rules found</p>
-                    <p className="text-xs mt-1">Create rules in Rule Setup first</p>
+                  <div className="flex items-center h-9 px-3 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400">
+                    No active DCC rules found
                   </div>
                 ) : (
                   <RuleDropdownSection
@@ -333,7 +307,18 @@ export const DCCDemandGenerationPage: React.FC = () => {
                   />
                 )}
               </div>
+
+              {/* Generate action */}
+              <button
+                onClick={handleAutoGenerate}
+                disabled={selectedRuleIds.size === 0 || generating}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+              >
+                {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                {generating ? 'Generating…' : `Generate (${selectedRuleIds.size})`}
+              </button>
             </div>
+
           </div>
         </div>
 
@@ -411,16 +396,16 @@ export const DCCDemandGenerationPage: React.FC = () => {
               <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="space-y-1.5">
               {filteredRunLog.map((log, logIdx) => {
-                const details = runDetails[log.id] ?? [];
+                const rowStyle = SOURCE_ROW_STYLE[log.source] ?? 'bg-white border-l-slate-300';
                 return (
                   <div
                     key={log.id}
-                    className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors group"
+                    className={`flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 ${rowStyle} hover:shadow-sm transition-all group`}
                   >
                     {/* Left: primary info */}
-                    <span className="text-[10px] font-bold text-slate-300 w-6 text-right shrink-0">{logIdx + 1}</span>
+                    <span className="text-[10px] font-bold text-slate-300 w-5 text-right shrink-0">{logIdx + 1}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                       {log.source}
                     </span>
