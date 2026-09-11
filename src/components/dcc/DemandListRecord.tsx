@@ -92,13 +92,22 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         />
 
         <div className="flex shrink-0 items-center gap-1.5 pl-6">
-          <span className="whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
-          <span className="whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
-          <span className={`inline-flex items-center gap-1 shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
-            <span className={`h-1 w-1 rounded-full ${st.dot}`} />
-            {st.label}
-            {odText && <span className="opacity-75">·{odText}</span>}
-          </span>
+          <div className="flex w-20 shrink-0 justify-start overflow-hidden">
+            <span className="max-w-full truncate whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800" title={tile.object_type}>
+              {tile.object_type}
+            </span>
+          </div>
+          <div className="flex w-24 shrink-0 justify-start overflow-hidden">
+            <span className="max-w-full truncate whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-600" title={tile.demand_type_label}>
+              {tile.demand_type_label}
+            </span>
+          </div>
+          <div className="flex w-24 shrink-0 justify-start overflow-hidden">
+            <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
+              <span className={`h-1 w-1 shrink-0 rounded-full ${st.dot}`} />
+              <span className="truncate">{st.label}{odText && <span className="opacity-75"> ·{odText}</span>}</span>
+            </span>
+          </div>
         </div>
 
         </div>
