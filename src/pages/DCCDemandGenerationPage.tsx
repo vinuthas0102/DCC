@@ -22,6 +22,8 @@ import type { PayableCriteria } from '../types/payableCriteria';
 import { DCC_STATUS, fmtINR, fmtDateShort } from '../constants/dccTheme';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
+import { RunHistoryFilterModal, emptyRunHistoryFilter, countActiveRunHistoryFilters } from '../components/dcc/RunHistoryFilterModal';
+import type { RunHistoryFilterState } from '../components/dcc/RunHistoryFilterModal';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -179,12 +181,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
 
   // Filters
-  const [filterSource, setFilterSource] = useState<string>('');
-  const [filterDemandTypeId, setFilterDemandTypeId] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
-  const [filterObjectRef, setFilterObjectRef] = useState<string>('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterState, setFilterState] = useState<RunHistoryFilterState>(emptyRunHistoryFilter);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
@@ -295,13 +293,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
   const closeRunDetails = () => setDetailModalLog(null);
 
-  const clearFilters = () => {
-    setFilterSource('');
-    setFilterDemandTypeId('');
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    setFilterObjectRef('');
-  };
+
 
   const handleLogout = async () => {
     await logout();
@@ -310,23 +302,24 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
   const initials = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
 
-  const hasActiveFilters = filterSource || filterDemandTypeId || filterDateFrom || filterDateTo || filterObjectRef;
+  const activeFilterCount = countActiveRunHistoryFilters(filterState);
+  const hasActiveFilters = activeFilterCount > 0;
 
   const filteredRunLog = useMemo(() => {
     let r = runLog;
-    if (filterSource) r = r.filter(l => l.source === filterSource);
-    if (filterDemandTypeId) r = r.filter(l => l.demand_type_id === filterDemandTypeId);
-    if (filterDateFrom) r = r.filter(l => l.run_date >= filterDateFrom);
-    if (filterDateTo) r = r.filter(l => l.run_date <= filterDateTo);
-    if (filterObjectRef) {
-      const ref = filterObjectRef.toLowerCase();
+    if (filterState.source) r = r.filter(l => l.source === filterState.source);
+    if (filterState.demandTypeId) r = r.filter(l => l.demand_type_id === filterState.demandTypeId);
+    if (filterState.dateFrom) r = r.filter(l => l.run_date >= filterState.dateFrom);
+    if (filterState.dateTo) r = r.filter(l => l.run_date <= filterState.dateTo);
+    if (filterState.objectRef) {
+      const ref = filterState.objectRef.toLowerCase();
       r = r.filter(l => {
         const details = runDetails[l.id] ?? [];
         return details.some(d => (d.object?.object_ref ?? '').toLowerCase().includes(ref));
       });
     }
     return r;
-  }, [runLog, filterSource, filterDemandTypeId, filterDateFrom, filterDateTo, filterObjectRef, runDetails]);
+  }, [runLog, filterState, runDetails]);
 
   const inputCls = 'w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500 bg-white text-slate-700 transition-colors';
 
@@ -400,36 +393,36 @@ export const DCCDemandGenerationPage: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* ── Auto-Generate Panel ── */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible relative z-30">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
-            <Sparkles size={16} className="text-amber-600" />
-            <h2 className="text-sm font-bold text-slate-900">Auto-Generate from Rules</h2>
-            <span className="ml-auto text-[11px] text-slate-400">{rules.length} active rule{rules.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
+            <Sparkles size={14} className="text-amber-600" />
+            <h2 className="text-xs font-bold text-slate-900">Auto-Generate from Rules</h2>
+            <span className="ml-auto text-[10px] text-slate-400">{rules.length} active rule{rules.length !== 1 ? 's' : ''}</span>
           </div>
 
-          <div className="p-5">
-            <div className="grid grid-cols-1 lg:grid-cols-[13rem_minmax(0,1fr)_auto] gap-3 items-start">
+          <div className="p-3">
+            <div className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,1fr)_auto] gap-2.5 items-start">
               {/* Run date */}
               <div className="flex flex-col">
-                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                  <Calendar size={12} /> Run Date
+                <label className="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                  <Calendar size={11} /> Run Date
                 </label>
                 <input
                   type="date"
                   value={autoRunDate}
                   onChange={e => setAutoRunDate(e.target.value)}
-                  className={`${inputCls} h-10`}
+                  className={`${inputCls} h-8`}
                 />
               </div>
 
               {/* Rule dropdown */}
               <div className="min-w-0 flex flex-col">
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Demand Rules</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Demand Rules</label>
                 {loadingRules ? (
-                  <div className="flex items-center h-10 px-3 border border-slate-200 rounded-lg bg-slate-50">
-                    <Loader2 size={16} className="animate-spin text-emerald-500" />
+                  <div className="flex items-center h-8 px-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <Loader2 size={14} className="animate-spin text-emerald-500" />
                   </div>
                 ) : rules.length === 0 ? (
-                  <div className="flex items-center h-10 px-3 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400">
+                  <div className="flex items-center h-8 px-3 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400">
                     No active DCC rules found
                   </div>
                 ) : (
@@ -448,13 +441,13 @@ export const DCCDemandGenerationPage: React.FC = () => {
               </div>
 
               {/* Generate action */}
-              <div className="flex flex-col justify-end lg:pt-[25px]">
+              <div className="flex flex-col justify-end lg:pt-[20px]">
                 <button
                   onClick={handleAutoGenerate}
                   disabled={selectedRuleIds.size === 0 || generating}
-                  className="flex h-10 items-center justify-center gap-2 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+                  className="flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
                 >
-                  {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                  {generating ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
                   {generating ? 'Generating…' : `Generate (${selectedRuleIds.size})`}
                 </button>
               </div>
@@ -469,62 +462,13 @@ export const DCCDemandGenerationPage: React.FC = () => {
             <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
             <span className="ml-auto text-[11px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
             <button
-              onClick={() => setShowFilters(s => !s)}
+              onClick={() => setShowFilterDrawer(true)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${hasActiveFilters ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               <Filter size={12} /> Filter
-              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+              {hasActiveFilters && <span className="ml-0.5 text-[10px] font-bold text-emerald-600">{activeFilterCount}</span>}
             </button>
           </div>
-
-          {/* Filter bar */}
-          {showFilters && (
-            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-100 space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Source</label>
-                  <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className={inputCls}>
-                    <option value="">All Sources</option>
-                    <option value="AUTO">Auto</option>
-                    <option value="TPA">TPA</option>
-                    <option value="EXCEL">Excel</option>
-                    <option value="MANUAL">Manual</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Demand Type</label>
-                  <select value={filterDemandTypeId} onChange={e => setFilterDemandTypeId(e.target.value)} className={inputCls}>
-                    <option value="">All Types</option>
-                    {demandTypes.map(dt => (
-                      <option key={dt.id} value={dt.id}>{dt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date From</label>
-                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Run Date To</label>
-                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className={inputCls} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={filterObjectRef}
-                  onChange={e => setFilterObjectRef(e.target.value)}
-                  placeholder="Search by object reference..."
-                  className={inputCls + ' max-w-xs'}
-                />
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-slate-100 transition-colors">
-                    <X size={12} /> Clear
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
 
           {loadingHistory ? (
             <div className="flex items-center justify-center py-12">
@@ -627,6 +571,15 @@ export const DCCDemandGenerationPage: React.FC = () => {
           onClose={() => setDetailDemandId(null)}
         />
       )}
+
+      {/* Run History Filter Drawer */}
+      <RunHistoryFilterModal
+        isOpen={showFilterDrawer}
+        onClose={() => setShowFilterDrawer(false)}
+        demandTypes={demandTypes}
+        state={filterState}
+        onApply={setFilterState}
+      />
     </div>
   );
 };
