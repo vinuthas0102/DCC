@@ -353,7 +353,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* ── Auto-Generate Panel ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative z-30">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible relative z-30">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
             <Sparkles size={16} className="text-amber-600" />
             <h2 className="text-sm font-bold text-slate-900">Auto-Generate from Rules</h2>
@@ -371,7 +371,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                   type="date"
                   value={autoRunDate}
                   onChange={e => setAutoRunDate(e.target.value)}
-                  className={inputCls}
+                  className={`${inputCls} h-10`}
                 />
               </div>
 
@@ -379,11 +379,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
               <div className="min-w-0 flex flex-col">
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Demand Rules</label>
                 {loadingRules ? (
-                  <div className="flex items-center h-9 px-3 border border-slate-200 rounded-lg bg-slate-50">
+                  <div className="flex items-center h-10 px-3 border border-slate-200 rounded-lg bg-slate-50">
                     <Loader2 size={16} className="animate-spin text-emerald-500" />
                   </div>
                 ) : rules.length === 0 ? (
-                  <div className="flex items-center h-9 px-3 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400">
+                  <div className="flex items-center h-10 px-3 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400">
                     No active DCC rules found
                   </div>
                 ) : (
@@ -402,11 +402,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
               </div>
 
               {/* Generate action */}
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col justify-end lg:pt-[25px]">
                 <button
                   onClick={handleAutoGenerate}
                   disabled={selectedRuleIds.size === 0 || generating}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+                  className="flex h-10 items-center justify-center gap-2 px-4 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
                 >
                   {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
                   {generating ? 'Generating…' : `Generate (${selectedRuleIds.size})`}
@@ -675,7 +675,7 @@ const RuleDropdownSection: React.FC<RuleDropdownSectionProps> = ({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-xs font-semibold text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/30 transition-colors"
+            className="w-full h-10 flex items-center gap-2 px-3 border border-dashed border-slate-300 rounded-lg text-xs font-semibold text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/30 transition-colors"
           >
             <Plus size={14} />
             {selectedRules.length === 0 ? 'Select rules to generate demands' : 'Add another rule'}
