@@ -24,6 +24,7 @@ import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 import { RunHistoryFilterModal, emptyRunHistoryFilter, countActiveRunHistoryFilters } from '../components/dcc/RunHistoryFilterModal';
 import type { RunHistoryFilterState } from '../components/dcc/RunHistoryFilterModal';
+import { useViewPreference } from '../hooks/useViewPreference';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -56,6 +57,7 @@ const SOURCE_ROW_STYLE: Record<string, string> = {
 };
 
 type ViewMode = 'card' | 'list' | 'table';
+type RunHistoryViewMode = 'card' | 'list' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
 
 interface RunDetailFilterState {
@@ -184,6 +186,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const [filterState, setFilterState] = useState<RunHistoryFilterState>(emptyRunHistoryFilter);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
+  // Run history display preference
+  const [historyViewMode, setHistoryViewMode] = useViewPreference('dcc-run-history-view', 'list') as [
+    RunHistoryViewMode, React.Dispatch<React.SetStateAction<RunHistoryViewMode>>
+  ];
+
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
@@ -304,6 +311,12 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
   const activeFilterCount = countActiveRunHistoryFilters(filterState);
   const hasActiveFilters = activeFilterCount > 0;
+
+  const historyViewModes: { mode: RunHistoryViewMode; icon: React.ReactNode; label: string }[] = [
+    { mode: 'card', icon: <LayoutGrid size={14} />, label: 'Card View' },
+    { mode: 'list', icon: <List size={14} />, label: 'List View' },
+    { mode: 'table', icon: <Table2 size={14} />, label: 'Table View' },
+  ];
 
   const filteredRunLog = useMemo(() => {
     let r = runLog;
@@ -461,6 +474,21 @@ export const DCCDemandGenerationPage: React.FC = () => {
             <History size={16} className="text-slate-500" />
             <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
             <span className="ml-auto text-[11px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
+            {/* Display type toggle */}
+            <div className="inline-flex items-center bg-slate-50 rounded-lg border border-slate-200 p-0.5">
+              {historyViewModes.map(({ mode, icon, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => setHistoryViewMode(mode)}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-all ${
+                    historyViewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
+                  title={label}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => setShowFilterDrawer(true)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${hasActiveFilters ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
@@ -479,7 +507,133 @@ export const DCCDemandGenerationPage: React.FC = () => {
               <History size={28} className="mx-auto mb-2 opacity-30" />
               <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
+          ) : historyViewMode === 'card' ? (
+            /* ── Card View ── */
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
+              {filteredRunLog.map((log, logIdx) => {
+                const processedCount = log.records_created + log.records_failed;
+                return (
+                  <motion.div
+                    key={log.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(logIdx * 0.04, 0.2) }}
+                    className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                          {log.source}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 truncate">{log.demand_type?.label ?? '—'}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">{fmtDate(log.run_date)}</span>
+                    </div>
+                    <div className="px-3.5 py-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Demands Processed</span>
+                        <span className="text-xs font-bold text-slate-700 tabular-nums">{processedCount}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Objects</span>
+                        <span className="text-xs font-bold text-slate-700 tabular-nums">{log.run_summary?.object_count as number ?? '—'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Created</span>
+                        <span className="text-xs font-semibold text-emerald-600 tabular-nums">{log.records_created}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Failed</span>
+                        <span className="text-xs font-semibold tabular-nums">{log.records_failed > 0 ? <span className="text-red-500">{log.records_failed}</span> : <span className="text-slate-400">0</span>}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Started</span>
+                        <span className="text-[10px] font-semibold text-slate-600 truncate">{fmtDateTime(log.started_at)}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Ended</span>
+                        <span className="text-[10px] font-semibold text-slate-600 truncate">{fmtDateTime(log.ended_at)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-t border-slate-100 bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        {log.duration_ms != null && (
+                          <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <Clock size={11} /> {fmtDuration(log.duration_ms)}
+                          </span>
+                        )}
+                        <span className="text-sm font-extrabold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</span>
+                      </div>
+                      <button
+                        onClick={() => handleOpenRunDetails(log)}
+                        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                      >
+                        <Eye size={11} /> View Run Details
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : historyViewMode === 'table' ? (
+            /* ── Table View ── */
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">#</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Source</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Demand Type</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Started</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Ended</th>
+                    <th className="py-2 px-3 text-right font-bold text-slate-600">Objects</th>
+                    <th className="py-2 px-3 text-right font-bold text-slate-600">Created</th>
+                    <th className="py-2 px-3 text-right font-bold text-slate-600">Failed</th>
+                    <th className="py-2 px-3 text-right font-bold text-slate-600">Duration</th>
+                    <th className="py-2 px-3 text-right font-bold text-slate-600">Total Amount</th>
+                    <th className="py-2 px-3 text-center font-bold text-slate-600">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRunLog.map((log, logIdx) => {
+                    const processedCount = log.records_created + log.records_failed;
+                    return (
+                      <tr
+                        key={log.id}
+                        className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="py-1.5 px-3 text-[10px] font-bold text-slate-300">{logIdx + 1}</td>
+                        <td className="py-1.5 px-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                            {log.source}
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-3 font-semibold text-slate-700">{log.demand_type?.label ?? '—'}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDate(log.run_date)}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.started_at)}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.ended_at)}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums text-slate-600">{log.run_summary?.object_count as number ?? '—'}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums font-semibold text-emerald-600">{log.records_created}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums">{log.records_failed > 0 ? <span className="text-red-500 font-semibold">{log.records_failed}</span> : <span className="text-slate-400">0</span>}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums text-slate-500">{log.duration_ms != null ? fmtDuration(log.duration_ms) : '—'}</td>
+                        <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</td>
+                        <td className="py-1.5 px-3 text-center">
+                          <button
+                            onClick={() => handleOpenRunDetails(log)}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                          >
+                            <Eye size={11} /> View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
+            /* ── List View (default, original row layout) ── */
             <div className="space-y-1.5">
               {filteredRunLog.map((log, logIdx) => {
                 const rowStyle = SOURCE_ROW_STYLE[log.source] ?? 'bg-white border-l-slate-300';
