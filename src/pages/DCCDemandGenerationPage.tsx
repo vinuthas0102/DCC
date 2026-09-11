@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Zap, Loader2,
   CheckCircle2, AlertCircle, Play, History,
   RefreshCw, ChevronDown, ChevronRight,
   Filter, X, Clock, FileText, TrendingUp, Users,
-  Calendar, Sparkles,
-  Eye, Plus, Check,
+  Calendar, Sparkles, Receipt, Wallet, AlertTriangle,
+  Eye, Plus, Check, LayoutGrid, List, Table2,
+  RotateCcw, Search, Home,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { ROUTES } from '../constants/routes';
 import { useNavigate } from 'react-router-dom';
 import { frequencyCodeLabel } from '../types/payableCriteria';
-import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand } from '../types/dcc';
+import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
-import { Modal } from '../components/ui/Modal';
-
-const fmtINR = (n: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+import { DCC_STATUS, fmtINR, fmtDateShort } from '../constants/dccTheme';
+import { DemandListRecord } from '../components/dcc/DemandListRecord';
+import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -49,14 +50,105 @@ const SOURCE_ROW_STYLE: Record<string, string> = {
   MANUAL: 'bg-slate-50/80 border-l-slate-400',
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  DUE: 'bg-amber-100 text-amber-700 border border-amber-200',
-  OVERDUE: 'bg-red-100 text-red-700 border border-red-200',
-  PAID: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-  EXEMPTED: 'bg-slate-100 text-slate-600 border border-slate-200',
-};
+type ViewMode = 'card' | 'list' | 'table';
+type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
 
+interface RunDetailFilterState {
+  statuses: DccDemandStatus[];
+  searchText: string;
+}
 
+const emptyRunFilter: RunDetailFilterState = { statuses: [], searchText: '' };
+
+const STATUS_OPTIONS: { value: DccDemandStatus; label: string }[] = [
+  { value: 'DUE', label: 'Due' },
+  { value: 'OVERDUE', label: 'Overdue' },
+  { value: 'PAID', label: 'Paid' },
+  { value: 'EXEMPTED', label: 'Exempted' },
+];
+
+const toggleArray = <T,>(arr: T[], val: T): T[] =>
+  arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
+
+// Convert DccDemand[] to DccTile-like objects for DemandListRecord
+interface RunDemandTile {
+  id: string;
+  demand_type_code: string;
+  demand_type_label: string;
+  object_id: string;
+  object_ref: string;
+  object_description: string;
+  object_type: string;
+  owner_id: string;
+  owner_name: string;
+  owner_contact: string;
+  owner_address: string;
+  demand_run_date: string;
+  total_amount: number;
+  due_date: string;
+  amount_paid: number;
+  amount_due: number;
+  overdue_amount: number;
+  last_paid_date: string | null;
+  last_paid_amount: number | null;
+  avg_overdue_days: number;
+  status: DccDemandStatus;
+  include_gst: boolean;
+  gst_pct: number;
+  gst_type: 'inclusive' | 'exclusive';
+  gst_amount: number;
+  region: string | null;
+  group_name: string | null;
+  subgroup: string | null;
+}
+
+function demandsToTiles(demands: DccDemand[]): RunDemandTile[] {
+  const today = new Date();
+  return demands.map((d) => {
+    const due = Math.max(0, d.amount - d.amount_paid);
+    const overdue = d.status === 'OVERDUE' ? due : 0;
+    const dueDate = new Date(d.due_date);
+    const avgOverdueDays =
+      d.status === 'OVERDUE'
+        ? Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86400000))
+        : 0;
+    const owner = d.owner;
+    const obj = d.object;
+    const ownerAddress = [owner?.address, owner?.city, owner?.state, owner?.pincode]
+      .filter(Boolean)
+      .join(', ');
+    return {
+      id: d.id,
+      demand_type_code: d.demand_type?.code ?? '',
+      demand_type_label: d.demand_type?.label ?? '',
+      object_id: d.object_id,
+      object_ref: obj?.object_ref ?? '',
+      object_description: obj?.description ?? '',
+      object_type: obj?.object_type ?? '',
+      owner_id: d.owner_id,
+      owner_name: owner?.name ?? '',
+      owner_contact: owner?.contact_number ?? '',
+      owner_address: ownerAddress,
+      demand_run_date: d.demand_run_date,
+      total_amount: d.amount,
+      due_date: d.due_date,
+      amount_paid: d.amount_paid,
+      amount_due: due,
+      overdue_amount: overdue,
+      last_paid_date: null,
+      last_paid_amount: null,
+      avg_overdue_days: avgOverdueDays,
+      status: d.status,
+      include_gst: d.include_gst ?? false,
+      gst_pct: d.gst_pct ?? 0,
+      gst_type: d.gst_type ?? 'exclusive',
+      gst_amount: d.gst_amount ?? 0,
+      region: obj?.region ?? null,
+      group_name: obj?.group_name ?? null,
+      subgroup: obj?.subgroup ?? null,
+    };
+  });
+}
 
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -79,6 +171,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [detailModalLog, setDetailModalLog] = useState<DccDemandRunLog | null>(null);
+  const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
 
   // Filters
   const [filterSource, setFilterSource] = useState<string>('');
@@ -260,7 +353,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* ── Auto-Generate Panel ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative z-30">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
             <Sparkles size={16} className="text-amber-600" />
             <h2 className="text-sm font-bold text-slate-900">Auto-Generate from Rules</h2>
@@ -268,9 +361,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
           </div>
 
           <div className="p-5">
-            <div className="grid grid-cols-1 lg:grid-cols-[13rem_minmax(0,1fr)_auto] items-end gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-[13rem_minmax(0,1fr)_auto] gap-3 items-start">
               {/* Run date */}
-              <div>
+              <div className="flex flex-col">
                 <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                   <Calendar size={12} /> Run Date
                 </label>
@@ -283,7 +376,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
               </div>
 
               {/* Rule dropdown */}
-              <div className="min-w-0">
+              <div className="min-w-0 flex flex-col">
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Demand Rules</label>
                 {loadingRules ? (
                   <div className="flex items-center h-9 px-3 border border-slate-200 rounded-lg bg-slate-50">
@@ -309,21 +402,22 @@ export const DCCDemandGenerationPage: React.FC = () => {
               </div>
 
               {/* Generate action */}
-              <button
-                onClick={handleAutoGenerate}
-                disabled={selectedRuleIds.size === 0 || generating}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
-              >
-                {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
-                {generating ? 'Generating…' : `Generate (${selectedRuleIds.size})`}
-              </button>
+              <div className="flex flex-col justify-end">
+                <button
+                  onClick={handleAutoGenerate}
+                  disabled={selectedRuleIds.size === 0 || generating}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+                >
+                  {generating ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                  {generating ? 'Generating…' : `Generate (${selectedRuleIds.size})`}
+                </button>
+              </div>
             </div>
-
           </div>
         </div>
 
         {/* ── Run History ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative z-10">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
             <History size={16} className="text-slate-500" />
             <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
@@ -464,25 +558,29 @@ export const DCCDemandGenerationPage: React.FC = () => {
               })}
             </div>
           )}
-
-          {/* Run details modal */}
-          <Modal
-            isOpen={!!detailModalLog}
-            onClose={closeRunDetails}
-            title="Run Details"
-            size="lg"
-            noPadding
-          >
-            {detailModalLog && (
-              <RunDetailsContent
-                log={detailModalLog}
-                details={runDetails[detailModalLog.id] ?? []}
-                isLoading={loadingDetails === detailModalLog.id}
-              />
-            )}
-          </Modal>
         </div>
       </div>
+
+      {/* Run Details Full-Screen Overlay */}
+      <AnimatePresence>
+        {detailModalLog && (
+          <RunDetailsOverlay
+            log={detailModalLog}
+            details={runDetails[detailModalLog.id] ?? []}
+            isLoading={loadingDetails === detailModalLog.id}
+            onClose={closeRunDetails}
+            onViewDemand={(id) => setDetailDemandId(id)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Demand Detail Modal */}
+      {detailDemandId && (
+        <DCCDemandDetailModal
+          demandId={detailDemandId}
+          onClose={() => setDetailDemandId(null)}
+        />
+      )}
     </div>
   );
 };
@@ -585,7 +683,7 @@ const RuleDropdownSection: React.FC<RuleDropdownSectionProps> = ({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-64 overflow-y-auto">
               {availableRules.map(rule => {
                 const dtLabel = demandTypes.find(d => d.id === rule.demand_type_id)?.label ?? '—';
                 const matchingCount = objects.filter(o => o.object_type === rule.object_type).length;
@@ -620,115 +718,538 @@ const RuleDropdownSection: React.FC<RuleDropdownSectionProps> = ({
   );
 };
 
-// ── Run Details Content (inside modal) ─────────────────────────────
+// ── Run Details Full-Screen Overlay ─────────────────────────────────
 
-interface RunDetailsContentProps {
+interface RunDetailsOverlayProps {
   log: DccDemandRunLog;
   details: DccDemand[];
   isLoading: boolean;
+  onClose: () => void;
+  onViewDemand: (demandId: string) => void;
 }
 
-const RunDetailsContent: React.FC<RunDetailsContentProps> = ({ log, details, isLoading }) => {
-  return (
-    <div className="p-5 space-y-4">
-      {/* Metadata grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <Play size={11} /> Started
+const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isLoading, onClose, onViewDemand }) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [activeKpi, setActiveKpi] = useState<KpiKey>('ALL');
+  const [filterState, setFilterState] = useState<RunDetailFilterState>(emptyRunFilter);
+  const [showFilter, setShowFilter] = useState(false);
+
+  const tiles = useMemo(() => demandsToTiles(details), [details]);
+
+  const filteredTiles = useMemo(() => {
+    let result = tiles;
+    if (activeKpi === 'PAID') result = result.filter(t => t.status === 'PAID');
+    else if (activeKpi === 'OUTSTANDING') result = result.filter(t => t.status === 'DUE' || t.status === 'OVERDUE');
+    else if (activeKpi === 'OVERDUE') result = result.filter(t => t.status === 'OVERDUE');
+    if (filterState.statuses.length > 0) {
+      result = result.filter(t => filterState.statuses.includes(t.status));
+    }
+    const q = filterState.searchText.trim().toLowerCase();
+    if (q) {
+      result = result.filter(t =>
+        (t.object_description || '').toLowerCase().includes(q) ||
+        (t.object_ref || '').toLowerCase().includes(q) ||
+        (t.demand_type_label || '').toLowerCase().includes(q) ||
+        (t.owner_name || '').toLowerCase().includes(q)
+      );
+    }
+    const statusRank: Record<string, number> = { OVERDUE: 0, DUE: 1, EXEMPTED: 3, PAID: 4 };
+    result = [...result].sort((a, b) => {
+      const ra = statusRank[a.status] ?? 5;
+      const rb = statusRank[b.status] ?? 5;
+      if (ra !== rb) return ra - rb;
+      return (b.overdue_amount || 0) - (a.overdue_amount || 0);
+    });
+    return result;
+  }, [tiles, activeKpi, filterState]);
+
+  const totalDemand = tiles.reduce((s, t) => s + t.total_amount, 0);
+  const totalPaid = tiles.reduce((s, t) => s + t.amount_paid, 0);
+  const totalOutstanding = tiles.reduce((s, t) => s + t.amount_due, 0);
+  const overdueAmount = tiles.reduce((s, t) => s + t.overdue_amount, 0);
+  const collectionRate = totalDemand > 0 ? Math.round((totalPaid / totalDemand) * 100) : 0;
+
+  const activeFilterCount = filterState.statuses.length + (filterState.searchText.trim() ? 1 : 0);
+
+  const ViewModeSelector: React.FC = () => {
+    const modes: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
+      { mode: 'card', icon: <LayoutGrid size={16} />, label: 'Card View' },
+      { mode: 'list', icon: <List size={16} />, label: 'List View' },
+      { mode: 'table', icon: <Table2 size={16} />, label: 'Table View' },
+    ];
+    return (
+      <div className="inline-flex items-center bg-white rounded-lg border border-slate-200 p-0.5">
+        {modes.map(({ mode, icon, label }) => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            className={`group relative flex items-center justify-center w-8 h-8 rounded-md transition-all ${
+              viewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+            title={label}
+          >
+            {icon}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // KPI Card
+  const KpiCard: React.FC<{
+    icon: React.ReactNode; label: string; value: string; subValue?: string;
+    active: boolean; onClick: () => void; iconBg: string; activeRing: string; delay: number;
+  }> = ({ icon, label, value, subValue, active, onClick, iconBg, activeRing, delay }) => (
+    <motion.button
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`relative bg-white rounded-lg border shadow-sm overflow-hidden text-left transition-all duration-200 hover:shadow-md ${
+        active ? `${activeRing} border-2` : 'border-slate-200 hover:border-slate-300'
+      }`}
+    >
+      <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center shrink-0`}>
+            {icon}
           </div>
-          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.started_at)}</div>
+          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-500 leading-tight truncate">{label}</span>
         </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <CheckCircle2 size={11} /> Ended
-          </div>
-          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.ended_at)}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <Clock size={11} /> Duration
-          </div>
-          <div className="text-xs font-semibold text-slate-700">{fmtDuration(log.duration_ms)}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <TrendingUp size={11} /> Total Amount
-          </div>
-          <div className="text-xs font-semibold text-slate-700">{fmtINR(log.total_amount)}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <FileText size={11} /> Records Created
-          </div>
-          <div className="text-xs font-semibold text-emerald-600">{log.records_created}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <AlertCircle size={11} /> Records Failed
-          </div>
-          <div className={`text-xs font-semibold ${log.records_failed > 0 ? 'text-red-600' : 'text-slate-700'}`}>{log.records_failed}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <Users size={11} /> Objects
-          </div>
-          <div className="text-xs font-semibold text-slate-700">{log.run_summary?.object_count as number ?? '—'}</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
-            <History size={11} /> Logged At
-          </div>
-          <div className="text-xs font-semibold text-slate-700">{fmtDateTime(log.created_at)}</div>
+        <div className="flex flex-col items-end shrink-0">
+          <span className="text-xs font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
+          {subValue && <span className="text-[8px] text-slate-400 leading-tight mt-0.5 whitespace-nowrap">{subValue}</span>}
         </div>
       </div>
+    </motion.button>
+  );
 
-      {/* Demands table */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-          <FileText size={13} className="text-slate-500" />
-          <span className="text-xs font-bold text-slate-700">Demands in this run</span>
-          <span className="ml-auto text-[10px] text-slate-400">{details.length} demand{details.length !== 1 ? 's' : ''}</span>
+  // Card view
+  const CardView: React.FC<{ tile: RunDemandTile; idx: number }> = ({ tile, idx }) => {
+    const st = DCC_STATUS[tile.status];
+    return (
+      <motion.button
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
+        whileHover={{ scale: 1.01 }}
+        onClick={() => onViewDemand(tile.id)}
+        className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all text-left overflow-hidden group"
+      >
+        <div className={`h-0.5 ${st.dot} shrink-0`} />
+        <div className="px-3 py-2.5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
+            </div>
+            <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">
+              {tile.object_description || tile.object_ref}
+            </h3>
+            <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
+              {st.label}
+            </span>
+            <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
+            <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
+          </div>
         </div>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 size={16} className="animate-spin text-emerald-500" />
+        <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Date</span>
+            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtDateShort(tile.demand_run_date)}</span>
           </div>
-        ) : details.length === 0 ? (
-          <div className="text-center py-6 text-slate-400">
-            <p className="text-xs">No demand records found for this run</p>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Due Date</span>
+            <span className={`text-xs font-semibold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-900'}`}>{fmtDateShort(tile.due_date)}</span>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                  <th className="px-3 py-2 text-left">Object Ref</th>
-                  <th className="px-3 py-2 text-left">Owner</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
-                  <th className="px-3 py-2 text-left">Due Date</th>
-                  <th className="px-3 py-2 text-center">Status</th>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total</span>
+            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtINR(tile.total_amount)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Paid</span>
+            <span className="text-xs font-semibold tabular-nums truncate text-emerald-600">{tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Pending</span>
+            <span className="text-xs font-semibold tabular-nums truncate text-red-600">{tile.amount_due > 0 ? fmtINR(tile.amount_due) : '—'}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Owner</span>
+            <span className="text-xs font-semibold truncate text-slate-700">{tile.owner_name}</span>
+          </div>
+        </div>
+      </motion.button>
+    );
+  };
+
+  // Table view
+  const TableView: React.FC = () => (
+    <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Object</th>
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Owner</th>
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Type</th>
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Due Date</th>
+              <th className="py-2 px-3 text-right font-bold text-slate-600">Amount</th>
+              <th className="py-2 px-3 text-right font-bold text-slate-600">Paid</th>
+              <th className="py-2 px-3 text-right font-bold text-slate-600">Pending</th>
+              <th className="py-2 px-3 text-center font-bold text-slate-600">Status</th>
+              <th className="py-2 px-3 text-center font-bold text-slate-600">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTiles.map(tile => {
+              const st = DCC_STATUS[tile.status];
+              return (
+                <tr
+                  key={tile.id}
+                  onClick={() => onViewDemand(tile.id)}
+                  className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                >
+                  <td className="py-1.5 px-3">
+                    <div className="text-xs font-semibold text-slate-900 truncate max-w-[200px]">{tile.object_description || tile.object_ref}</div>
+                    <div className="text-[9px] text-slate-400 truncate max-w-[200px]">{tile.object_ref}</div>
+                  </td>
+                  <td className="py-1.5 px-3 text-slate-600">{tile.owner_name}</td>
+                  <td className="py-1.5 px-3">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
+                  </td>
+                  <td className="py-1.5 px-3">
+                    <span className={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}>
+                      {fmtDateShort(tile.due_date)}
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-3 text-right font-semibold text-slate-700 tabular-nums">{fmtINR(tile.total_amount)}</td>
+                  <td className="py-1.5 px-3 text-right font-semibold text-emerald-600 tabular-nums">{tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'}</td>
+                  <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(tile.amount_due)}</td>
+                  <td className="py-1.5 px-3 text-center">
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
+                      {st.label}
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-3 text-center">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewDemand(tile.id); }}
+                      title="View Details"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-all"
+                    >
+                      <Eye size={13} />
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {details.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50">
-                    <td className="px-3 py-2 text-slate-700 font-medium">{d.object?.object_ref ?? '—'}</td>
-                    <td className="px-3 py-2 text-slate-600">{d.owner?.name ?? '—'}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-slate-900">{fmtINR(d.amount)}</td>
-                    <td className="px-3 py-2 text-slate-600">{fmtDate(d.due_date)}</td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status] ?? 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                        {d.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Dark backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50]"
+        onClick={onClose}
+      />
+      {/* Overlay panel */}
+      <motion.div
+        initial={{ y: '100%', opacity: 0.5 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0.5 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="fixed bottom-0 left-0 right-0 top-14 z-[51] flex flex-col bg-slate-50 rounded-t-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Breadcrumb + Header row */}
+        <div className="shrink-0">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 px-4 pt-2 pb-1 bg-slate-100 border-b border-slate-200">
+            <button onClick={onClose} className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+              <Home size={11} /> Demand Generation
+            </button>
+            <ChevronRight size={10} className="text-slate-300" />
+            <span className="text-[10px] font-bold text-slate-700">Run Details</span>
+          </div>
+
+          {/* Run details single row */}
+          <div className="flex items-stretch divide-x divide-slate-200 bg-white border-b border-slate-200 overflow-x-auto">
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Source</div>
+              <div className="mt-0.5">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                  {log.source}
+                </span>
+              </div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Demand Type</div>
+              <div className="mt-0.5 text-[11px] font-bold text-slate-800 leading-tight">{log.demand_type?.label ?? '—'}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Run Date</div>
+              <div className="mt-0.5 text-[11px] font-bold text-slate-800 leading-tight">{fmtDate(log.run_date)}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Started</div>
+              <div className="mt-0.5 text-[11px] font-semibold text-slate-700 leading-tight">{fmtDateTime(log.started_at)}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Ended</div>
+              <div className="mt-0.5 text-[11px] font-semibold text-slate-700 leading-tight">{fmtDateTime(log.ended_at)}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Duration</div>
+              <div className="mt-0.5 text-[11px] font-bold text-slate-700 leading-tight">{fmtDuration(log.duration_ms)}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Records</div>
+              <div className="mt-0.5 text-[11px] font-bold text-emerald-600 leading-tight">{log.records_created}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0">
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Total Amount</div>
+              <div className="mt-0.5 text-[11px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(log.total_amount)}</div>
+            </div>
+            <div className="px-3 py-2 shrink-0 ml-auto">
+              <button
+                onClick={onClose}
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors mt-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI Cards + Controls */}
+        {!isLoading && tiles.length > 0 && (
+          <div className="px-4 pt-3 pb-2 shrink-0 space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              <KpiCard
+                icon={<Receipt size={12} className="text-white" />}
+                label="Total Demand"
+                value={fmtINR(totalDemand)}
+                subValue={`${tiles.length} demands`}
+                active={activeKpi === 'ALL'}
+                onClick={() => setActiveKpi(prev => prev === 'ALL' ? 'ALL' : 'ALL')}
+                iconBg="bg-blue-500"
+                activeRing="ring-2 ring-blue-400"
+                delay={0}
+              />
+              <KpiCard
+                icon={<CheckCircle2 size={12} className="text-white" />}
+                label="Total Paid"
+                value={fmtINR(totalPaid)}
+                subValue="Collected"
+                active={activeKpi === 'PAID'}
+                onClick={() => setActiveKpi(prev => prev === 'PAID' ? 'ALL' : 'PAID')}
+                iconBg="bg-emerald-500"
+                activeRing="ring-2 ring-emerald-400"
+                delay={0.04}
+              />
+              <KpiCard
+                icon={<Wallet size={12} className="text-white" />}
+                label="Outstanding"
+                value={fmtINR(totalOutstanding)}
+                subValue="Pending"
+                active={activeKpi === 'OUTSTANDING'}
+                onClick={() => setActiveKpi(prev => prev === 'OUTSTANDING' ? 'ALL' : 'OUTSTANDING')}
+                iconBg="bg-amber-500"
+                activeRing="ring-2 ring-amber-400"
+                delay={0.08}
+              />
+              <KpiCard
+                icon={<AlertTriangle size={12} className="text-white" />}
+                label="Overdue"
+                value={fmtINR(overdueAmount)}
+                subValue="Penalty"
+                active={activeKpi === 'OVERDUE'}
+                onClick={() => setActiveKpi(prev => prev === 'OVERDUE' ? 'ALL' : 'OVERDUE')}
+                iconBg="bg-red-500"
+                activeRing="ring-2 ring-red-400"
+                delay={0.12}
+              />
+              <KpiCard
+                icon={<TrendingUp size={12} className="text-white" />}
+                label="Collection Rate"
+                value={`${collectionRate}%`}
+                subValue={`${tiles.length} demands`}
+                active={activeKpi === 'ALL'}
+                onClick={() => setActiveKpi('ALL')}
+                iconBg="bg-slate-700"
+                activeRing="ring-2 ring-slate-500"
+                delay={0.16}
+              />
+            </div>
+
+            {/* Controls row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {(activeFilterCount > 0 || activeKpi !== 'ALL') && (
+                  <button
+                    onClick={() => { setFilterState(emptyRunFilter); setActiveKpi('ALL'); }}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <X size={12} /> Clear all
+                  </button>
+                )}
+                <span className="text-[11px] text-slate-400">
+                  {filteredTiles.length} of {tiles.length} demands
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ViewModeSelector />
+                <button
+                  onClick={() => setShowFilter(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:border-slate-300 hover:shadow-sm transition-all"
+                >
+                  <Filter size={13} /> Filter
+                  {activeFilterCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Demand List */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-1">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 size={24} className="text-emerald-600 animate-spin" />
+            </div>
+          ) : tiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <FileText size={32} className="mb-2 opacity-30" />
+              <div className="text-sm font-medium text-slate-600">No demand records found for this run</div>
+            </div>
+          ) : filteredTiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <CheckCircle2 size={32} className="text-emerald-400 mb-2" />
+              <div className="text-sm font-medium text-slate-600">No demands match the selected filters</div>
+              <button
+                onClick={() => { setFilterState(emptyRunFilter); setActiveKpi('ALL'); }}
+                className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200 transition-colors"
+              >
+                <RotateCcw size={12} /> Clear filters
+              </button>
+            </div>
+          ) : viewMode === 'card' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {filteredTiles.map((tile, idx) => <CardView key={tile.id} tile={tile} idx={idx} />)}
+            </div>
+          ) : viewMode === 'list' ? (
+            <div className="flex flex-col gap-2">
+              {filteredTiles.map((tile, idx) => (
+                <DemandListRecord
+                  key={tile.id}
+                  tile={tile}
+                  idx={idx}
+                  onViewDetails={(t) => onViewDemand(t.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <TableView />
+          )}
+        </div>
+
+        {/* Filter Drawer */}
+        <AnimatePresence>
+          {showFilter && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70]"
+                onClick={() => setShowFilter(false)}
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] bg-slate-50 shadow-2xl z-[71] flex flex-col"
+              >
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700 shrink-0">
+                  <h2 className="text-sm font-bold text-white">Filter Demands</h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setFilterState(emptyRunFilter)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold text-slate-300 border border-slate-600 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      <RotateCcw size={12} /> Reset
+                    </button>
+                    <button
+                      onClick={() => setShowFilter(false)}
+                      className="flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Search</p>
+                    <div className="relative">
+                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={filterState.searchText}
+                        onChange={e => setFilterState(d => ({ ...d, searchText: e.target.value }))}
+                        placeholder="Object, owner, or demand type..."
+                        className="w-full pl-8 pr-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Status</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STATUS_OPTIONS.map(s => (
+                        <button
+                          key={s.value}
+                          onClick={() => setFilterState(d => ({ ...d, statuses: toggleArray(d.statuses, s.value) }))}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                            filterState.statuses.includes(s.value)
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-gradient-to-r from-slate-900 to-teal-900 border-t border-slate-700 shrink-0">
+                  <button
+                    onClick={() => setShowFilter(false)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg transition-all"
+                  >
+                    <Search size={16} /> Apply Filters
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </>
   );
 };
