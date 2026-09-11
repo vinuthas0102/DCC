@@ -582,16 +582,17 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           </span>
           <h1 className="text-sm font-bold text-white truncate">{tile.object_description || tile.object_ref}</h1>
           <span className="text-[10px] text-slate-400 shrink-0">· {tile.object_ref}</span>
-          <span className="text-[10px] text-slate-500 shrink-0">· {tile.demand_type_label}</span>
+          <span className="text-[10px] text-slate-300 shrink-0 font-semibold">· {tile.demand_type_label}</span>
           <div className="ml-auto flex items-center gap-2 shrink-0">
             <span className="flex items-center gap-1 text-[10px] text-slate-400">
               <Users size={11} /> {tile.owner_name}
             </span>
             <button
               onClick={handleDownload}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:bg-slate-800 transition-colors border border-slate-700"
+              title="Download Statement"
+              className="flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors border border-slate-700"
             >
-              <Download size={11} /> Statement
+              <Download size={13} />
             </button>
             <button
               onClick={onClose}
@@ -605,10 +606,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
         <div className="flex items-end justify-between gap-4 pl-7 flex-wrap">
           {/* Property info */}
           <div className="flex items-end gap-4 flex-wrap">
-            <div className="flex flex-col">
-              <span className="text-slate-400 text-[10px] uppercase font-bold">Outstanding</span>
-              <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(tile.amount_due)}</span>
-            </div>
             <div className="flex flex-col">
               <span className="text-slate-400 text-[10px] uppercase font-bold">Last Paid</span>
               <span className="text-white text-xs font-semibold tabular-nums leading-tight">{tile.last_paid_date ? `${fmtINR(tile.last_paid_amount ?? 0)} · ${fmtDateShort(tile.last_paid_date)}` : '—'}</span>
@@ -646,6 +643,10 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
               const appliedPenaltyPct = penaltyAmount > 0 ? penaltyPct * 100 : 0;
               return (
                 <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-[9px] uppercase font-bold">Outstanding</span>
+                    <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(tile.amount_due)}</span>
+                  </div>
                   <div className="flex flex-col">
                     <span className="text-slate-400 text-[9px] uppercase font-bold">Penalty ({appliedPenaltyPct}%)</span>
                     <span className="text-red-400 text-xs font-semibold tabular-nums leading-tight">{penaltyAmount > 0 ? fmtINR(penaltyAmount) : '—'}</span>
