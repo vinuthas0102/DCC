@@ -2,15 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DCCClientDueSummaryModal } from '../../pages/DCCClientDueSummaryPage';
 import {
-  Users, ChevronRight,
-  Phone, CalendarDays, AlertTriangle, TrendingUp, Wallet,
+  Users, ChevronRight, Phone,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
-import {
-  fmtINR, fmtDateShort,
-} from '../../constants/dccTheme';
+import { fmtINR, fmtDateShort } from '../../constants/dccTheme';
 
-// ── Types ────────────────────────────────────────────────────────────────────
 interface ClientGroup {
   ownerId: string;
   ownerName: string;
@@ -31,12 +27,9 @@ interface ClientGroup {
   overallStatus: 'PAID' | 'DUE' | 'OVERDUE';
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 function computeOverallStatus(tiles: DccTile[]): 'PAID' | 'DUE' | 'OVERDUE' {
-  const hasOverdue = tiles.some((t) => t.status === 'OVERDUE');
-  if (hasOverdue) return 'OVERDUE';
-  const allPaid = tiles.every((t) => t.status === 'PAID' || t.status === 'EXEMPTED');
-  if (allPaid) return 'PAID';
+  if (tiles.some((t) => t.status === 'OVERDUE')) return 'OVERDUE';
+  if (tiles.every((t) => t.status === 'PAID' || t.status === 'EXEMPTED')) return 'PAID';
   return 'DUE';
 }
 
@@ -94,33 +87,27 @@ function groupByClient(tiles: DccTile[]): ClientGroup[] {
   return groups;
 }
 
-// ── Status strip color ───────────────────────────────────────────────────────
 const STRIP: Record<'PAID' | 'DUE' | 'OVERDUE', string> = {
   PAID: 'bg-emerald-500',
   DUE: 'bg-amber-400',
   OVERDUE: 'bg-red-500',
 };
 
-// ── Label-Value pair ──────────────────────────────────────────────────────────
-const LABEL_CLS = 'text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
-const VALUE_CLS = 'text-[11px] font-bold text-slate-800 tabular-nums leading-tight';
+const LABEL_CLS = 'text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
+const VALUE_CLS = 'text-[10px] font-bold text-slate-800 tabular-nums leading-tight';
 
-const Metric: React.FC<{
+const Field: React.FC<{
   label: string;
   value: React.ReactNode;
   valueCls?: string;
-  icon?: React.ReactNode;
-}> = ({ label, value, valueCls = VALUE_CLS, icon }) => (
-  <div className="flex flex-col justify-center min-w-0 px-2 border-r border-slate-100 last:border-r-0">
-    <span className="flex items-center gap-0.5">
-      {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
-      <span className={LABEL_CLS}>{label}</span>
-    </span>
+  width?: string;
+}> = ({ label, value, valueCls = VALUE_CLS, width = 'w-[72px]' }) => (
+  <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2`}>
+    <span className={LABEL_CLS}>{label}</span>
     <span className={`mt-0.5 truncate whitespace-nowrap ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
-// ── Client summary card ──────────────────────────────────────────────────────
 const ClientSummaryCard: React.FC<{
   group: ClientGroup;
   onViewDetails: () => void;
@@ -142,46 +129,41 @@ const ClientSummaryCard: React.FC<{
 
   return (
     <div className="flex relative">
-      {/* Left status strip */}
       <div className={`w-1 shrink-0 ${STRIP[group.overallStatus]}`} />
 
-      {/* Grid: [auto — left block] [1fr — center block] [auto — right block] */}
-      <div
-        className="flex-1 grid items-center min-w-0 py-2 px-2.5 gap-2"
-        style={{ gridTemplateColumns: 'auto 1fr auto' }}
-      >
-        {/* ── Left Block: Identity & Counts ── */}
+      <div className="flex-1 flex items-center min-w-0 py-2 px-2.5 gap-2">
+        {/* Left: Identity + counts — fixed block */}
         <div className="flex items-center gap-2 shrink-0 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
             {group.ownerName.charAt(0).toUpperCase()}
           </div>
-          <div className="flex flex-col leading-tight min-w-0 shrink-0 max-w-[110px]">
+          <div className="flex flex-col leading-tight min-w-0 w-[110px] shrink-0">
             <span className="text-[11px] font-bold text-slate-900 truncate">{group.ownerName}</span>
             <span className="flex items-center gap-0.5 text-[8px] text-slate-400 truncate">
               <Phone size={7} /> {group.ownerContact || '—'}
             </span>
           </div>
-          <div className="flex flex-col leading-tight shrink-0 pl-2 border-l border-slate-100">
-            <span className={LABEL_CLS}>Properties</span>
+          <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
+            <span className={LABEL_CLS}>Props</span>
             <span className="mt-0.5 text-[11px] font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
           </div>
-          <div className="flex flex-col leading-tight shrink-0 pl-2 border-l border-slate-100">
+          <div className="flex flex-col leading-tight shrink-0 w-[58px] pl-2 border-l border-slate-100">
             <span className={LABEL_CLS}>Demands</span>
             <span className="mt-0.5 text-[11px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
           </div>
         </div>
 
-        {/* ── Center Block: Dates, Financial Metrics & Tags ── */}
+        {/* Center: Fixed-width metric fields — aligned across all rows */}
         <div className="flex items-center min-w-0 overflow-hidden">
-          <Metric label="Run Date" value={runDateRange} icon={<CalendarDays size={9} />} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" />
-          <Metric label="Due Date" value={dueDateRange} icon={<CalendarDays size={9} />} valueCls={`text-[10px] font-bold tabular-nums ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
-          <Metric label="Demand Amt" value={fmtINR(group.totalDemand)} icon={<Wallet size={9} />} valueCls="text-[10px] font-bold text-slate-800 tabular-nums" />
-          <Metric label="Paid Amt" value={fmtINR(group.totalPaid)} icon={<TrendingUp size={9} />} valueCls="text-[10px] font-bold text-emerald-600 tabular-nums" />
+          <Field label="Run Date" value={runDateRange} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-[80px]" />
+          <Field label="Due Date" value={dueDateRange} valueCls={`text-[10px] font-bold tabular-nums ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} width="w-[80px]" />
+          <Field label="Demand Amt" value={fmtINR(group.totalDemand)} valueCls="text-[10px] font-bold text-slate-800 tabular-nums" width="w-[78px]" />
+          <Field label="Paid Amt" value={fmtINR(group.totalPaid)} valueCls="text-[10px] font-bold text-emerald-600 tabular-nums" width="w-[72px]" />
           {group.overdueAmount > 0 && (
-            <Metric label="Overdue Amt" value={fmtINR(group.overdueAmount)} icon={<AlertTriangle size={9} />} valueCls="text-[10px] font-bold text-red-600 tabular-nums" />
+            <Field label="Overdue" value={fmtINR(group.overdueAmount)} valueCls="text-[10px] font-bold text-red-600 tabular-nums" width="w-[72px]" />
           )}
-          <Metric label="Coll. Rate" value={`${collectionPct}%`} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" />
-          {/* Transaction type pills — in their own bordered section to prevent overlap */}
+          <Field label="Coll %" value={`${collectionPct}%`} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" width="w-[48px]" />
+          {/* Transaction type pills — own bordered section */}
           <div className="flex items-center gap-1 min-w-0 overflow-hidden pl-2 border-l border-slate-100">
             {group.demandTypes.slice(0, 2).map((dt) => (
               <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap max-w-[80px] truncate">
@@ -191,23 +173,21 @@ const ClientSummaryCard: React.FC<{
           </div>
         </div>
 
-        {/* ── Right Block: Outstanding + Controls ── */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Outstanding badge */}
+        {/* Right: Outstanding + button — fixed block */}
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
-            <span className={`text-[9px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Outstanding</span>
+            <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Outstanding</span>
             <span className={`mt-0.5 text-[11px] font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
               {fmtINR(group.totalOutstanding)}
             </span>
           </div>
 
-          {/* Details button */}
           <button
             onClick={onViewDetails}
             className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap shrink-0"
-            title="View Details"
+            title="View demands"
           >
-            Details <ChevronRight size={10} />
+            View demands <ChevronRight size={10} />
           </button>
         </div>
       </div>
@@ -215,7 +195,6 @@ const ClientSummaryCard: React.FC<{
   );
 };
 
-// ── Main component ───────────────────────────────────────────────────────────
 export interface ClientWiseViewProps {
   tiles: DccTile[];
   onViewDetails: (tile: DccTile) => void;
@@ -226,7 +205,6 @@ export interface ClientWiseViewProps {
 
 export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles }) => {
   const clientGroups = useMemo(() => groupByClient(tiles), [tiles]);
-
   const [summaryOwnerId, setSummaryOwnerId] = useState<string | null>(null);
 
   if (clientGroups.length === 0) {
@@ -242,19 +220,19 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles }) => {
   return (
     <div className="flex flex-col gap-1.5">
       {clientGroups.map((group) => (
-          <motion.div
-            key={group.ownerId}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.15 }}
-            className="bg-white rounded-xl border border-slate-200 shadow-[0_4px_16px_rgba(30,64,175,0.06)] overflow-hidden hover:shadow-[0_8px_24px_rgba(30,64,175,0.1)] transition-all"
-          >
-            <ClientSummaryCard
-              group={group}
-              onViewDetails={() => setSummaryOwnerId(group.ownerId)}
-            />
-          </motion.div>
-        ))}
+        <motion.div
+          key={group.ownerId}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="bg-white rounded-xl border border-slate-200 shadow-[0_4px_16px_rgba(30,64,175,0.06)] overflow-hidden hover:shadow-[0_8px_24px_rgba(30,64,175,0.1)] transition-all"
+        >
+          <ClientSummaryCard
+            group={group}
+            onViewDetails={() => setSummaryOwnerId(group.ownerId)}
+          />
+        </motion.div>
+      ))}
 
       <AnimatePresence>
         {summaryOwnerId && (
