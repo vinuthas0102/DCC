@@ -1435,74 +1435,136 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
         {/* ═══ Tab 3: Demand Paid History ══════════════════════════════════════════ */}
         {effectiveTab === 'paid_history' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-              <History size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900">Demand Paid History</h3>
-              <span className="ml-auto text-[10px] text-slate-400">
-                {payments.length} payment{payments.length !== 1 ? 's' : ''}
-                {payments.length > 0 && ` · Total: ${fmtINR(payments.reduce((s, p) => s + p.amount, 0))}`}
-              </span>
+          <div className="space-y-3">
+            {/* Demand Summary Card */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
+                <FileSpreadsheet size={14} className="text-slate-500" />
+                <h3 className="text-xs font-bold text-slate-900">Demand Details</h3>
+                <span className={`ml-auto inline-flex px-2 py-0.5 rounded text-[9px] font-bold ${tile.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : tile.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {tile.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100">
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Demand Type</p>
+                  <p className="text-xs font-bold text-slate-800">{tile.demand_type_label}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Object</p>
+                  <p className="text-xs font-bold text-slate-800">{tile.object_ref}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{tile.object_description}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Owner</p>
+                  <p className="text-xs font-bold text-slate-800">{tile.owner_name}</p>
+                  <p className="text-[10px] text-slate-500">{tile.owner_contact}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Run Date</p>
+                  <p className="text-xs font-bold text-slate-800">{fmtDate(tile.demand_run_date)}</p>
+                  <p className="text-[10px] text-slate-500">Due: {fmtDate(tile.due_date)}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Total Demand</p>
+                  <p className="text-xs font-bold text-slate-900 tabular-nums">{fmtINR(tile.total_amount)}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Collected</p>
+                  <p className="text-xs font-bold text-emerald-700 tabular-nums">{fmtINR(tile.amount_paid)}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Outstanding</p>
+                  <p className="text-xs font-bold text-red-600 tabular-nums">{fmtINR(tile.amount_due)}</p>
+                </div>
+                <div className="bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">GST</p>
+                  <p className="text-xs font-bold text-slate-800 tabular-nums">{tile.include_gst ? `${tile.gst_pct}% · ${fmtINR(tile.gst_amount)}` : 'Not Applicable'}</p>
+                </div>
+              </div>
             </div>
-            {payments.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Receipt size={24} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No payments recorded yet</p>
+
+            {/* Payment History Table */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+                <History size={14} className="text-slate-500" />
+                <h3 className="text-xs font-bold text-slate-900">Payment History</h3>
+                <span className="ml-auto text-[10px] text-slate-400">
+                  {payments.length} payment{payments.length !== 1 ? 's' : ''}
+                  {payments.length > 0 && ` · Total: ${fmtINR(payments.reduce((s, p) => s + p.amount, 0))}`}
+                </span>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[10px]">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600">
-                      <th className="px-1.5 py-1 text-left font-bold">Receipt No</th>
-                      <th className="px-1.5 py-1 text-left font-bold">Date</th>
-                      <th className="px-1.5 py-1 text-left font-bold">Mode</th>
-                      <th className="px-1.5 py-1 text-left font-bold">Reference</th>
-                      <th className="px-1.5 py-1 text-right font-bold">Amount</th>
-                      <th className="px-1.5 py-1 text-left font-bold">Remarks</th>
-                      <th className="px-1.5 py-1 text-center font-bold">Receipt</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...payments].reverse().map(p => (
-                      <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                        <td className="px-1.5 py-1"><span className="font-bold text-emerald-700">{receiptNumber(p.id)}</span></td>
-                        <td className="px-1.5 py-1 text-slate-600">{fmtDate(p.payment_date)}</td>
-                        <td className="px-1.5 py-1">
-                          <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">
-                            {PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}
-                          </span>
-                        </td>
-                        <td className="px-1.5 py-1 text-slate-500">{p.reference_number || '—'}</td>
-                        <td className="px-1.5 py-1 text-right tabular-nums font-bold text-emerald-700">{fmtINR(p.amount)}</td>
-                        <td className="px-1.5 py-1 text-slate-400 max-w-[160px] truncate" title={p.remarks ?? ''}>{p.remarks || '—'}</td>
-                        <td className="px-1.5 py-1 text-center">
-                          <button
-                            onClick={() => {
-                              if (!tile) return;
-                              setDownloadingReceiptId(p.id);
-                              try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
-                            }}
-                            disabled={downloadingReceiptId === p.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
-                          >
-                            {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                            {downloadingReceiptId === p.id ? 'Gen…' : 'Download'}
-                          </button>
-                        </td>
+              {payments.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <Receipt size={24} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">No payments recorded yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-600">
+                        <th className="px-1.5 py-1 text-left font-bold">Receipt No</th>
+                        <th className="px-1.5 py-1 text-left font-bold">Date</th>
+                        <th className="px-1.5 py-1 text-left font-bold">Mode</th>
+                        <th className="px-1.5 py-1 text-left font-bold">Reference</th>
+                        <th className="px-1.5 py-1 text-right font-bold">Paid Amount</th>
+                        <th className="px-1.5 py-1 text-right font-bold">Balance After</th>
+                        <th className="px-1.5 py-1 text-left font-bold">Remarks</th>
+                        <th className="px-1.5 py-1 text-center font-bold">Receipt</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-slate-50 border-t-2 border-slate-200">
-                      <td colSpan={4} className="px-1.5 py-1.5 text-right font-bold text-slate-700">Total Collected:</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums font-extrabold text-emerald-700">{fmtINR(payments.reduce((s, p) => s + p.amount, 0))}</td>
-                      <td colSpan={2} />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const chronological = [...payments].reverse();
+                        let runningPaid = 0;
+                        return chronological.map(p => {
+                          runningPaid += p.amount;
+                          const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
+                          return (
+                            <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                              <td className="px-1.5 py-1"><span className="font-bold text-emerald-700">{receiptNumber(p.id)}</span></td>
+                              <td className="px-1.5 py-1 text-slate-600">{fmtDate(p.payment_date)}</td>
+                              <td className="px-1.5 py-1">
+                                <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">
+                                  {PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}
+                                </span>
+                              </td>
+                              <td className="px-1.5 py-1 text-slate-500">{p.reference_number || '—'}</td>
+                              <td className="px-1.5 py-1 text-right tabular-nums font-bold text-emerald-700">{fmtINR(p.amount)}</td>
+                              <td className="px-1.5 py-1 text-right tabular-nums font-semibold text-slate-600">{fmtINR(balanceAfter)}</td>
+                              <td className="px-1.5 py-1 text-slate-400 max-w-[160px] truncate" title={p.remarks ?? ''}>{p.remarks || '—'}</td>
+                              <td className="px-1.5 py-1 text-center">
+                                <button
+                                  onClick={() => {
+                                    if (!tile) return;
+                                    setDownloadingReceiptId(p.id);
+                                    try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
+                                  }}
+                                  disabled={downloadingReceiptId === p.id}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                                >
+                                  {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                                  {downloadingReceiptId === p.id ? 'Gen…' : 'Download'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-50 border-t-2 border-slate-200">
+                        <td colSpan={4} className="px-1.5 py-1.5 text-right font-bold text-slate-700">Total Demand: {fmtINR(tile.total_amount)}</td>
+                        <td className="px-1.5 py-1.5 text-right tabular-nums font-extrabold text-emerald-700">{fmtINR(payments.reduce((s, p) => s + p.amount, 0))}</td>
+                        <td className="px-1.5 py-1.5 text-right tabular-nums font-extrabold text-red-600">{fmtINR(tile.amount_due)}</td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
           </motion.div>
