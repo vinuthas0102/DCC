@@ -21,12 +21,12 @@ const getObjectIcon = (objectType: string) => {
 const LABEL_CLS = 'text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
 const VALUE_CLS = 'text-[10px] font-bold text-slate-800 tabular-nums leading-tight';
 
-const Metric: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
-  label, value, valueCls = VALUE_CLS,
+const Metric: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; width?: string }> = ({
+  label, value, valueCls = VALUE_CLS, width = 'w-16',
 }) => (
-  <div className="flex shrink-0 flex-col justify-center border-r border-slate-100 pr-2">
+  <div className={`flex ${width} shrink-0 flex-col justify-center border-r border-slate-100 pr-2 overflow-hidden`}>
     <div className={LABEL_CLS}>{label}</div>
-    <div className={`mt-0.5 whitespace-nowrap ${valueCls}`}>{value || '—'}</div>
+    <div className={`mt-0.5 whitespace-nowrap truncate ${valueCls}`}>{value || '—'}</div>
   </div>
 );
 
@@ -52,39 +52,43 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
       className="group flex items-stretch rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-        <div className="flex min-w-max items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex min-w-max items-center">
+
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-900">
           <ObjectIcon size={11} strokeWidth={1.8} />
         </div>
 
-        <div className="flex shrink-0 flex-col justify-center border-r border-slate-100 pr-3">
+        <div className="flex w-40 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden" title={tile.object_description || tile.object_ref}>
           <div className={LABEL_CLS}>Object</div>
-          <div className="mt-0.5 whitespace-nowrap text-[10px] font-bold leading-tight text-slate-900">{tile.object_description || tile.object_ref}</div>
+          <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-slate-900">{tile.object_description || tile.object_ref}</div>
         </div>
 
-        <div className="flex shrink-0 flex-col justify-center border-r border-slate-100 pr-3">
+        <div className="flex w-28 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden" title={tile.owner_name}>
           <div className={LABEL_CLS}>Client</div>
-          <div className="mt-0.5 whitespace-nowrap text-[10px] font-semibold leading-tight text-slate-700">{tile.owner_name}</div>
+          <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700">{tile.owner_name}</div>
         </div>
 
-        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" />
-        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
-        <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" />
+        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-16" />
+        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} width="w-16" />
+        <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" width="w-20" />
         <Metric
           label="GST"
           value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
           valueCls={`text-[10px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
+          width="w-16"
         />
         <Metric
           label="Late Fee"
           value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
           valueCls={`text-[10px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
+          width="w-16"
         />
         <Metric
           label="Payable"
           value={fmtINR(tile.amount_due)}
           valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
+          width="w-20"
         />
 
         <div className="flex shrink-0 items-center gap-1.5 pl-6">
