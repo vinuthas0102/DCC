@@ -555,7 +555,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
   const TABS: { key: Tab; label: string; icon: typeof History }[] = [
     ...(showDemandDueTab ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
-    ...(showInstalmentTab ? [{ key: 'installments' as Tab, label: 'Instalment', icon: Layers }] : []),
+    ...(showInstalmentTab ? [{ key: 'installments' as Tab, label: 'Due Demand', icon: Layers }] : []),
     { key: 'paid_history', label: `Demand Paid History (${payments.length})`, icon: History },
   ];
 
@@ -671,6 +671,33 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                     <span className="text-slate-400 text-[9px] uppercase font-bold">Final Payable</span>
                     <span className="text-white text-sm font-black tabular-nums leading-tight">{fmtINR(finalWithGst)}</span>
                   </div>
+                  {showInstalmentTab && instPlan && (() => {
+                    const fullAmt = instPlan.balance_payment;
+                    const fullDiscPct = instPlan.discount_full_payment_pct || 0;
+                    const fullDisc = Math.round(fullAmt * fullDiscPct / 100);
+                    const fullAfterDisc = fullAmt - fullDisc;
+                    const fullGst = instPlan.gst_type === 'exclusive' ? Math.round(fullAfterDisc * instPlan.gst_pct / 100) : 0;
+                    const fullFinal = fullAfterDisc + fullGst;
+                    return (
+                      <>
+                        <div className="w-px bg-slate-600/30 self-stretch" />
+                        <div className="flex flex-col">
+                          <span className="text-slate-400 text-[9px] uppercase font-bold">Full Pay Amt</span>
+                          <span className="text-blue-300 text-xs font-semibold tabular-nums leading-tight">{fmtINR(fullAmt)}</span>
+                        </div>
+                        {fullDiscPct > 0 && (
+                          <div className="flex flex-col">
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Full Pay Disc ({fullDiscPct}%)</span>
+                            <span className="text-emerald-400 text-xs font-semibold tabular-nums leading-tight">-{fmtINR(fullDisc)}</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-slate-400 text-[9px] uppercase font-bold">Full Pay Final</span>
+                          <span className="text-white text-xs font-bold tabular-nums leading-tight">{fmtINR(fullFinal)}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                   {!isPaidOrExempted && (canRecordPayment || isGovtOfficial) && (
                     <button
                       onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(finalWithGst); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
@@ -1168,60 +1195,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Enterprise Parameter Bar */}
-                {instPlan && (
-                  <div className="flex items-stretch gap-3 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
-                    {/* Key-value grid */}
-                    <div className="flex-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 content-center">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Start Date</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{fmtDateShort(instPlan.installment_start_date)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Late Fee</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">₹{instPlan.late_fee}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Grace Period</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{instPlan.due_days_with_late_fee} Days</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Interest Rate</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{instPlan.interest_pct_pa}% p.a.</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Full Pay Disc</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{instPlan.discount_full_payment_pct}%</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">GST</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{instPlan.gst_pct}% ({instPlan.gst_type === 'inclusive' ? 'incl.' : 'excl.'})</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Balance</span>
-                        <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">{fmtINR(instPlan.balance_payment)}</span>
-                      </div>
-                    </div>
-                    {/* Status metrics summary card */}
-                    <div className="flex items-stretch gap-0 border border-slate-300 rounded-md overflow-hidden shrink-0">
-                      <div className="flex flex-col items-center justify-center px-3 py-1.5 bg-white">
-                        <span className="text-[8px] font-medium uppercase tracking-wider text-slate-400">Total Inst.</span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums leading-tight">{instPlan.no_of_installments}</span>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex flex-col items-center justify-center px-3 py-1.5 bg-emerald-50">
-                        <span className="text-[8px] font-medium uppercase tracking-wider text-emerald-500">Paid</span>
-                        <span className="text-sm font-bold text-emerald-700 tabular-nums leading-tight">{instPlan.installments_paid}</span>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex flex-col items-center justify-center px-3 py-1.5 bg-amber-50">
-                        <span className="text-[8px] font-medium uppercase tracking-wider text-amber-500">Due</span>
-                        <span className="text-sm font-bold text-amber-700 tabular-nums leading-tight">{instPlan.installments_due}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Toggle: All vs Pending Only */}
                 <div className="flex items-center gap-2">
                   <div className="inline-flex bg-slate-100 rounded-md p-0.5">
@@ -1229,7 +1202,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       onClick={() => setInstRowFilter('ALL')}
                       className={`px-2.5 py-1 rounded text-[10px] font-semibold transition-colors ${instRowFilter === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
                     >
-                      All Instalments
+                      All Installments
                     </button>
                     <button
                       onClick={() => setInstRowFilter('PENDING')}
