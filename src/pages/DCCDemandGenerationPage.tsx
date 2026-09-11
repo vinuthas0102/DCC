@@ -509,7 +509,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
             </div>
           ) : historyViewMode === 'card' ? (
             /* ── Card View ── */
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
               {filteredRunLog.map((log, logIdx) => {
                 const processedCount = log.records_created + log.records_failed;
                 return (
