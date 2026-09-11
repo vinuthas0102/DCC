@@ -15,6 +15,7 @@ import type {
   DccReportRow,
   DccOwnerReportRow,
   DccDemandChat,
+  DccDemandDispute,
   DccReportSchedule,
   DccReportScheduleInput,
 } from '../types/dcc';
@@ -28,6 +29,7 @@ const RUNLOG = 'dcc_demand_run_log';
 const IPLANS = 'dcc_installment_plans';
 const IROWS = 'dcc_installment_rows';
 const CHATS = 'dcc_demand_chats';
+const DISPUTES = 'dcc_demand_disputes';
 const SCHEDULES = 'dcc_report_schedules';
 
 // ── Demo data (used when database tables don't exist) ─────────────────────────
@@ -317,6 +319,40 @@ export const dccService = {
       })
       .eq('id', demandId);
     if (error) throw error;
+  },
+
+  async getDisputes(demandId: string): Promise<DccDemandDispute[]> {
+    const { data, error } = await supabase
+      .from(DISPUTES)
+      .select('*')
+      .eq('demand_id', demandId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as DccDemandDispute[];
+  },
+
+  async createDispute(
+    demandId: string,
+    rowNumber: number,
+    disputeDate: string,
+    reason: string,
+    remarks: string,
+    authorName?: string,
+  ): Promise<DccDemandDispute> {
+    const { data, error } = await supabase
+      .from(DISPUTES)
+      .insert({
+        demand_id: demandId,
+        row_number: rowNumber,
+        dispute_date: disputeDate,
+        reason,
+        remarks: remarks || null,
+        author_name: authorName ?? null,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as DccDemandDispute;
   },
 
   // ── Run log ──────────────────────────────────────────────────────────────────

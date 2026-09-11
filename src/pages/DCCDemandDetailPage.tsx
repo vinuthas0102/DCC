@@ -5,13 +5,13 @@ import {
   ArrowLeft, Phone, MapPin, Users, Building2,
   Calendar, Clock, AlertTriangle, CheckCircle2, Wallet, Download,
   Loader2, X, Layers, AlertCircle, History,
-  MessageSquareWarning, Receipt,
+  MessageSquareWarning, MessageCircle, Send, Receipt,
   Plus, Save, FileSpreadsheet, Filter, CalendarDays,
   CreditCard, Smartphone, Building, Banknote, Lock,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { ROUTES } from '../constants/routes';
-import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow } from '../types/dcc';
+import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow, DccDemandDispute } from '../types/dcc';
 import type { PaymentMode } from '../types/payableCriteria';
 import { ALL_PAYMENT_MODES, PAYMENT_MODE_LABELS } from '../types/payableCriteria';
 import { supabase } from '../lib/supabase';
@@ -47,8 +47,8 @@ const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmou
   return { pct: 0, discount: 0, adjusted: grossAmount, daysEarly };
 };
 
-// Context-driven tabs: Demand Due OR Instalment (mutually exclusive), plus Paid History and Dispute Log
-type Tab = 'demand_due' | 'installments' | 'paid_history' | 'dispute';
+// Context-driven tabs: Demand Due OR Instalment (mutually exclusive), plus Paid History
+type Tab = 'demand_due' | 'installments' | 'paid_history';
 
 interface DCCDemandDetailModalProps {
   demandId: string;
@@ -96,6 +96,12 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeRemarks, setDisputeRemarks] = useState('');
   const [disputing, setDisputing] = useState(false);
+
+  // Per-row dispute history
+  const [disputes, setDisputes] = useState<DccDemandDispute[]>([]);
+  const [disputePanelOpen, setDisputePanelOpen] = useState(false);
+  const [disputePanelRow, setDisputePanelRow] = useState<number | null>(null);
+  const [disputePanelLabel, setDisputePanelLabel] = useState<string>('');
 
   // Installment plan form
   const [showInstForm, setShowInstForm] = useState(false);
@@ -227,10 +233,11 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     setLoading(true);
     setError(null);
     try {
-      const [allTiles, pays, instData] = await Promise.all([
+      const [allTiles, pays, instData, dispData] = await Promise.all([
         dccService.getTiles({ object_id: undefined }),
         dccService.getPayments(demandId),
         dccService.getInstallmentPlan(demandId),
+        dccService.getDisputes(demandId),
       ]);
       const foundTile = allTiles.find(t => t.id === demandId);
       setTile(foundTile ?? null);
@@ -245,6 +252,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
       setPayments(pays);
       setInstPlan(instData.plan);
       setInstRows(instData.rows);
+      setDisputes(dispData);
       if (foundTile) {
         setPayAmount(foundTile.amount_due);
         // Set default tab based on demand type code (only if no explicit initialTab was passed)
@@ -460,15 +468,28 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     }
   };
 
+  const loadDisputes = useCallback(async () => {
+    if (!demandId) return;
+    try {
+      const dispData = await dccService.getDisputes(demandId);
+      setDisputes(dispData);
+    } catch {
+      // silent fail — disputes are supplementary
+    }
+  }, [demandId]);
+
   const handleDispute = async () => {
-    if (!demandId || !disputeReason.trim()) return;
+    if (!demandId || !disputeReason.trim() || disputePanelRow === null) return;
     setDisputing(true);
     setActionError(null);
     try {
-      await dccService.setDispute(demandId, disputeDate, disputeReason, disputeRemarks);
-      await load();
+      const author = user?.name ?? user?.email ?? undefined;
+      await dccService.createDispute(demandId, disputePanelRow, disputeDate, disputeReason, disputeRemarks, author);
+      setDisputeReason('');
+      setDisputeRemarks('');
+      await loadDisputes();
     } catch (e: unknown) {
-      setActionError(e instanceof Error ? e.message : 'Failed to set dispute');
+      setActionError(e instanceof Error ? e.message : 'Failed to add dispute');
     } finally {
       setDisputing(false);
     }
@@ -526,7 +547,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
   const st = DCC_STATUS[tile.status];
   const isPaidOrExempted = tile.status === 'PAID' || tile.status === 'EXEMPTED';
-  const hasDispute = !!(demand?.dispute_date);
 
   // Context-driven tabs: Demand Due OR Instalment (mutually exclusive), based on demand type code
   const demandTypeCode = tile?.demand_type_code ?? '';
@@ -537,7 +557,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     ...(showDemandDueTab ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
     ...(showInstalmentTab ? [{ key: 'installments' as Tab, label: 'Instalment', icon: Layers }] : []),
     { key: 'paid_history', label: `Demand Paid History (${payments.length})`, icon: History },
-    { key: 'dispute', label: hasDispute ? 'Dispute Log (Active)' : 'Dispute Log', icon: MessageSquareWarning },
   ];
 
   // Ensure active tab is valid
@@ -582,23 +601,86 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             </button>
           </div>
         </div>
-        {/* Line 2: Flat metric text blocks */}
-        <div className="flex items-end gap-6 pl-7">
-          <div className="flex flex-col">
-            <span className="text-slate-400 text-[10px] uppercase font-bold">Outstanding</span>
-            <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(tile.amount_due)}</span>
+        {/* Line 2: Property info grid + Financial summary + Pay Now */}
+        <div className="flex items-end justify-between gap-4 pl-7 flex-wrap">
+          {/* Property info */}
+          <div className="flex items-end gap-4 flex-wrap">
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-[10px] uppercase font-bold">Outstanding</span>
+              <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(tile.amount_due)}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-[10px] uppercase font-bold">Last Paid</span>
+              <span className="text-white text-xs font-semibold tabular-nums leading-tight">{tile.last_paid_date ? `${fmtINR(tile.last_paid_amount ?? 0)} · ${fmtDateShort(tile.last_paid_date)}` : '—'}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-[10px] uppercase font-bold">Run Date</span>
+              <span className="text-white text-xs font-semibold tabular-nums leading-tight">{fmtDateShort(tile.demand_run_date)}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-[10px] uppercase font-bold">Due Date</span>
+              <span className={`text-xs font-semibold tabular-nums leading-tight ${tile.status === 'OVERDUE' ? 'text-red-400' : 'text-white'}`}>{fmtDateShort(tile.due_date)}</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-slate-400 text-[10px] uppercase font-bold">Last Paid</span>
-            <span className="text-white text-xs font-semibold tabular-nums leading-tight">{tile.last_paid_date ? `${fmtINR(tile.last_paid_amount ?? 0)} · ${fmtDateShort(tile.last_paid_date)}` : '—'}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-400 text-[10px] uppercase font-bold">Run Date</span>
-            <span className="text-white text-xs font-semibold tabular-nums leading-tight">{fmtDateShort(tile.demand_run_date)}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-400 text-[10px] uppercase font-bold">Due Date</span>
-            <span className={`text-xs font-semibold tabular-nums leading-tight ${tile.status === 'OVERDUE' ? 'text-red-400' : 'text-white'}`}>{fmtDateShort(tile.due_date)}</span>
+          {/* Financial summary + Pay Now */}
+          <div className="flex items-center gap-3">
+            {(() => {
+              const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
+              const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
+              const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
+              const finalWithGst = tile.include_gst && tile.gst_type === 'exclusive' ? netPayable + gst.gstAmount : netPayable;
+              const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
+              const isMonthly = config.cadence === 'monthly';
+              const penaltyPct = 0.02;
+              const penaltyAmount = isMonthly ? (() => {
+                const monthlyAmount = Math.round(tile.total_amount / 12);
+                const runDate = new Date(tile.demand_run_date);
+                let total = 0;
+                for (let i = 0; i < 12; i++) {
+                  const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
+                  const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
+                  if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
+                }
+                return total;
+              })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
+              const appliedPenaltyPct = penaltyAmount > 0 ? penaltyPct * 100 : 0;
+              return (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-[9px] uppercase font-bold">Penalty ({appliedPenaltyPct}%)</span>
+                    <span className="text-red-400 text-xs font-semibold tabular-nums leading-tight">{penaltyAmount > 0 ? fmtINR(penaltyAmount) : '—'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-[9px] uppercase font-bold">Early Disc ({earlyDisc.pct}%)</span>
+                    <span className="text-emerald-400 text-xs font-semibold tabular-nums leading-tight">{earlyDisc.discount > 0 ? `-${fmtINR(earlyDisc.discount)}` : '—'}</span>
+                  </div>
+                  {tile.include_gst && tile.gst_pct > 0 && (
+                    <>
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-[9px] uppercase font-bold">CGST ({tile.gst_pct / 2}%)</span>
+                        <span className="text-slate-300 text-xs font-semibold tabular-nums leading-tight">{fmtINR(gst.cgstAmount)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-[9px] uppercase font-bold">SGST ({tile.gst_pct / 2}%)</span>
+                        <span className="text-slate-300 text-xs font-semibold tabular-nums leading-tight">{fmtINR(gst.sgstAmount)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-[9px] uppercase font-bold">Final Payable</span>
+                    <span className="text-white text-sm font-black tabular-nums leading-tight">{fmtINR(finalWithGst)}</span>
+                  </div>
+                  {!isPaidOrExempted && (canRecordPayment || isGovtOfficial) && (
+                    <button
+                      onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(finalWithGst); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-md shadow-sm transition-colors text-xs"
+                    >
+                      <Wallet size={13} /> Pay Now
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -743,154 +825,172 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           })();
 
           const openRows = rows.filter(r => r.status !== 'PAID');
-          const allOpenCount = openRows.length;
-          const isSingleOpen = allOpenCount === 1;
-
-          const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
-          const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
-          const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
-          const finalWithGst = tile.include_gst && tile.gst_type === 'exclusive' ? netPayable + gst.gstAmount : netPayable;
-
-          const penaltyAmount = openRows.reduce((sum, row) => sum + (row.charges['penalty'] ?? 0), 0);
-          const appliedPenaltyPct = penaltyAmount > 0 ? penaltyPct * 100 : 0;
+          const disputeCountForRow = (sno: number) => disputes.filter(d => d.row_number === sno).length;
 
           return (
-            <div className="space-y-3">
-              {/* ── Line-Item Table ────────────────────────────────────────────── */}
-              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Sl No</th>
-                        <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Period</th>
-                        {config.components.map(comp => (
-                          <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
-                        ))}
-                        <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Line Due</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {openRows.map(m => (
-                        <tr key={m.sno} className={`border-b border-slate-100 ${m.status === 'OVERDUE' ? 'bg-red-50/30' : ''}`}>
-                          <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">{m.sno}</td>
-                          <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">{m.label}</td>
+            <div className="flex gap-3">
+              {/* ── Line-Item Table (left side) ─────────────────────────────────── */}
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Sl No</th>
+                          <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Period</th>
                           {config.components.map(comp => (
-                            <td key={comp.key} className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
-                              {(m.charges[comp.key] ?? 0) > 0 ? fmtINR(m.charges[comp.key]) : '—'}
-                            </td>
+                            <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
                           ))}
-                          <td className="py-1.5 px-3 text-right">
-                            <span className="font-mono font-bold text-slate-900">{fmtINR(m.total)}</span>
-                          </td>
+                          <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Line Due</th>
+                          <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Disputed</th>
+                          <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-slate-50 border-t-2 border-slate-200">
-                        <td colSpan={config.components.length + 2} className="py-1.5 px-3 text-right font-bold text-slate-700">Total Outstanding:</td>
-                        <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(tile.amount_due)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {openRows.map(m => {
+                          const dCount = disputeCountForRow(m.sno);
+                          const isActive = disputePanelOpen && disputePanelRow === m.sno;
+                          return (
+                            <tr key={m.sno} className={`border-b border-slate-100 ${m.status === 'OVERDUE' ? 'bg-red-50/30' : ''} ${isActive ? 'bg-orange-50/40' : ''}`}>
+                              <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">{m.sno}</td>
+                              <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">{m.label}</td>
+                              {config.components.map(comp => (
+                                <td key={comp.key} className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
+                                  {(m.charges[comp.key] ?? 0) > 0 ? fmtINR(m.charges[comp.key]) : '—'}
+                                </td>
+                              ))}
+                              <td className="py-1.5 px-3 text-right">
+                                <span className="font-mono font-bold text-slate-900">{fmtINR(m.total)}</span>
+                              </td>
+                              <td className="py-1.5 px-3 text-center">
+                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${dCount > 0 ? 'bg-orange-100 text-orange-700' : 'text-slate-400'}`}>
+                                  {dCount > 0 ? 'Yes' : '--'}
+                                </span>
+                              </td>
+                              <td className="py-1.5 px-3 text-center">
+                                <button
+                                  onClick={() => {
+                                    if (isActive) {
+                                      setDisputePanelOpen(false);
+                                      setDisputePanelRow(null);
+                                    } else {
+                                      setDisputePanelOpen(true);
+                                      setDisputePanelRow(m.sno);
+                                      setDisputePanelLabel(m.label);
+                                      setDisputeDate(new Date().toISOString().slice(0, 10));
+                                      setDisputeReason('');
+                                      setDisputeRemarks('');
+                                    }
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${isActive ? 'bg-orange-600 text-white' : dCount > 0 ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                                  title={dCount > 0 ? `${dCount} dispute(s) — click to view` : 'Raise a dispute'}
+                                >
+                                  <MessageCircle size={12} />
+                                  {dCount > 0 ? dCount : ''}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-50 border-t-2 border-slate-200">
+                          <td colSpan={config.components.length + 2} className="py-1.5 px-3 text-right font-bold text-slate-700">Total Outstanding:</td>
+                          <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(tile.amount_due)}</td>
+                          <td colSpan={2} />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              {/* ── Amount Summary and Pay Outstanding ──────────────────────────── */}
-              <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm space-y-3">
-                <div className="space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Outstanding</span>
-                    <span className="text-base font-black text-red-600 tabular-nums">{fmtINR(tile.amount_due)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 text-xs">
-                    <span className="text-slate-500">Penalty ({appliedPenaltyPct}%)</span>
-                    <span className="font-semibold text-red-700 tabular-nums">{penaltyAmount > 0 ? fmtINR(penaltyAmount) : '—'}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 text-xs">
-                    <span className="text-slate-500">Early Discount ({earlyDisc.pct}%)</span>
-                    <span className="font-semibold text-emerald-700 tabular-nums">{earlyDisc.discount > 0 ? `-${fmtINR(earlyDisc.discount)}` : '—'}</span>
-                  </div>
-                  {tile.include_gst && tile.gst_pct > 0 && (
-                    <>
-                      <div className="flex items-baseline justify-between gap-4 text-xs">
-                        <span className="text-slate-500">GST ({tile.gst_pct}% — {tile.gst_type === 'inclusive' ? 'Incl.' : 'Excl.'})</span>
-                        <span className="font-semibold text-slate-700 tabular-nums">{fmtINR(gst.gstAmount)}</span>
+              {/* ── Dispute Conversation Panel (right side) ─────────────────────── */}
+              <AnimatePresence>
+                {disputePanelOpen && disputePanelRow !== null && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 320, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="shrink-0 overflow-hidden"
+                  >
+                    <div className="w-80 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col" style={{ maxHeight: '60vh' }}>
+                      {/* Panel header */}
+                      <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-b border-orange-200 rounded-t-lg">
+                        <MessageSquareWarning size={14} className="text-orange-600" />
+                        <span className="text-xs font-bold text-slate-800">Disputes — {disputePanelLabel}</span>
+                        <button
+                          onClick={() => { setDisputePanelOpen(false); setDisputePanelRow(null); }}
+                          className="ml-auto p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <div className="flex items-baseline justify-between gap-4 text-[11px] pl-3">
-                        <span className="text-slate-400">CGST ({tile.gst_pct / 2}%)</span>
-                        <span className="font-medium text-slate-500 tabular-nums">{fmtINR(gst.cgstAmount)}</span>
+
+                      {/* Conversation thread */}
+                      <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50">
+                        {disputes.filter(d => d.row_number === disputePanelRow).length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-8 text-center">
+                            <MessageCircle size={24} className="text-slate-300 mb-2" />
+                            <p className="text-[11px] text-slate-400">No disputes raised for this entry yet.</p>
+                          </div>
+                        ) : (
+                          disputes
+                            .filter(d => d.row_number === disputePanelRow)
+                            .map(d => (
+                              <div key={d.id} className="flex flex-col">
+                                <div className="bg-orange-100 border border-orange-200 rounded-lg rounded-br-sm px-3 py-2 max-w-[90%] self-end">
+                                  <div className="flex items-center gap-2 text-[9px] text-slate-500 mb-1">
+                                    <span className="font-semibold">{fmtDateShort(d.dispute_date)}</span>
+                                    {d.author_name && <span>· {d.author_name}</span>}
+                                  </div>
+                                  <div className="text-xs font-bold text-slate-800">{d.reason}</div>
+                                  {d.remarks && <div className="text-[11px] text-slate-600 mt-0.5">{d.remarks}</div>}
+                                </div>
+                              </div>
+                            ))
+                        )}
                       </div>
-                      <div className="flex items-baseline justify-between gap-4 text-[11px] pl-3">
-                        <span className="text-slate-400">SGST ({tile.gst_pct / 2}%)</span>
-                        <span className="font-medium text-slate-500 tabular-nums">{fmtINR(gst.sgstAmount)}</span>
+
+                      {/* Dispute form */}
+                      <div className="border-t border-slate-200 p-3 space-y-2 bg-white rounded-b-lg">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className={DCC_LABEL_CLS}>Date *</label>
+                            <input type="date" value={disputeDate} onChange={e => setDisputeDate(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
+                          </div>
+                          <div>
+                            <label className={DCC_LABEL_CLS}>Reason *</label>
+                            <select value={disputeReason} onChange={e => setDisputeReason(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`}>
+                              <option value="">Select…</option>
+                              <option value="Wrong amount">Wrong amount</option>
+                              <option value="Already paid">Already paid</option>
+                              <option value="Invalid demand">Invalid demand</option>
+                              <option value="Calculation error">Calculation error</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className={DCC_LABEL_CLS}>Remarks</label>
+                          <textarea value={disputeRemarks} onChange={e => setDisputeRemarks(e.target.value)} placeholder="Additional details" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5 h-12 resize-none`} />
+                        </div>
+                        <div className="flex justify-end">
+                          <button
+                            onClick={handleDispute}
+                            disabled={disputing || !disputeReason.trim()}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-orange-600 text-white text-[10px] font-semibold hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                          >
+                            {disputing ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                            {disputing ? 'Sending…' : 'Add Dispute'}
+                          </button>
+                        </div>
                       </div>
-                    </>
-                  )}
-                  <div className="flex items-baseline justify-between gap-4 border-t border-slate-100 pt-1.5 text-xs">
-                    <span className="font-bold text-slate-700">Final Amount Payable</span>
-                    <span className="font-black text-slate-900 tabular-nums">{fmtINR(finalWithGst)}</span>
-                  </div>
-                </div>
-                {!isPaidOrExempted && (canRecordPayment || isGovtOfficial) && (
-                  <div className="flex justify-end border-t border-slate-100 pt-3">
-                    <button
-                      onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(finalWithGst); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
-                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-md shadow-sm transition-colors"
-                    >
-                      <Wallet size={14} /> Pay Outstanding: {fmtINR(finalWithGst)}
-                    </button>
-                  </div>
+                    </div>
+                  </motion.div>
                 )}
-              </div>
-
-              {/* ── Dispute Management (below payment) ─────────────────────────── */}
-              {canRecordPayment && (
-                <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2">
-                    <MessageSquareWarning size={13} className="text-orange-500" />
-                    <span className="text-xs font-bold text-slate-700">Dispute Management</span>
-                  </div>
-                  {hasDispute && (
-                    <div className="bg-orange-50 border border-orange-200 rounded-md p-2.5 space-y-1 text-[11px] text-slate-600">
-                      <div><span className="text-slate-400">Date:</span> {fmtDate(demand?.dispute_date ?? null)}</div>
-                      <div><span className="text-slate-400">Reason:</span> {demand?.dispute_reason}</div>
-                      {demand?.dispute_remarks && <div><span className="text-slate-400">Remarks:</span> {demand.dispute_remarks}</div>}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={DCC_LABEL_CLS}>Dispute Date *</label>
-                      <input type="date" value={disputeDate} onChange={e => setDisputeDate(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
-                    </div>
-                    <div>
-                      <label className={DCC_LABEL_CLS}>Reason *</label>
-                      <select value={disputeReason} onChange={e => setDisputeReason(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`}>
-                        <option value="">Select reason…</option>
-                        <option value="Wrong amount">Wrong amount</option>
-                        <option value="Already paid">Already paid</option>
-                        <option value="Invalid demand">Invalid demand</option>
-                        <option value="Calculation error">Calculation error</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={DCC_LABEL_CLS}>Remarks</label>
-                    <textarea value={disputeRemarks} onChange={e => setDisputeRemarks(e.target.value)} placeholder="Additional details" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5 h-14 resize-none`} />
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handleDispute}
-                      disabled={disputing || !disputeReason.trim()}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-orange-600 text-white text-[10px] font-semibold hover:bg-orange-700 disabled:opacity-40 transition-colors"
-                    >
-                      {disputing ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-                      {hasDispute ? 'Update Dispute' : 'Mark as Disputed'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              </AnimatePresence>
             </div>
           );
         })()}
@@ -1305,87 +1405,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                     </tr>
                   </tfoot>
                 </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ═══ Tab 4: Dispute Log ══════════════════════════════════════════════════ */}
-        {effectiveTab === 'dispute' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <MessageSquareWarning size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900">Dispute Log</h3>
-            </div>
-            {hasDispute ? (
-              <div className="space-y-3">
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <AlertTriangle size={13} className="text-orange-600" />
-                    <span className="font-bold text-orange-700">Active Dispute</span>
-                  </div>
-                  <div className="text-[11px] text-slate-600 space-y-1">
-                    <div><span className="text-slate-400">Dispute Date:</span> {fmtDate(demand?.dispute_date ?? null)}</div>
-                    <div><span className="text-slate-400">Reason:</span> {demand?.dispute_reason}</div>
-                    {demand?.dispute_remarks && <div><span className="text-slate-400">Remarks:</span> {demand.dispute_remarks}</div>}
-                  </div>
-                </div>
-                {canRecordPayment && (
-                  <div className="border-t border-slate-100 pt-3">
-                    <p className="text-[10px] text-slate-500 mb-2">Update dispute details:</p>
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div>
-                        <label className={DCC_LABEL_CLS}>Dispute Date *</label>
-                        <input type="date" value={disputeDate} onChange={e => setDisputeDate(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
-                      </div>
-                      <div>
-                        <label className={DCC_LABEL_CLS}>Reason *</label>
-                        <input value={disputeReason} onChange={e => setDisputeReason(e.target.value)} placeholder="e.g. Wrong amount" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
-                      </div>
-                    </div>
-                    <div className="mb-2">
-                      <label className={DCC_LABEL_CLS}>Remarks</label>
-                      <textarea value={disputeRemarks} onChange={e => setDisputeRemarks(e.target.value)} placeholder="Additional details" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5 h-16 resize-none`} />
-                    </div>
-                    <div className="flex justify-end">
-                      <button onClick={handleDispute} disabled={disputing || !disputeReason.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 disabled:opacity-40 transition-colors">
-                        {disputing ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                        {disputing ? 'Saving…' : 'Update Dispute'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[11px] text-slate-500">Mark this demand as disputed if the owner contests the amount or validity.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={DCC_LABEL_CLS}>Dispute Date *</label>
-                    <input type="date" value={disputeDate} onChange={e => setDisputeDate(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
-                  </div>
-                  <div>
-                    <label className={DCC_LABEL_CLS}>Reason *</label>
-                    <select value={disputeReason} onChange={e => setDisputeReason(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`}>
-                      <option value="">Select reason…</option>
-                      <option value="Wrong amount">Wrong amount</option>
-                      <option value="Already paid">Already paid</option>
-                      <option value="Invalid demand">Invalid demand</option>
-                      <option value="Calculation error">Calculation error</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className={DCC_LABEL_CLS}>Remarks</label>
-                  <textarea value={disputeRemarks} onChange={e => setDisputeRemarks(e.target.value)} placeholder="Additional details" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5 h-16 resize-none`} />
-                </div>
-                <div className="flex justify-end">
-                  <button onClick={handleDispute} disabled={disputing || !disputeReason.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 disabled:opacity-40 transition-colors">
-                    {disputing ? <Loader2 size={13} className="animate-spin" /> : <MessageSquareWarning size={13} />}
-                    {disputing ? 'Saving…' : 'Mark as Disputed'}
-                  </button>
-                </div>
               </div>
             )}
           </div>
