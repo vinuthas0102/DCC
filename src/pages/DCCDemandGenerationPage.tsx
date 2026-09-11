@@ -972,63 +972,45 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
         transition={{ duration: 0.3, ease: 'easeOut' }}
         className="fixed bottom-0 left-0 right-0 top-14 z-[51] flex flex-col bg-slate-50 rounded-t-2xl shadow-2xl overflow-hidden"
       >
-        {/* Breadcrumb + Header row */}
-        <div className="shrink-0">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 px-4 pt-2 pb-1 bg-slate-100 border-b border-slate-200">
-            <button onClick={onClose} className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-800 transition-colors">
-              <Home size={11} /> Demand Generation
-            </button>
-            <ChevronRight size={10} className="text-slate-300" />
-            <span className="text-[10px] font-bold text-slate-700">Run Details</span>
-          </div>
-
-          {/* Run details single row */}
-          <div className="flex items-stretch divide-x divide-slate-200 bg-white border-b border-slate-200 overflow-x-auto">
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Source</div>
-              <div className="mt-0.5">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+        {/* Header — blue, matching other DCC detail screens */}
+        <div className="shrink-0 bg-blue-800 border-b border-blue-900">
+          <div className="flex items-start gap-3 px-4 py-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+              <FileText size={18} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-bold text-white">Run Details</h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-300 mt-0.5">
+                <span className="font-semibold text-slate-200">{log.demand_type?.label ?? '—'}</span>
+                <span className="flex items-center gap-1">
+                  <Calendar size={10} /> {fmtDate(log.run_date)}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                   {log.source}
                 </span>
+                <span className="flex items-center gap-1">
+                  <Receipt size={10} /> {log.records_created} records
+                </span>
+                <span className="font-semibold text-slate-200 tabular-nums">{fmtINR(log.total_amount)}</span>
               </div>
             </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Demand Type</div>
-              <div className="mt-0.5 text-[11px] font-bold text-slate-800 leading-tight">{log.demand_type?.label ?? '—'}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Run Date</div>
-              <div className="mt-0.5 text-[11px] font-bold text-slate-800 leading-tight">{fmtDate(log.run_date)}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Started</div>
-              <div className="mt-0.5 text-[11px] font-semibold text-slate-700 leading-tight">{fmtDateTime(log.started_at)}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Ended</div>
-              <div className="mt-0.5 text-[11px] font-semibold text-slate-700 leading-tight">{fmtDateTime(log.ended_at)}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Duration</div>
-              <div className="mt-0.5 text-[11px] font-bold text-slate-700 leading-tight">{fmtDuration(log.duration_ms)}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Records</div>
-              <div className="mt-0.5 text-[11px] font-bold text-emerald-600 leading-tight">{log.records_created}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0">
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Total Amount</div>
-              <div className="mt-0.5 text-[11px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(log.total_amount)}</div>
-            </div>
-            <div className="px-3 py-2 shrink-0 ml-auto">
-              <button
-                onClick={onClose}
-                className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors mt-1"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-white hover:bg-blue-700 transition-colors shrink-0"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex items-center gap-x-4 gap-y-1 px-4 pb-2 text-[10px] text-slate-300 flex-wrap">
+            <span className="flex items-center gap-1">
+              <Clock size={10} className="text-slate-400" /> Started: <span className="font-semibold text-slate-200">{fmtDateTime(log.started_at)}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock size={10} className="text-slate-400" /> Ended: <span className="font-semibold text-slate-200">{fmtDateTime(log.ended_at)}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock size={10} className="text-slate-400" /> Duration: <span className="font-semibold text-slate-200">{fmtDuration(log.duration_ms)}</span>
+            </span>
           </div>
         </div>
 
