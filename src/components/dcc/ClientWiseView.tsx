@@ -2,14 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DCCClientDueSummaryModal } from '../../pages/DCCClientDueSummaryPage';
 import {
-  Users, ChevronDown, ChevronUp,
-  MessageSquare, Eye, ChevronRight,
-  Phone, Building2, FileText,
-  CalendarDays, AlertTriangle, TrendingUp, Wallet,
+  Users, ChevronRight,
+  Phone, CalendarDays, AlertTriangle, TrendingUp, Wallet,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
 import {
-  DCC_STATUS,
   fmtINR, fmtDateShort,
 } from '../../constants/dccTheme';
 
@@ -126,10 +123,8 @@ const Metric: React.FC<{
 // ── Client summary card ──────────────────────────────────────────────────────
 const ClientSummaryCard: React.FC<{
   group: ClientGroup;
-  isExpanded: boolean;
-  onToggle: () => void;
   onViewDetails: () => void;
-}> = ({ group, isExpanded, onToggle, onViewDetails }) => {
+}> = ({ group, onViewDetails }) => {
   const collectionPct = group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0;
   const runDateRange = group.runDateMin
     ? `${fmtDateShort(group.runDateMin)}${group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}`
@@ -167,25 +162,25 @@ const ClientSummaryCard: React.FC<{
             </span>
           </div>
           <div className="flex flex-col leading-tight shrink-0 pl-2.5 border-l border-slate-100">
-            <span className={LABEL_CLS}>PROP</span>
+            <span className={LABEL_CLS}>Properties</span>
             <span className="mt-0.5 text-xs font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
           </div>
           <div className="flex flex-col leading-tight shrink-0">
-            <span className={LABEL_CLS}>DEM</span>
+            <span className={LABEL_CLS}>Demands</span>
             <span className="mt-0.5 text-xs font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
           </div>
         </div>
 
         {/* ── Center Block: Dates, Financial Metrics & Tags ── */}
         <div className="flex items-center min-w-0 overflow-hidden">
-          <Metric label="RUN" value={runDateRange} icon={<CalendarDays size={10} />} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
-          <Metric label="DUE" value={dueDateRange} icon={<CalendarDays size={10} />} valueCls={`text-[11px] font-bold tabular-nums ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
-          <Metric label="DEMAND" value={fmtINR(group.totalDemand)} icon={<Wallet size={10} />} valueCls="text-[11px] font-bold text-slate-800 tabular-nums" />
-          <Metric label="PAID" value={fmtINR(group.totalPaid)} icon={<TrendingUp size={10} />} valueCls="text-[11px] font-bold text-emerald-600 tabular-nums" />
+          <Metric label="Run Date" value={runDateRange} icon={<CalendarDays size={10} />} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
+          <Metric label="Due Date" value={dueDateRange} icon={<CalendarDays size={10} />} valueCls={`text-[11px] font-bold tabular-nums ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
+          <Metric label="Demand Amount" value={fmtINR(group.totalDemand)} icon={<Wallet size={10} />} valueCls="text-[11px] font-bold text-slate-800 tabular-nums" />
+          <Metric label="Paid Amount" value={fmtINR(group.totalPaid)} icon={<TrendingUp size={10} />} valueCls="text-[11px] font-bold text-emerald-600 tabular-nums" />
           {group.overdueAmount > 0 && (
-            <Metric label="OD" value={fmtINR(group.overdueAmount)} icon={<AlertTriangle size={10} />} valueCls="text-[11px] font-bold text-red-600 tabular-nums" />
+            <Metric label="Overdue Amount" value={fmtINR(group.overdueAmount)} icon={<AlertTriangle size={10} />} valueCls="text-[11px] font-bold text-red-600 tabular-nums" />
           )}
-          <Metric label="COLL" value={`${collectionPct}%`} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
+          <Metric label="Collection Rate" value={`${collectionPct}%`} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
           {/* Transaction type pills */}
           <div className="flex items-center gap-1 min-w-0 overflow-hidden pl-2.5">
             {group.demandTypes.slice(0, 2).map((dt) => (
@@ -206,15 +201,6 @@ const ClientSummaryCard: React.FC<{
             </span>
           </div>
 
-          {/* Expand/collapse chevron */}
-          <button
-            onClick={onToggle}
-            className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 transition-colors shrink-0"
-            title={isExpanded ? 'Collapse' : 'Expand'}
-          >
-            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-
           {/* Details button */}
           <button
             onClick={onViewDetails}
@@ -229,101 +215,6 @@ const ClientSummaryCard: React.FC<{
   );
 };
 
-// ── Demand details table ──────────────────────────────────────────────────────
-const ClientDemandTable: React.FC<{
-  tiles: DccTile[];
-  onViewDetails: (tile: DccTile) => void;
-  onChat: (tile: DccTile) => void;
-  onShowDuePayment: (tile: DccTile) => void;
-  chatTileId: string | null;
-}> = ({ tiles, onViewDetails, onChat, onShowDuePayment, chatTileId }) => {
-  return (
-    <div className="overflow-x-auto bg-slate-50/50">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 tracking-wide">Property / Description</th>
-            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 tracking-wide">Type</th>
-            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 tracking-wide">Run Date</th>
-            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 tracking-wide">Due Date</th>
-            <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500 tracking-wide">Total</th>
-            <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500 tracking-wide">Paid</th>
-            <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-slate-500 tracking-wide">Balance</th>
-            <th className="px-3 py-2 text-center text-[10px] font-bold uppercase text-slate-500 tracking-wide">Status</th>
-            <th className="px-3 py-2 text-center text-[10px] font-bold uppercase text-slate-500 tracking-wide">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {tiles.map((tile) => {
-            const st = DCC_STATUS[tile.status];
-            const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
-            return (
-              <tr key={tile.id} className="hover:bg-white transition-colors">
-                <td className="px-3 py-2">
-                  <div className="text-xs font-semibold text-slate-900 truncate max-w-[220px]">{tile.object_description || tile.object_ref}</div>
-                  <div className="text-[10px] text-slate-400 truncate max-w-[220px]">{tile.object_ref} · {tile.object_type}</div>
-                </td>
-                <td className="px-3 py-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
-                </td>
-                <td className="px-3 py-2">
-                  <span className="text-[11px] text-slate-600 tabular-nums">{fmtDateShort(tile.demand_run_date)}</span>
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`text-[11px] font-medium tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
-                    {fmtDateShort(tile.due_date)}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <span className="text-[11px] font-semibold text-slate-700 tabular-nums">{fmtINR(tile.total_amount)}</span>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <span className="text-[11px] font-semibold text-emerald-600 tabular-nums">{fmtINR(tile.amount_paid)}</span>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <span className="text-xs font-bold text-slate-900 tabular-nums">{fmtINR(tile.amount_due)}</span>
-                </td>
-                <td className="px-3 py-2 text-center">
-                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-                    {st.label}
-                  </span>
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      onClick={() => onViewDetails(tile)}
-                      title="View Details"
-                      className="p-1.5 rounded text-slate-500 hover:bg-slate-100 transition-colors"
-                    >
-                      <Eye size={13} />
-                    </button>
-                    {canShowDue && (
-                      <button
-                        onClick={() => onShowDuePayment(tile)}
-                        title="Due Payment"
-                        className="p-1.5 rounded text-amber-600 hover:bg-amber-50 transition-colors"
-                      >
-                        <ChevronDown size={13} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onChat(tile)}
-                      title="Chat"
-                      className={`p-1.5 rounded transition-colors ${chatTileId === tile.id ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
-                    >
-                      <MessageSquare size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
 // ── Main component ───────────────────────────────────────────────────────────
 export interface ClientWiseViewProps {
   tiles: DccTile[];
@@ -333,22 +224,10 @@ export interface ClientWiseViewProps {
   chatTileId: string | null;
 }
 
-export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
-  tiles, onViewDetails, onChat, onShowDuePayment, chatTileId,
-}) => {
+export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles }) => {
   const clientGroups = useMemo(() => groupByClient(tiles), [tiles]);
 
-  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [summaryOwnerId, setSummaryOwnerId] = useState<string | null>(null);
-
-  const toggleClient = (id: string) => {
-    setExpandedClients((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   if (clientGroups.length === 0) {
     return (
@@ -362,9 +241,7 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {clientGroups.map((group) => {
-        const isExpanded = expandedClients.has(group.ownerId);
-        return (
+      {clientGroups.map((group) => (
           <motion.div
             key={group.ownerId}
             initial={{ opacity: 0, y: 4 }}
@@ -374,33 +251,10 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({
           >
             <ClientSummaryCard
               group={group}
-              isExpanded={isExpanded}
-              onToggle={() => toggleClient(group.ownerId)}
               onViewDetails={() => setSummaryOwnerId(group.ownerId)}
             />
-
-            <AnimatePresence initial={false}>
-              {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden border-t border-slate-200"
-                >
-                  <ClientDemandTable
-                    tiles={group.tiles}
-                    onViewDetails={onViewDetails}
-                    onChat={onChat}
-                    onShowDuePayment={onShowDuePayment}
-                    chatTileId={chatTileId}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
-        );
-      })}
+        ))}
 
       <AnimatePresence>
         {summaryOwnerId && (

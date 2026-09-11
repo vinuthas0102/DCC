@@ -50,7 +50,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       initial={{ opacity: 0, y: 2 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
-      className="group flex items-center min-w-0 h-[52px] py-2 px-3.5 gap-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      className="group grid min-w-[1120px] h-[52px] grid-cols-[112px_40px_minmax(190px,1fr)_150px_150px_126px_294px_72px] items-center gap-3 rounded-lg border border-slate-200 bg-white px-3.5 py-2 hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
     >
       {/* Status pill */}
       <div className="shrink-0">
@@ -67,13 +67,13 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       </div>
 
       {/* Asset title & code — expands to fill */}
-      <div className="flex-1 min-w-[200px] min-w-0 overflow-hidden">
+      <div className="min-w-0 overflow-hidden">
         <div className="truncate text-[11px] font-bold text-slate-900 leading-tight">{tile.object_description || tile.object_ref}</div>
         <div className="truncate text-[10px] text-slate-400 leading-tight">{tile.object_ref}</div>
       </div>
 
       {/* Divider: Asset & Client | Type badges */}
-      <div className="flex items-center gap-1.5 shrink-0 border-r border-slate-100 pr-3">
+      <div className="flex min-w-0 items-center gap-1.5 border-r border-slate-100 pr-3">
         <div className="flex flex-col min-w-0 max-w-[140px]">
           <span className={LABEL_CLS}>CLIENT</span>
           <span className="mt-0.5 truncate text-[11px] font-semibold text-slate-700 leading-tight">{tile.owner_name}</span>
@@ -81,39 +81,39 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       </div>
 
       {/* Type badges */}
-      <div className="flex items-center gap-1 shrink-0 border-r border-slate-100 pr-3">
+      <div className="flex min-w-0 items-center gap-1 border-r border-slate-100 pr-3">
         <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800 whitespace-nowrap">{tile.object_type}</span>
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 whitespace-nowrap">{tile.demand_type_label}</span>
       </div>
 
       {/* Dates */}
-      <div className="flex items-center gap-3 shrink-0 border-r border-slate-100 pr-3">
-        <Metric label="RUN" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
-        <Metric label="DUE" value={fmtDateShort(tile.due_date)} valueCls={`text-[11px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
+      <div className="flex items-center gap-3 border-r border-slate-100 pr-3">
+        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
+        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[11px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
       </div>
 
       {/* Financial breakdown */}
-      <div className="flex items-center gap-3 shrink-0 border-r border-slate-100 pr-3">
-        <Metric label="BASE" value={fmtINR(tile.total_amount)} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
+      <div className="flex items-center gap-3 border-r border-slate-100 pr-3">
+        <Metric label="Base Amount" value={fmtINR(tile.total_amount)} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
         <Metric
-          label="GST"
+          label="GST Amount"
           value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
           valueCls={`text-[11px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
         />
         <Metric
-          label="LATE FEE"
+          label="Late Fee"
           value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
           valueCls={`text-[11px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
         />
         <Metric
-          label="PAYABLE"
+          label="Payable Amount"
           value={fmtINR(tile.amount_due)}
           valueCls={`text-[11px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
         />
       </div>
 
       {/* Actions — pinned right */}
-      <div className="flex items-center justify-end gap-2 shrink-0">
+      <div className="flex items-center justify-end gap-2">
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
