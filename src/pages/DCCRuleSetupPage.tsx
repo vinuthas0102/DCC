@@ -4,10 +4,13 @@ import {
   SlidersHorizontal, Plus, Search, Trash2, Save, X, ChevronDown,
   ChevronRight, Percent, IndianRupee, Calendar, AlertCircle, Loader2,
   CheckCircle2, Layers, Tag, Building2, ArrowLeft,
-  TrendingUp, Upload, Filter,
+  TrendingUp, Upload, Filter, LogOut,
 } from 'lucide-react';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { dccService } from '../services/dccService';
+import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
+import { ROLE_LABELS } from '../constants/roles';
 import type {
   PayableCriteria,
   PayableCriteriaInput,
@@ -223,6 +226,8 @@ const inputCls =
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export const DCCRuleSetupPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const { openProfileDrawer } = useUIStore();
   const [records, setRecords] = useState<PayableCriteria[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -351,6 +356,13 @@ export const DCCRuleSetupPage: React.FC = () => {
     setEditing(null);
     setForm(emptyInput());
   };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.LOGIN);
+  };
+
+  const initials = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
 
   const handleSave = async () => {
     setSaving(true);
@@ -557,12 +569,40 @@ export const DCCRuleSetupPage: React.FC = () => {
           <h1 className="text-sm font-bold text-white">Demand Rule Setup</h1>
           <p className="text-[10px] text-slate-400">Master rule engine for demand generation and collection</p>
         </div>
+
+        {/* New Rule action */}
         <button
           onClick={handleNew}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition-colors shadow-sm shrink-0"
         >
           <Plus size={13} /> New Rule
         </button>
+
+        {/* User context — click to open profile */}
+        {user && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={openProfileDrawer}
+              title="View Profile"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-blue-900/40 border border-blue-700/40 hover:bg-blue-900/60 hover:border-emerald-500/50 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="text-left leading-tight hidden sm:block">
+                <div className="text-[11px] font-semibold text-white whitespace-nowrap">{user.fullName || user.email}</div>
+                <div className="text-[9px] text-emerald-300 font-medium whitespace-nowrap">{ROLE_LABELS[user.role]}</div>
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:bg-red-500/20 hover:text-red-300 transition-colors shrink-0"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

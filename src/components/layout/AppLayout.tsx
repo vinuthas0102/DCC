@@ -9,7 +9,8 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { pathname } = useLocation();
-  const showHeader = pathname !== '/dashboard';
+  const hideHeaderRoutes = ['/dashboard', '/dcc/rule-setup', '/dcc/generate'];
+  const showHeader = !hideHeaderRoutes.includes(pathname);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

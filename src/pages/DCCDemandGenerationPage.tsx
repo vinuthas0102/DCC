@@ -7,12 +7,15 @@ import {
   Filter, X, Clock, FileText, TrendingUp, Users,
   Calendar, Sparkles, Receipt, Wallet, AlertTriangle,
   Eye, Plus, Check, LayoutGrid, List, Table2,
-  RotateCcw, Search, Home,
+  RotateCcw, Search, Home, LogOut,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { ROUTES } from '../constants/routes';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
+import { ROLE_LABELS } from '../constants/roles';
 import { frequencyCodeLabel } from '../types/payableCriteria';
 import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
@@ -152,6 +155,8 @@ function demandsToTiles(demands: DccDemand[]): RunDemandTile[] {
 
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const { openProfileDrawer } = useUIStore();
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ created: number; totalAmount: number } | null>(null);
@@ -298,6 +303,13 @@ export const DCCDemandGenerationPage: React.FC = () => {
     setFilterObjectRef('');
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.LOGIN);
+  };
+
+  const initials = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
+
   const hasActiveFilters = filterSource || filterDemandTypeId || filterDateFrom || filterDateTo || filterObjectRef;
 
   const filteredRunLog = useMemo(() => {
@@ -335,12 +347,40 @@ export const DCCDemandGenerationPage: React.FC = () => {
           <h1 className="text-sm font-bold text-white">Demand Generation</h1>
           <p className="text-[10px] text-slate-400">Generate demands from active rules and review run history</p>
         </div>
+
+        {/* Refresh action */}
         <button
           onClick={loadHistory}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition-colors shadow-sm shrink-0"
         >
           <RefreshCw size={13} /> Refresh
         </button>
+
+        {/* User context — click to open profile */}
+        {user && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={openProfileDrawer}
+              title="View Profile"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-blue-900/40 border border-blue-700/40 hover:bg-blue-900/60 hover:border-emerald-500/50 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="text-left leading-tight hidden sm:block">
+                <div className="text-[11px] font-semibold text-white whitespace-nowrap">{user.fullName || user.email}</div>
+                <div className="text-[9px] text-emerald-300 font-medium whitespace-nowrap">{ROLE_LABELS[user.role]}</div>
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:bg-red-500/20 hover:text-red-300 transition-colors shrink-0"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Alerts */}
