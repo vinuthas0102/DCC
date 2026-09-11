@@ -568,7 +568,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-xl shadow-2xl w-full max-w-[1000px] max-h-[86vh] flex flex-col overflow-hidden"
+      className="bg-white rounded-xl shadow-2xl w-full max-w-[1280px] max-h-[92vh] flex flex-col overflow-hidden"
     >
       {/* ── Header ─────────────────────────────────────────────────────────────── */}
       <div className="px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
