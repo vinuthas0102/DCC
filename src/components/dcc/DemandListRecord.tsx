@@ -18,8 +18,8 @@ const getObjectIcon = (objectType: string) => {
   return FileText;
 };
 
-const LABEL_CLS = 'text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
-const VALUE_CLS = 'text-[11px] font-bold text-slate-800 tabular-nums leading-tight';
+const LABEL_CLS = 'text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none';
+const VALUE_CLS = 'text-[10px] font-bold text-slate-800 tabular-nums leading-tight';
 
 const Metric: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
   label, value, valueCls = VALUE_CLS,
@@ -50,84 +50,84 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       initial={{ opacity: 0, y: 2 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
-      className="group grid min-w-[1120px] h-[52px] grid-cols-[112px_40px_minmax(190px,1fr)_150px_150px_126px_294px_72px] items-center gap-3 rounded-lg border border-slate-200 bg-white px-3.5 py-2 hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      className="group grid h-[46px] grid-cols-[80px_26px_minmax(110px,1fr)_100px_92px_88px_minmax(170px,1.2fr)_52px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
     >
       {/* Status pill */}
       <div className="shrink-0">
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${st.bg} ${st.text} ${st.border} whitespace-nowrap`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${st.bg} ${st.text} ${st.border} whitespace-nowrap`}>
+          <span className={`h-1 w-1 rounded-full ${st.dot}`} />
           {st.label}
-          {odText && <span className="opacity-75">· {odText}</span>}
+          {odText && <span className="opacity-75">·{odText}</span>}
         </span>
       </div>
 
       {/* Asset icon */}
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-900">
-        <ObjectIcon size={16} strokeWidth={1.8} />
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-900">
+        <ObjectIcon size={13} strokeWidth={1.8} />
       </div>
 
-      {/* Asset title & code — expands to fill */}
+      {/* Asset title & code */}
       <div className="min-w-0 overflow-hidden">
-        <div className="truncate text-[11px] font-bold text-slate-900 leading-tight">{tile.object_description || tile.object_ref}</div>
-        <div className="truncate text-[10px] text-slate-400 leading-tight">{tile.object_ref}</div>
+        <div className="truncate text-[10px] font-bold text-slate-900 leading-tight">{tile.object_description || tile.object_ref}</div>
+        <div className="truncate text-[9px] text-slate-400 leading-tight">{tile.object_ref}</div>
       </div>
 
-      {/* Divider: Asset & Client | Type badges */}
-      <div className="flex min-w-0 items-center gap-1.5 border-r border-slate-100 pr-3">
-        <div className="flex flex-col min-w-0 max-w-[140px]">
+      {/* Client */}
+      <div className="flex min-w-0 items-center border-r border-slate-100 pr-2">
+        <div className="flex flex-col min-w-0 max-w-[96px]">
           <span className={LABEL_CLS}>CLIENT</span>
-          <span className="mt-0.5 truncate text-[11px] font-semibold text-slate-700 leading-tight">{tile.owner_name}</span>
+          <span className="mt-0.5 truncate text-[10px] font-semibold text-slate-700 leading-tight">{tile.owner_name}</span>
         </div>
       </div>
 
       {/* Type badges */}
-      <div className="flex min-w-0 items-center gap-1 border-r border-slate-100 pr-3">
-        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800 whitespace-nowrap">{tile.object_type}</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 whitespace-nowrap">{tile.demand_type_label}</span>
+      <div className="flex min-w-0 items-center gap-0.5 border-r border-slate-100 pr-2">
+        <span className="rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-800 whitespace-nowrap truncate">{tile.object_type}</span>
+        <span className="rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600 whitespace-nowrap truncate">{tile.demand_type_label}</span>
       </div>
 
       {/* Dates */}
-      <div className="flex items-center gap-3 border-r border-slate-100 pr-3">
-        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[11px] font-bold text-slate-600 tabular-nums" />
-        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[11px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
+      <div className="flex items-center gap-2 border-r border-slate-100 pr-2">
+        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" />
+        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
       </div>
 
       {/* Financial breakdown */}
-      <div className="flex items-center gap-3 border-r border-slate-100 pr-3">
-        <Metric label="Base Amount" value={fmtINR(tile.total_amount)} valueCls="text-[11px] font-bold text-slate-700 tabular-nums" />
+      <div className="flex items-center gap-2 border-r border-slate-100 pr-2">
+        <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" />
         <Metric
-          label="GST Amount"
+          label="GST"
           value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
-          valueCls={`text-[11px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
+          valueCls={`text-[10px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
         />
         <Metric
           label="Late Fee"
           value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
-          valueCls={`text-[11px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
+          valueCls={`text-[10px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
         />
         <Metric
-          label="Payable Amount"
+          label="Payable"
           value={fmtINR(tile.amount_due)}
-          valueCls={`text-[11px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
+          valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
         />
       </div>
 
-      {/* Actions — pinned right */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-1">
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
             title="Chat"
-            className={`rounded p-1.5 shrink-0 transition-colors ${isChatActive ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-100'}`}
+            className={`rounded p-1 shrink-0 transition-colors ${isChatActive ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-100'}`}
           >
-            <MessageSquare size={13} />
+            <MessageSquare size={12} />
           </button>
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
-          className="flex items-center gap-0.5 rounded px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors whitespace-nowrap"
+          className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors whitespace-nowrap"
         >
-          View <ChevronRight size={11} />
+          View <ChevronRight size={10} />
         </button>
       </div>
     </motion.div>

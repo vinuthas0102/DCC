@@ -394,13 +394,13 @@ const DemandTable: React.FC<{
           <colgroup>
             <col className="w-[90px]" />
             <col style={{ width: 'minmax(180px,1.5fr)' }} />
-            <col style={{ width: 'minmax(150px,1.2fr)' }} />
-            <col className="w-[90px]" />
-            <col className="w-[70px]" />
-            <col className="w-[70px]" />
-            <col className="w-[90px]" />
+            <col style={{ width: 'minmax(140px,1fr)' }} />
+            <col className="w-[120px]" />
+            <col className="w-[80px]" />
             <col className="w-[80px]" />
             <col className="w-[95px]" />
+            <col className="w-[85px]" />
+            <col className="w-[100px]" />
             <col className="w-[110px]" />
           </colgroup>
           <thead>
@@ -418,16 +418,16 @@ const DemandTable: React.FC<{
                 <span className="inline-flex items-center gap-1">Type <SortIcon k="demand_type_label" /></span>
               </th>
               <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('demand_run_date')}>
-                <span className="inline-flex items-center gap-1">Run <SortIcon k="demand_run_date" /></span>
+                <span className="inline-flex items-center gap-1">Run Date <SortIcon k="demand_run_date" /></span>
               </th>
               <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('due_date')}>
-                <span className="inline-flex items-center gap-1">Due <SortIcon k="due_date" /></span>
+                <span className="inline-flex items-center gap-1">Due Date <SortIcon k="due_date" /></span>
               </th>
               <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('total_amount')}>
-                <span className="inline-flex items-center gap-1">Total <SortIcon k="total_amount" /></span>
+                <span className="inline-flex items-center gap-1">Total Amt <SortIcon k="total_amount" /></span>
               </th>
               <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_paid')}>
-                <span className="inline-flex items-center gap-1">Paid <SortIcon k="amount_paid" /></span>
+                <span className="inline-flex items-center gap-1">Paid Amt <SortIcon k="amount_paid" /></span>
               </th>
               <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_due')}>
                 <span className="inline-flex items-center gap-1">Due Amt <SortIcon k="amount_due" /></span>
@@ -467,10 +467,12 @@ const DemandTable: React.FC<{
                   </td>
                   {/* Type */}
                   <td className={TD}>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                    <div className="flex items-center gap-1 min-w-0">
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEMAND_TYPE_COLORS[t.demand_type_code] || 'bg-slate-400'}`} />
-                      {t.demand_type_label}
-                    </span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide truncate">
+                        {t.demand_type_label}
+                      </span>
+                    </div>
                   </td>
                   {/* Run Date */}
                   <td className={TD}>
@@ -1069,7 +1071,7 @@ export const DCCPage: React.FC = () => {
             <div className="text-xs mt-1">Try adjusting your filters or search.</div>
           </div>
         ) : viewMode === 'card' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {filteredTiles.map(tile => (
               <DemandTile
                 key={tile.id}
