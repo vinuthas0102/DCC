@@ -538,7 +538,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => handleOpenRunDetails(log)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-blue-600 border border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors"
                       >
                         <Eye size={11} /> View
                       </button>
