@@ -5,7 +5,7 @@ import {
   Phone, MapPin, AlertTriangle,
   CheckCircle2, Receipt, TrendingUp, Clock,
   SlidersHorizontal, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Eye, Users, Plus, FileText,
+  Users, Plus, FileText,
   LayoutGrid, List, Table2, Calendar,
   MessageSquare, Send, X, Loader2, LogOut,
   CalendarDays, Landmark, Gauge, CircleUser as UserCircle,
@@ -193,7 +193,7 @@ const DemandTile: React.FC<{
           onClick={() => onViewDetails(tile)}
           className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
         >
-          <Eye size={11} /> View demands
+          View demands
         </button>
         <button
           onClick={() => onChat(tile)}
@@ -401,7 +401,7 @@ const DemandTable: React.FC<{
             <col className="w-[95px]" />
             <col className="w-[85px]" />
             <col className="w-[100px]" />
-            <col className="w-[110px]" />
+            <col className="w-[150px]" />
           </colgroup>
           <thead>
             <tr className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
@@ -504,9 +504,9 @@ const DemandTable: React.FC<{
                       <button
                         onClick={(e) => { e.stopPropagation(); onRowClick(t); }}
                         title="View demands"
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shrink-0"
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap"
                       >
-                        <Eye size={11} /> View demands
+                        View demands
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onChat(t); }}

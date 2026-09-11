@@ -50,9 +50,10 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       initial={{ opacity: 0, y: 2 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
-      className="group min-w-0 overflow-x-auto rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      className="group flex items-stretch rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
     >
-      <div className="flex min-w-max items-center gap-2 px-2.5 py-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex min-w-max items-center gap-2">
         <span className={`inline-flex items-center gap-1 shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
           <span className={`h-1 w-1 rounded-full ${st.dot}`} />
           {st.label}
@@ -97,23 +98,25 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           <span className="whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 pl-1">
-          {onChat && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onChat(tile); }}
-              title="Chat"
-              className={`rounded p-1 transition-colors ${isChatActive ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-100'}`}
-            >
-              <MessageSquare size={12} />
-            </button>
-          )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
-            className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
-          >
-            View demands <ChevronRight size={10} />
-          </button>
         </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1 border-l border-slate-200 bg-slate-50/40 px-2.5 py-1.5">
+        {onChat && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onChat(tile); }}
+            title="Chat"
+            className={`rounded p-1 transition-colors ${isChatActive ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-100'}`}
+          >
+            <MessageSquare size={12} />
+          </button>
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
+          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+        >
+          View demands <ChevronRight size={10} />
+        </button>
       </div>
     </motion.div>
   );
