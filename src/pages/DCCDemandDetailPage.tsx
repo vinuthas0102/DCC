@@ -142,7 +142,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const [instGstPct, setInstGstPct] = useState('0.00');
   const [instGstType, setInstGstType] = useState<'inclusive' | 'exclusive'>('inclusive');
   const [instNumInstallments, setInstNumInstallments] = useState(2);
-  const [instRowFilter, setInstRowFilter] = useState<'ALL' | 'PENDING'>('ALL');
+  const [instRowFilter, setInstRowFilter] = useState<'ALL' | 'PENDING'>('PENDING');
   const [instSuccess, setInstSuccess] = useState<string | null>(null);
 
   // Bulk select for demand due
@@ -1025,6 +1025,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
         {/* ═══ Tab 2: Instalment ══════════════════════════════════════════════════ */}
         {effectiveTab === 'installments' && (
+          <div className="space-y-3">
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 space-y-3">
             {/* Header */}
             <div className="flex items-center gap-2">
@@ -1231,7 +1232,8 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                 </div>
 
                 {/* Dense instalment table */}
-                <div className="overflow-x-auto">
+                <div className="flex gap-3">
+                <div className="flex-1 min-w-0 overflow-x-auto">
                   <table className="w-full text-[10px]">
                     <thead>
                       <tr className="bg-slate-100 text-slate-600">
@@ -1247,6 +1249,8 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                         <th className="px-1.5 py-1 text-right font-bold">Remaining</th>
                         <th className="px-1.5 py-1 text-center font-bold">Status</th>
                         <th className="px-1.5 py-1 text-center font-bold">Action</th>
+                        <th className="px-1.5 py-1 text-center font-bold">Disputed</th>
+                        <th className="px-1.5 py-1 text-center font-bold">Dispute</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1264,9 +1268,11 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           const canPayGovt = !isPaid && row.remaining_amount > 0 && !isPaidOrExempted && isGovtOfficial && (isFullPayment || row.row_number === earliestUnpaidRowNumber);
                           const isLocked = !isPaid && row.remaining_amount > 0 && !isPaidOrExempted && (canRecordPayment || isGovtOfficial) && row.row_number > 0 && earliestUnpaidRowNumber !== null && row.row_number !== earliestUnpaidRowNumber;
                           const canPayThis = canPayManager || canPayGovt;
+                          const dCount = disputes.filter(d => d.row_number === row.row_number).length;
+                          const isActive = disputePanelOpen && disputePanelRow === row.row_number;
 
                           return (
-                            <tr key={row.id} className={isPaid ? 'bg-emerald-50/40' : row.status === 'OVERDUE' ? 'bg-red-50/30' : isFullPayment ? 'bg-emerald-50/20' : ''}>
+                            <tr key={row.id} className={`${isPaid ? 'bg-emerald-50/40' : row.status === 'OVERDUE' ? 'bg-red-50/30' : isFullPayment ? 'bg-emerald-50/20' : ''} ${isActive ? 'bg-orange-50/40' : ''}`}>
                               <td className="px-1.5 py-1 font-semibold text-slate-700">{row.label}</td>
                               <td className="px-1.5 py-1 text-right tabular-nums font-bold">{fmtINR(row.amount)}</td>
                               <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.late_fee > 0 && row.row_number === 0 ? fmtINR(0) : '—'}</td>
@@ -1300,15 +1306,131 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                                   <span className="text-slate-300">—</span>
                                 )}
                               </td>
+                              <td className="px-1.5 py-1 text-center">
+                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${dCount > 0 ? 'bg-orange-100 text-orange-700' : 'text-slate-400'}`}>
+                                  {dCount > 0 ? 'Yes' : '--'}
+                                </span>
+                              </td>
+                              <td className="px-1.5 py-1 text-center">
+                                <button
+                                  onClick={() => {
+                                    if (isActive) {
+                                      setDisputePanelOpen(false);
+                                      setDisputePanelRow(null);
+                                    } else {
+                                      setDisputePanelOpen(true);
+                                      setDisputePanelRow(row.row_number);
+                                      setDisputePanelLabel(row.label);
+                                      setDisputeDate(new Date().toISOString().slice(0, 10));
+                                      setDisputeReason('');
+                                      setDisputeRemarks('');
+                                    }
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${isActive ? 'bg-orange-600 text-white' : dCount > 0 ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                                  title={dCount > 0 ? `${dCount} dispute(s) — click to view` : 'Raise a dispute'}
+                                >
+                                  <MessageCircle size={12} />
+                                  {dCount > 0 ? dCount : ''}
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}
                     </tbody>
                   </table>
                 </div>
+
+                {/* ── Dispute Conversation Panel (right side) ─────────────────────── */}
+                <AnimatePresence>
+                  {disputePanelOpen && disputePanelRow !== null && (
+                    <motion.div
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 320, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="shrink-0 overflow-hidden"
+                    >
+                      <div className="w-80 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col" style={{ maxHeight: '60vh' }}>
+                        {/* Panel header */}
+                        <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-b border-orange-200 rounded-t-lg">
+                          <MessageSquareWarning size={14} className="text-orange-600" />
+                          <span className="text-xs font-bold text-slate-800">Disputes — {disputePanelLabel}</span>
+                          <button
+                            onClick={() => { setDisputePanelOpen(false); setDisputePanelRow(null); }}
+                            className="ml-auto p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+
+                        {/* Conversation thread */}
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50">
+                          {disputes.filter(d => d.row_number === disputePanelRow).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                              <MessageCircle size={24} className="text-slate-300 mb-2" />
+                              <p className="text-[11px] text-slate-400">No disputes raised for this entry yet.</p>
+                            </div>
+                          ) : (
+                            disputes
+                              .filter(d => d.row_number === disputePanelRow)
+                              .map(d => (
+                                <div key={d.id} className="flex flex-col">
+                                  <div className="bg-orange-100 border border-orange-200 rounded-lg rounded-br-sm px-3 py-2 max-w-[90%] self-end">
+                                    <div className="flex items-center gap-2 text-[9px] text-slate-500 mb-1">
+                                      <span className="font-semibold">{fmtDateShort(d.dispute_date)}</span>
+                                      {d.author_name && <span>· {d.author_name}</span>}
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-800">{d.reason}</div>
+                                    {d.remarks && <div className="text-[11px] text-slate-600 mt-0.5">{d.remarks}</div>}
+                                  </div>
+                                </div>
+                              ))
+                          )}
+                        </div>
+
+                        {/* Dispute form */}
+                        <div className="border-t border-slate-200 p-3 space-y-2 bg-white rounded-b-lg">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className={DCC_LABEL_CLS}>Date *</label>
+                              <input type="date" value={disputeDate} onChange={e => setDisputeDate(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`} />
+                            </div>
+                            <div>
+                              <label className={DCC_LABEL_CLS}>Reason *</label>
+                              <select value={disputeReason} onChange={e => setDisputeReason(e.target.value)} className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5`}>
+                                <option value="">Select…</option>
+                                <option value="Wrong amount">Wrong amount</option>
+                                <option value="Already paid">Already paid</option>
+                                <option value="Invalid demand">Invalid demand</option>
+                                <option value="Calculation error">Calculation error</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className={DCC_LABEL_CLS}>Remarks</label>
+                            <textarea value={disputeRemarks} onChange={e => setDisputeRemarks(e.target.value)} placeholder="Additional details" className={`${DCC_INPUT_CLS} text-xs py-1.5 px-2.5 h-12 resize-none`} />
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={handleDispute}
+                              disabled={disputing || !disputeReason.trim()}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-orange-600 text-white text-[10px] font-semibold hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                            >
+                              {disputing ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                              {disputing ? 'Sending…' : 'Add Dispute'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                </div>
               </div>
             )}
           </div>
+        </div>
         )}
 
         {/* ═══ Tab 3: Demand Paid History ══════════════════════════════════════════ */}
