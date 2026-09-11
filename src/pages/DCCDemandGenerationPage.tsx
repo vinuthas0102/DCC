@@ -321,18 +321,18 @@ export const DCCDemandGenerationPage: React.FC = () => {
   return (
     <div className="min-h-full bg-slate-100 flex flex-col">
       {/* Page title bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-slate-200 shrink-0">
-        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0">
+      <div className="flex items-center gap-3 px-6 py-3 bg-blue-800 border-b border-blue-900 shrink-0">
+        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-700 transition-colors shrink-0">
           <ArrowLeft size={18} />
         </button>
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0 shadow-sm">
+        <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
           <Zap size={18} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-base font-bold text-slate-900">Demand Generation</h1>
-          <p className="text-[11px] text-slate-500">Generate demands from active rules and review run history</p>
+          <h1 className="text-base font-bold text-white">Demand Generation</h1>
+          <p className="text-[11px] text-blue-200">Generate demands from active rules and review run history</p>
         </div>
-        <button onClick={loadHistory} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 border border-slate-200 transition-colors">
+        <button onClick={loadHistory} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-600 border border-blue-600 transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
