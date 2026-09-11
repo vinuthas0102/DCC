@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { ProfileDrawer } from '../profile/ProfileDrawer';
+import { ROUTES } from '../../constants/routes';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -9,8 +10,8 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { pathname } = useLocation();
-  const hideHeaderRoutes = ['/dashboard', '/dcc/rule-setup', '/dcc/generate'];
-  const showHeader = !hideHeaderRoutes.includes(pathname);
+  const isDccWorkspace = pathname === ROUTES.DASHBOARD || pathname.startsWith('/dcc/');
+  const showHeader = !isDccWorkspace;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
