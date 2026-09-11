@@ -1448,42 +1448,40 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
               </span>
             </div>
 
-            {/* Demand details remain inside the same card as the payment list */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100">
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Demand Type</p>
-                <p className="text-xs font-bold text-slate-800">{tile.demand_type_label}</p>
+            {/* Demand details — single horizontal row */}
+            <div className="flex items-stretch divide-x divide-slate-100 overflow-x-auto bg-slate-50/50">
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Type</p>
+                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.demand_type_label}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Object</p>
-                <p className="text-xs font-bold text-slate-800">{tile.object_ref}</p>
-                <p className="text-[10px] text-slate-500 truncate">{tile.object_description}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Object</p>
+                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.object_ref}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Owner</p>
-                <p className="text-xs font-bold text-slate-800">{tile.owner_name}</p>
-                <p className="text-[10px] text-slate-500">{tile.owner_contact}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Owner</p>
+                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.owner_name}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Run Date</p>
-                <p className="text-xs font-bold text-slate-800">{fmtDate(tile.demand_run_date)}</p>
-                <p className="text-[10px] text-slate-500">Due: {fmtDate(tile.due_date)}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Run / Due</p>
+                <p className="text-[11px] font-bold text-slate-800 leading-tight">{fmtDateShort(tile.demand_run_date)}</p>
+                <p className="text-[9px] text-slate-500 leading-tight">{fmtDateShort(tile.due_date)}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Total Demand</p>
-                <p className="text-xs font-bold text-slate-900 tabular-nums">{fmtINR(tile.total_amount)}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Total</p>
+                <p className="text-[11px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.total_amount)}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Collected</p>
-                <p className="text-xs font-bold text-emerald-700 tabular-nums">{fmtINR(tile.amount_paid)}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Collected</p>
+                <p className="text-[11px] font-bold text-emerald-700 tabular-nums leading-tight">{fmtINR(tile.amount_paid)}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Outstanding</p>
-                <p className="text-xs font-bold text-red-600 tabular-nums">{fmtINR(tile.amount_due)}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Outstanding</p>
+                <p className="text-[11px] font-bold text-red-600 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</p>
               </div>
-              <div className="bg-white px-3 py-2">
-                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">GST</p>
-                <p className="text-xs font-bold text-slate-800 tabular-nums">{tile.include_gst ? `${tile.gst_pct}% · ${fmtINR(tile.gst_amount)}` : 'Not Applicable'}</p>
+              <div className="px-3 py-2 shrink-0">
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">GST</p>
+                <p className="text-[11px] font-bold text-slate-800 tabular-nums leading-tight">{tile.include_gst ? `${tile.gst_pct}%` : 'N/A'}</p>
               </div>
             </div>
 
