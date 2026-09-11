@@ -73,11 +73,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           <div className="mt-0.5 whitespace-nowrap text-[10px] font-semibold leading-tight text-slate-700">{tile.owner_name}</div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 border-r border-slate-100 pr-3">
-          <span className="whitespace-nowrap rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
-          <span className="whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
-        </div>
-
         <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" />
         <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
         <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" />
@@ -97,7 +92,12 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
         />
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 pl-1">
+        <div className="flex shrink-0 items-center gap-1 border-l border-slate-100 pl-2">
+          <span className="whitespace-nowrap rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
+          <span className="whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 pl-1">
           {onChat && (
             <button
               onClick={(e) => { e.stopPropagation(); onChat(tile); }}
