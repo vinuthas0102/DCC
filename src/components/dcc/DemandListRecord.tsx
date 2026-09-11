@@ -54,12 +54,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
         <div className="flex min-w-max items-center gap-2">
-        <span className={`inline-flex items-center gap-1 shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
-          <span className={`h-1 w-1 rounded-full ${st.dot}`} />
-          {st.label}
-          {odText && <span className="opacity-75">·{odText}</span>}
-        </span>
-
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-900">
           <ObjectIcon size={11} strokeWidth={1.8} />
         </div>
@@ -96,6 +90,11 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         <div className="flex shrink-0 items-center gap-1 border-l border-slate-100 pl-2">
           <span className="whitespace-nowrap rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
           <span className="whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
+          <span className={`inline-flex items-center gap-1 shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
+            <span className={`h-1 w-1 rounded-full ${st.dot}`} />
+            {st.label}
+            {odText && <span className="opacity-75">·{odText}</span>}
+          </span>
         </div>
 
         </div>
