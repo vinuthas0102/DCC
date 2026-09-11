@@ -320,20 +320,26 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
   return (
     <div className="min-h-full bg-slate-100 flex flex-col">
-      {/* Page title bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-blue-800 border-b border-blue-900 shrink-0">
-        <button onClick={() => navigate(ROUTES.DCC)} className="p-1.5 rounded-md text-blue-200 hover:text-white hover:bg-blue-700 transition-colors shrink-0">
-          <ArrowLeft size={18} />
+      {/* Page header — Deep Slate Navy */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
+        <button
+          onClick={() => navigate(ROUTES.DCC)}
+          className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+        >
+          <ArrowLeft size={16} />
         </button>
-        <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
-          <Zap size={18} className="text-white" />
+        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+          <Zap size={16} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-base font-bold text-white">Demand Generation</h1>
-          <p className="text-[11px] text-blue-200">Generate demands from active rules and review run history</p>
+          <h1 className="text-sm font-bold text-white">Demand Generation</h1>
+          <p className="text-[10px] text-slate-400">Generate demands from active rules and review run history</p>
         </div>
-        <button onClick={loadHistory} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-600 border border-blue-600 transition-colors">
-          <RefreshCw size={14} /> Refresh
+        <button
+          onClick={loadHistory}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+        >
+          <RefreshCw size={13} /> Refresh
         </button>
       </div>
 
