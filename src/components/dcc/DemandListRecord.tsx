@@ -125,7 +125,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
-          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-500/20 backdrop-blur-md border border-blue-400/40 px-1.5 py-0.5 text-[9px] font-bold text-white hover:bg-blue-500/30 hover:border-blue-400/60 transition-colors whitespace-nowrap"
+          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
           View Demand <ChevronRight size={10} />
         </button>
