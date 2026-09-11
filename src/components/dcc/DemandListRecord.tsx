@@ -59,8 +59,8 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         </div>
 
         <div className="flex shrink-0 flex-col justify-center border-r border-slate-100 pr-3">
-          <div className="whitespace-nowrap text-[10px] font-bold leading-tight text-slate-900">{tile.object_description || tile.object_ref}</div>
-          <div className="whitespace-nowrap text-[8px] leading-tight text-slate-400">{tile.object_ref}</div>
+          <div className={LABEL_CLS}>Object</div>
+          <div className="mt-0.5 whitespace-nowrap text-[10px] font-bold leading-tight text-slate-900">{tile.object_description || tile.object_ref}</div>
         </div>
 
         <div className="flex shrink-0 flex-col justify-center border-r border-slate-100 pr-3">
@@ -87,9 +87,9 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
         />
 
-        <div className="flex shrink-0 items-center gap-1 border-l border-slate-100 pl-2">
-          <span className="whitespace-nowrap rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
-          <span className="whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
+        <div className="flex shrink-0 items-center gap-1.5 pl-6">
+          <span className="whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800">{tile.object_type}</span>
+          <span className="whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-600">{tile.demand_type_label}</span>
           <span className={`inline-flex items-center gap-1 shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
             <span className={`h-1 w-1 rounded-full ${st.dot}`} />
             {st.label}
