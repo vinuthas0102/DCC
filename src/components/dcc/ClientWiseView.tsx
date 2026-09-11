@@ -184,10 +184,10 @@ const ClientSummaryCard: React.FC<{
 
           <button
             onClick={onViewDetails}
-            className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap shrink-0"
-            title="View demands"
+            className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-500/20 backdrop-blur-md border border-blue-400/40 hover:bg-blue-500/30 hover:border-blue-400/60 transition-colors shadow-sm whitespace-nowrap shrink-0"
+            title="View Demand"
           >
-            View demands <ChevronRight size={10} />
+            View Demand <ChevronRight size={10} />
           </button>
         </div>
       </div>

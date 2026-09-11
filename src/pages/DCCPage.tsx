@@ -191,9 +191,9 @@ const DemandTile: React.FC<{
       <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-slate-200 bg-slate-50/50">
         <button
           onClick={() => onViewDetails(tile)}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-white bg-blue-500/20 backdrop-blur-md border border-blue-400/40 hover:bg-blue-500/30 hover:border-blue-400/60 transition-colors"
         >
-          View demands
+          View Demand
         </button>
         <button
           onClick={() => onChat(tile)}
@@ -503,10 +503,10 @@ const DemandTable: React.FC<{
                     <div className="flex items-center justify-center gap-1 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); onRowClick(t); }}
-                        title="View demands"
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap"
+                        title="View Demand"
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white bg-blue-500/20 backdrop-blur-md border border-blue-400/40 hover:bg-blue-500/30 hover:border-blue-400/60 transition-colors shrink-0 whitespace-nowrap"
                       >
-                        View demands
+                        View Demand
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onChat(t); }}
