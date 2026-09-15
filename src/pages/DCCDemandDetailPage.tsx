@@ -1489,131 +1489,135 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
         )}
 
         {/* ═══ Tab 3: Demand Paid History ══════════════════════════════════════════ */}
-        {effectiveTab === 'paid_history' && (
-          <div className="space-y-3">
-            {/* Charges & Adjustments — only fields NOT already in the header */}
-            {(() => {
-              const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.total_amount);
-              const gst = computeGst(tile.total_amount, tile.gst_pct, tile.gst_type, tile.include_gst);
-              const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
-              const isMonthly = config.cadence === 'monthly';
-              const penaltyPct = 0.02;
-              const penaltyAmount = isMonthly ? (() => {
-                const monthlyAmount = Math.round(tile.total_amount / 12);
-                const runDate = new Date(tile.demand_run_date);
-                let total = 0;
-                for (let i = 0; i < 12; i++) {
-                  const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
-                  const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
-                  if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
-                }
-                return total;
-              })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
-              const hasPenalty = penaltyAmount > 0;
-              const hasDiscount = earlyDisc.discount > 0;
-              const hasGst = tile.include_gst && tile.gst_pct > 0;
-              const hasAnyCharge = hasPenalty || hasDiscount || hasGst;
-              if (!hasAnyCharge) return null;
-              return (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50">
-                    <Receipt size={13} className="text-slate-500" />
-                    <span className="text-xs font-bold text-slate-700">Charges & Adjustments</span>
-                  </div>
-                  <div className="px-4 py-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2.5">
-                      {hasPenalty && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Penalty ({penaltyPct * 100}%)</span>
-                          <span className="text-xs font-bold text-red-600 tabular-nums">{fmtINR(penaltyAmount)}</span>
-                        </div>
-                      )}
-                      {hasDiscount && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Early Disc ({earlyDisc.pct}%)</span>
-                          <span className="text-xs font-bold text-emerald-600 tabular-nums">-{fmtINR(earlyDisc.discount)}</span>
-                        </div>
-                      )}
-                      {hasGst && (
-                        <>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">GST ({tile.gst_pct}% {tile.gst_type === 'inclusive' ? 'Incl.' : 'Excl.'})</span>
-                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.gstAmount)}</span>
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">CGST ({tile.gst_pct / 2}%)</span>
-                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.cgstAmount)}</span>
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">SGST ({tile.gst_pct / 2}%)</span>
-                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.sgstAmount)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+        {effectiveTab === 'paid_history' && (() => {
+          const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.total_amount);
+          const gst = computeGst(tile.total_amount, tile.gst_pct, tile.gst_type, tile.include_gst);
+          const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
+          const isMonthly = config.cadence === 'monthly';
+          const penaltyPct = 0.02;
+          const penaltyAmount = isMonthly ? (() => {
+            const monthlyAmount = Math.round(tile.total_amount / 12);
+            const runDate = new Date(tile.demand_run_date);
+            let total = 0;
+            for (let i = 0; i < 12; i++) {
+              const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
+              const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
+              if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
+            }
+            return total;
+          })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
+          const hasPenalty = penaltyAmount > 0;
+          const hasDiscount = earlyDisc.discount > 0;
+          const hasGst = tile.include_gst && tile.gst_pct > 0;
+          const totalCollected = payments.reduce((s, p) => s + p.amount, 0);
+          const isFullyPaid = tile.amount_due <= 0;
 
-            {/* Collection lines */}
-            {payments.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 shadow-sm text-center py-10 text-slate-400">
-                <Receipt size={28} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No payments recorded yet</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50">
-                  <Receipt size={14} className="text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-800">Collections</span>
-                  <span className="text-[10px] text-slate-400">({payments.length})</span>
-                  <span className="ml-auto text-[10px] font-semibold text-emerald-700 tabular-nums">
-                    Total: {fmtINR(payments.reduce((s, p) => s + p.amount, 0))}
-                  </span>
+          return (
+            <div className="space-y-3">
+              {/* Single summary tile: Row 1 = Demand vs Collected, Row 2 = Charges & Adjustments */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className={`h-1 ${isFullyPaid ? 'bg-emerald-500' : st.dot} shrink-0`} />
+                {/* Row 1: Demand vs Collected */}
+                <div className="flex items-stretch divide-x divide-slate-100">
+                  <div className="flex-1 flex flex-col items-center justify-center px-4 py-2.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total Demand</span>
+                    <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.total_amount)}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-4 py-2.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected ({payments.length} {payments.length === 1 ? 'pmt' : 'pmts'})</span>
+                    <span className="text-base font-extrabold text-emerald-600 tabular-nums leading-tight">{fmtINR(totalCollected)}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-4 py-2.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Outstanding</span>
+                    <span className={`text-base font-extrabold tabular-nums leading-tight ${isFullyPaid ? 'text-emerald-600' : 'text-red-600'}`}>{fmtINR(tile.amount_due)}</span>
+                  </div>
                 </div>
-                <div className="divide-y divide-slate-100">
-                  {(() => {
-                    const chronological = [...payments].reverse();
-                    let runningPaid = 0;
-                    return chronological.map((p, idx) => {
-                      runningPaid += p.amount;
-                      const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
-                      const isLast = idx === chronological.length - 1;
-                      return (
-                        <div key={p.id} className="px-4 py-2.5 hover:bg-emerald-50/30 transition-colors">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold">{receiptNumber(p.id)}</span>
-                            <span className="text-[10px] text-slate-500 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />{fmtDate(p.payment_date)}</span>
-                            <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span>
-                            <span className="ml-auto text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap mt-1.5 pl-1">
-                            <span className="text-[10px] text-slate-400">Ref: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
-                            {p.remarks && <span className="text-[10px] text-slate-400 max-w-[200px] truncate" title={p.remarks}>· {p.remarks}</span>}
-                            <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>Balance: {fmtINR(balanceAfter)}</span>
-                            <button
-                              onClick={() => {
-                                if (!tile) return;
-                                setDownloadingReceiptId(p.id);
-                                try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
-                              }}
-                              disabled={downloadingReceiptId === p.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
-                            >
-                              {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                              {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
-                            </button>
-                          </div>
+                {/* Row 2: Charges & Adjustments (only if any apply) */}
+                {(hasPenalty || hasDiscount || hasGst) && (
+                  <div className="flex items-center gap-4 flex-wrap px-4 py-2 border-t border-slate-100 bg-slate-50/50">
+                    {hasPenalty && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Penalty ({penaltyPct * 100}%)</span>
+                        <span className="text-xs font-bold text-red-600 tabular-nums">{fmtINR(penaltyAmount)}</span>
+                      </div>
+                    )}
+                    {hasDiscount && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Early Disc ({earlyDisc.pct}%)</span>
+                        <span className="text-xs font-bold text-emerald-600 tabular-nums">-{fmtINR(earlyDisc.discount)}</span>
+                      </div>
+                    )}
+                    {hasGst && (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">GST ({tile.gst_pct}% {tile.gst_type === 'inclusive' ? 'Incl.' : 'Excl.'})</span>
+                          <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.gstAmount)}</span>
                         </div>
-                      );
-                    });
-                  })()}
-                </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">CGST</span>
+                          <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.cgstAmount)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">SGST</span>
+                          <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.sgstAmount)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Collection lines */}
+              {payments.length === 0 ? (
+                <div className="bg-white rounded-lg border border-slate-200 shadow-sm text-center py-10 text-slate-400">
+                  <Receipt size={28} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">No payments recorded yet</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="divide-y divide-slate-100">
+                    {(() => {
+                      const chronological = [...payments].reverse();
+                      let runningPaid = 0;
+                      return chronological.map((p, idx) => {
+                        runningPaid += p.amount;
+                        const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
+                        const isLast = idx === chronological.length - 1;
+                        return (
+                          <div key={p.id} className="px-4 py-2.5 hover:bg-emerald-50/30 transition-colors">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold">{receiptNumber(p.id)}</span>
+                              <span className="text-[10px] text-slate-500 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />{fmtDate(p.payment_date)}</span>
+                              <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span>
+                              <span className="ml-auto text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap mt-1.5 pl-1">
+                              <span className="text-[10px] text-slate-400">Ref: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
+                              {p.remarks && <span className="text-[10px] text-slate-400 max-w-[200px] truncate" title={p.remarks}>· {p.remarks}</span>}
+                              <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>Balance: {fmtINR(balanceAfter)}</span>
+                              <button
+                                onClick={() => {
+                                  if (!tile) return;
+                                  setDownloadingReceiptId(p.id);
+                                  try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
+                                }}
+                                disabled={downloadingReceiptId === p.id}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                              >
+                                {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                                {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
           </motion.div>
         </AnimatePresence>
       </div>
