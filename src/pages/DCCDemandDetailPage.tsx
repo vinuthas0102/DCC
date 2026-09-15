@@ -1491,59 +1491,70 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
         {/* ═══ Tab 3: Demand Paid History ══════════════════════════════════════════ */}
         {effectiveTab === 'paid_history' && (
           <div className="space-y-3">
-            {/* Demand summary tile */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className={`h-1 ${st.dot} shrink-0`} />
-              <div className="px-4 py-3">
-                {/* Row 1: Identity + status */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-                        {st.label}
-                      </span>
+            {/* Charges & Adjustments — only fields NOT already in the header */}
+            {(() => {
+              const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.total_amount);
+              const gst = computeGst(tile.total_amount, tile.gst_pct, tile.gst_type, tile.include_gst);
+              const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
+              const isMonthly = config.cadence === 'monthly';
+              const penaltyPct = 0.02;
+              const penaltyAmount = isMonthly ? (() => {
+                const monthlyAmount = Math.round(tile.total_amount / 12);
+                const runDate = new Date(tile.demand_run_date);
+                let total = 0;
+                for (let i = 0; i < 12; i++) {
+                  const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
+                  const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
+                  if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
+                }
+                return total;
+              })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
+              const hasPenalty = penaltyAmount > 0;
+              const hasDiscount = earlyDisc.discount > 0;
+              const hasGst = tile.include_gst && tile.gst_pct > 0;
+              const hasAnyCharge = hasPenalty || hasDiscount || hasGst;
+              if (!hasAnyCharge) return null;
+              return (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50">
+                    <Receipt size={13} className="text-slate-500" />
+                    <span className="text-xs font-bold text-slate-700">Charges & Adjustments</span>
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2.5">
+                      {hasPenalty && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Penalty ({penaltyPct * 100}%)</span>
+                          <span className="text-xs font-bold text-red-600 tabular-nums">{fmtINR(penaltyAmount)}</span>
+                        </div>
+                      )}
+                      {hasDiscount && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Early Disc ({earlyDisc.pct}%)</span>
+                          <span className="text-xs font-bold text-emerald-600 tabular-nums">-{fmtINR(earlyDisc.discount)}</span>
+                        </div>
+                      )}
+                      {hasGst && (
+                        <>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">GST ({tile.gst_pct}% {tile.gst_type === 'inclusive' ? 'Incl.' : 'Excl.'})</span>
+                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.gstAmount)}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">CGST ({tile.gst_pct / 2}%)</span>
+                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.cgstAmount)}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">SGST ({tile.gst_pct / 2}%)</span>
+                            <span className="text-xs font-semibold text-slate-700 tabular-nums">{fmtINR(gst.sgstAmount)}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 truncate leading-snug">
-                      {tile.object_description || tile.object_ref}
-                    </h3>
-                    <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.owner_name}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total Demand</span>
-                    <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.total_amount)}</span>
                   </div>
                 </div>
-
-                {/* Row 2: Key details grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-x-3 gap-y-2 border-t border-slate-100 pt-2.5">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Date</span>
-                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{fmtDateShort(tile.demand_run_date)}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Due Date</span>
-                    <span className={`text-xs font-semibold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(tile.due_date)}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected</span>
-                    <span className="text-xs font-bold text-emerald-700 tabular-nums">{fmtINR(tile.amount_paid)}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Outstanding</span>
-                    <span className={`text-xs font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmtINR(tile.amount_due)}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Last Paid</span>
-                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">GST</span>
-                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{tile.include_gst ? `${tile.gst_pct}%` : 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Collection lines */}
             {payments.length === 0 ? (
