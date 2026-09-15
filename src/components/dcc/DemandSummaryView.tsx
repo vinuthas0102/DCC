@@ -412,7 +412,14 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
                     <X size={12} /> Clear all
                   </button>
                 )}
-                <span className="text-[11px] text-slate-400 shrink-0">
+                <span
+                  onClick={activeFilterCount > 0 ? () => setShowFilter(true) : undefined}
+                  className={`text-[11px] shrink-0 ${
+                    activeFilterCount > 0
+                      ? 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+                      : 'text-slate-400'
+                  }`}
+                >
                   {filteredTiles.length} of {tiles.length} demands
                 </span>
               </div>

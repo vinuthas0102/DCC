@@ -648,6 +648,16 @@ export const DCCRuleSetupPage: React.FC = () => {
                 </span>
               )}
             </button>
+            <span
+              onClick={activeFilterCount > 0 ? () => setFilterOpen(true) : undefined}
+              className={`text-[11px] whitespace-nowrap ${
+                activeFilterCount > 0
+                  ? 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+                  : 'text-slate-400'
+              }`}
+            >
+              {filtered.length} of {records.length} rules
+            </span>
           </div>
 
           {/* List body */}

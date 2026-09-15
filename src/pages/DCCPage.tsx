@@ -1007,7 +1007,14 @@ export const DCCPage: React.FC = () => {
                 <span className="text-[11px] font-bold text-blue-700 whitespace-nowrap">
                   {contextLabel}
                 </span>
-                <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                <span
+                  onClick={hasAdvFilters ? () => setShowFilters(true) : undefined}
+                  className={`text-[10px] font-semibold whitespace-nowrap ${
+                    hasAdvFilters
+                      ? 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+                      : 'text-slate-400'
+                  }`}
+                >
                   · {countText}
                 </span>
                 {clientCount > 0 && (

@@ -1251,7 +1251,14 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                     <X size={12} /> Clear all
                   </button>
                 )}
-                <span className="text-[11px] text-slate-400">
+                <span
+                  onClick={activeFilterCount > 0 ? () => setShowFilter(true) : undefined}
+                  className={`text-[11px] ${
+                    activeFilterCount > 0
+                      ? 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+                      : 'text-slate-400'
+                  }`}
+                >
                   {filteredTiles.length} of {tiles.length} demands
                 </span>
               </div>
