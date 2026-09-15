@@ -472,7 +472,19 @@ export const DCCDemandGenerationPage: React.FC = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative z-10">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
             <History size={16} className="text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
+            {hasActiveFilters ? (
+              <button
+                onClick={() => setShowFilterDrawer(true)}
+                className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors group"
+                title="Click to view and edit active filters"
+              >
+                Generation Run History
+                <Filter size={12} className="text-blue-500 group-hover:text-blue-700 transition-colors" />
+                <span className="text-[10px] font-bold text-blue-500 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">{activeFilterCount} active</span>
+              </button>
+            ) : (
+              <h2 className="text-sm font-bold text-slate-900">Generation Run History</h2>
+            )}
             <span className="ml-auto text-[11px] text-slate-400">{filteredRunLog.length} run{filteredRunLog.length !== 1 ? 's' : ''}</span>
             {/* Display type toggle */}
             <div className="inline-flex items-center bg-slate-50 rounded-lg border border-slate-200 p-0.5">
