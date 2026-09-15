@@ -1556,17 +1556,17 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
                       const isLast = idx === chronological.length - 1;
                       return (
-                        <div key={p.id} className="px-4 py-2 hover:bg-emerald-50/30 transition-colors">
-                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[10px]">
-                            <span className="text-slate-400">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
-                            <span className="text-slate-400 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(p.payment_date)}</span></span>
-                            <span className="text-slate-400">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
-                            <span className="text-slate-400">Amount: <span className="text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span></span>
-                            <span className="text-slate-400">Balance: <span className={`font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>{fmtINR(balanceAfter)}</span></span>
-                          </div>
-                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1 text-[10px]">
-                            <span className="text-slate-400">Reference: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
-                            {p.remarks && <span className="text-slate-400 max-w-[260px] truncate" title={p.remarks}>Remarks: <span className="text-slate-600 font-medium">{p.remarks}</span></span>}
+                        <div key={p.id} className="px-4 py-2 hover:bg-emerald-50/30 transition-colors overflow-x-auto">
+                          <div className="flex min-w-max items-center text-[10px]">
+                            <div className="flex min-w-0 items-center gap-x-3 whitespace-nowrap">
+                              <span className="text-slate-400 shrink-0">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(p.payment_date)}</span></span>
+                              <span className="text-slate-400 shrink-0">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
+                              <span className="text-slate-400 shrink-0">Amount: <span className="text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span></span>
+                              <span className="text-slate-400 shrink-0">Balance: <span className={`font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>{fmtINR(balanceAfter)}</span></span>
+                              <span className="text-slate-400 shrink-0">Reference: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
+                              {p.remarks && <span className="text-slate-400 max-w-[260px] truncate">Remarks: <span className="text-slate-600 font-medium" title={p.remarks}>{p.remarks}</span></span>}
+                            </div>
                             <button
                               onClick={() => {
                                 if (!tile) return;
@@ -1574,7 +1574,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                                 try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
                               }}
                               disabled={downloadingReceiptId === p.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                              className="ml-3 inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
                             >
                               {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
                               {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
