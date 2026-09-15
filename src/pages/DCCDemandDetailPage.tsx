@@ -1515,19 +1515,19 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className={`h-1 ${isFullyPaid ? 'bg-emerald-500' : st.dot} shrink-0`} />
               {/* Summary row: Demand | Collected | Outstanding | Charges */}
-              <div className="flex items-center gap-3 flex-wrap px-4 py-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Demand</span>
+              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap px-4 py-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Demand:</span>
                   <span className="text-sm font-extrabold text-slate-900 tabular-nums">{fmtINR(tile.total_amount)}</span>
                 </div>
                 <div className="w-px h-4 bg-slate-200" />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected ({payments.length})</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected ({payments.length}):</span>
                   <span className="text-sm font-extrabold text-emerald-600 tabular-nums">{fmtINR(totalCollected)}</span>
                 </div>
                 <div className="w-px h-4 bg-slate-200" />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Outstanding</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Outstanding:</span>
                   <span className={`text-sm font-extrabold tabular-nums ${isFullyPaid ? 'text-emerald-600' : 'text-red-600'}`}>{fmtINR(tile.amount_due)}</span>
                 </div>
                 {hasPenalty && (
@@ -1556,17 +1556,17 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
                       const isLast = idx === chronological.length - 1;
                       return (
-                        <div key={p.id} className="px-4 py-2.5 hover:bg-emerald-50/30 transition-colors">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold">{receiptNumber(p.id)}</span>
-                            <span className="text-[10px] text-slate-500 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />{fmtDate(p.payment_date)}</span>
-                            <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span>
-                            <span className="ml-auto text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span>
+                        <div key={p.id} className="px-4 py-2 hover:bg-emerald-50/30 transition-colors">
+                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[10px]">
+                            <span className="text-slate-400">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
+                            <span className="text-slate-400 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(p.payment_date)}</span></span>
+                            <span className="text-slate-400">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
+                            <span className="text-slate-400">Amount: <span className="text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span></span>
+                            <span className="text-slate-400">Balance: <span className={`font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>{fmtINR(balanceAfter)}</span></span>
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap mt-1.5 pl-1">
-                            <span className="text-[10px] text-slate-400">Ref: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
-                            {p.remarks && <span className="text-[10px] text-slate-400 max-w-[200px] truncate" title={p.remarks}>· {p.remarks}</span>}
-                            <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>Balance: {fmtINR(balanceAfter)}</span>
+                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1 text-[10px]">
+                            <span className="text-slate-400">Reference: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
+                            {p.remarks && <span className="text-slate-400 max-w-[260px] truncate" title={p.remarks}>Remarks: <span className="text-slate-600 font-medium">{p.remarks}</span></span>}
                             <button
                               onClick={() => {
                                 if (!tile) return;
