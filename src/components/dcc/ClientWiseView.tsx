@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DCCClientDueSummaryModal } from '../../pages/DCCClientDueSummaryPage';
+import { ObjectSummaryModal } from './ObjectSummaryView';
+import { DemandSummaryModal } from './DemandSummaryView';
 import {
   Users, ChevronRight, Phone,
 } from 'lucide-react';
@@ -205,7 +206,9 @@ export interface ClientWiseViewProps {
 
 export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles }) => {
   const clientGroups = useMemo(() => groupByClient(tiles), [tiles]);
-  const [summaryOwnerId, setSummaryOwnerId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientGroup | null>(null);
+  const [demandObjectId, setDemandObjectId] = useState<string | null>(null);
+  const [demandObjectRef, setDemandObjectRef] = useState('');
 
   if (clientGroups.length === 0) {
     return (
@@ -229,16 +232,35 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles }) => {
         >
           <ClientSummaryCard
             group={group}
-            onViewDetails={() => setSummaryOwnerId(group.ownerId)}
+            onViewDetails={() => setSelectedClient(group)}
           />
         </motion.div>
       ))}
 
       <AnimatePresence>
-        {summaryOwnerId && (
-          <DCCClientDueSummaryModal
-            ownerId={summaryOwnerId}
-            onClose={() => setSummaryOwnerId(null)}
+        {selectedClient && !demandObjectId && (
+          <ObjectSummaryModal
+            ownerId={selectedClient.ownerId}
+            ownerName={selectedClient.ownerName}
+            ownerContact={selectedClient.ownerContact}
+            ownerAddress={selectedClient.ownerAddress}
+            onClose={() => setSelectedClient(null)}
+            onViewObject={(objId, objRef) => { setDemandObjectId(objId); setDemandObjectRef(objRef); }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedClient && demandObjectId && (
+          <DemandSummaryModal
+            ownerId={selectedClient.ownerId}
+            ownerName={selectedClient.ownerName}
+            ownerContact={selectedClient.ownerContact}
+            ownerAddress={selectedClient.ownerAddress}
+            objectId={demandObjectId}
+            objectRef={demandObjectRef}
+            onBack={() => { setDemandObjectId(null); setDemandObjectRef(''); }}
+            onClose={() => { setDemandObjectId(null); setDemandObjectRef(''); setSelectedClient(null); }}
           />
         )}
       </AnimatePresence>

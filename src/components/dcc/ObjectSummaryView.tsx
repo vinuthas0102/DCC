@@ -184,12 +184,12 @@ const KpiCard: React.FC<{
   </motion.button>
 );
 
-const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
-  label, value, valueCls = 'text-slate-900',
+const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; width?: string }> = ({
+  label, value, valueCls = 'text-slate-900', width = 'w-[80px]',
 }) => (
-  <div className="flex flex-col gap-0.5 min-w-0">
-    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{label}</span>
-    <span className={`text-xs font-semibold tabular-nums truncate ${valueCls}`}>{value}</span>
+  <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2 overflow-hidden`}>
+    <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">{label}</span>
+    <span className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
@@ -390,14 +390,14 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             </div>
           </div>
           <div className="flex items-center min-w-0 overflow-hidden">
-            <LV label="Run Date" value={runDateRange} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" />
-            <LV label="Due Date" value={dueDateRange} valueCls={`text-[10px] font-bold tabular-nums ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} />
-            <LV label="Demand" value={fmtINR(group.totalDemand)} valueCls="text-[10px] font-bold text-slate-800 tabular-nums" />
-            <LV label="Paid" value={fmtINR(group.totalPaid)} valueCls="text-[10px] font-bold text-emerald-600 tabular-nums" />
+            <LV label="Run Date" value={runDateRange} valueCls="text-slate-600" width="w-[80px]" />
+            <LV label="Due Date" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'} width="w-[80px]" />
+            <LV label="Demand" value={fmtINR(group.totalDemand)} valueCls="text-slate-800" width="w-[78px]" />
+            <LV label="Paid" value={fmtINR(group.totalPaid)} valueCls="text-emerald-600" width="w-[72px]" />
             {group.overdueAmount > 0 && (
-              <LV label="Overdue" value={fmtINR(group.overdueAmount)} valueCls="text-[10px] font-bold text-red-600 tabular-nums" />
+              <LV label="Overdue" value={fmtINR(group.overdueAmount)} valueCls="text-red-600" width="w-[72px]" />
             )}
-            <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" />
+            <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-[48px]" />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-auto">
             <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
