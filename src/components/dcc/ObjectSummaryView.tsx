@@ -547,11 +547,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <Building2 size={18} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-300 mb-0.5">
-              <button onClick={onClose} className="hover:text-white transition-colors">{ownerName}</button>
-              <ChevronRight size={10} className="text-slate-500" />
-              <span className="font-bold text-white">Object Summary</span>
-            </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-300">
               <span className="flex items-center gap-1">
                 <Phone size={10} /> {ownerContact || '—'}
@@ -585,16 +580,22 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
 
             {/* Controls row */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 shrink-0">
+                  <button onClick={onClose} className="text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate max-w-[120px]">{ownerName}</button>
+                  <ChevronRight size={10} className="text-slate-400 shrink-0" />
+                  <span className="text-slate-800">Object Summary</span>
+                </div>
+                <span className="text-slate-300 shrink-0">|</span>
                 {(activeFilterCount > 0 || activeKpi !== 'ALL') && (
                   <button
                     onClick={handleClearFilters}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
                   >
                     <X size={12} /> Clear all
                   </button>
                 )}
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-slate-400 shrink-0">
                   {filteredGroups.length} of {objectGroups.length} objects
                 </span>
               </div>
