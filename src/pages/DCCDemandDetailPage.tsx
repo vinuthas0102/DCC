@@ -255,9 +255,14 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
       setDisputes(dispData);
       if (foundTile) {
         setPayAmount(foundTile.amount_due);
-        // Set default tab based on demand type code (only if no explicit initialTab was passed)
+        // Set default tab based on demand status and type code (only if no explicit initialTab was passed)
         if (!initialTab) {
-          setActiveTab(isInstalmentType(foundTile.demand_type_code) ? 'installments' : 'demand_due');
+          const fullyPaid = foundTile.status === 'PAID' || foundTile.status === 'EXEMPTED';
+          if (fullyPaid) {
+            setActiveTab('paid_history');
+          } else {
+            setActiveTab(isInstalmentType(foundTile.demand_type_code) ? 'installments' : 'demand_due');
+          }
         }
       }
     } catch (e: unknown) {
@@ -554,9 +559,9 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const showDemandDueTab = !showInstalmentTab;
 
   const TABS: { key: Tab; label: string; icon: typeof History }[] = [
-    ...(showDemandDueTab ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
-    ...(showInstalmentTab ? [{ key: 'installments' as Tab, label: 'Due Demand', icon: Layers }] : []),
-    { key: 'paid_history', label: `Demand Paid History (${payments.length})`, icon: History },
+    ...(showDemandDueTab && !isPaidOrExempted ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
+    ...(showInstalmentTab && !isPaidOrExempted ? [{ key: 'installments' as Tab, label: 'Due Demand', icon: Layers }] : []),
+    { key: 'paid_history', label: `Demand History (${payments.length})`, icon: History },
   ];
 
   // Ensure active tab is valid
@@ -622,6 +627,36 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           {/* Financial summary + Pay Now */}
           <div className="flex items-center gap-3">
             {(() => {
+              if (isPaidOrExempted) {
+                return (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-600/20 border border-emerald-500/30">
+                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <span className="text-emerald-300 text-xs font-bold uppercase tracking-wide">
+                        {tile.status === 'EXEMPTED' ? 'Exempted' : 'Fully Paid'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-bold">Total Demand</span>
+                      <span className="text-white text-xs font-semibold tabular-nums leading-tight">{fmtINR(tile.total_amount)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-bold">Collected</span>
+                      <span className="text-emerald-400 text-xs font-bold tabular-nums leading-tight">{fmtINR(tile.amount_paid)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-bold">Outstanding</span>
+                      <span className="text-emerald-400 text-xs font-bold tabular-nums leading-tight">{fmtINR(0)}</span>
+                    </div>
+                    {tile.last_paid_date && (
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-[9px] uppercase font-bold">Last Paid</span>
+                        <span className="text-slate-300 text-xs font-semibold tabular-nums leading-tight">{fmtDateShort(tile.last_paid_date)}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
               const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
               const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
@@ -698,7 +733,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       </>
                     );
                   })()}
-                  {!isPaidOrExempted && (canRecordPayment || isGovtOfficial) && (
+                  {(canRecordPayment || isGovtOfficial) && (
                     <button
                       onClick={() => canRecordPayment ? setShowPayForm(v => !v) : (isGovtOfficial ? (() => { setPayModalAmount(finalWithGst); setPayModalLabel('Full Payment'); setPayModalRowId(null); setPayModalStep('select'); setPayModalMode('UPI'); setPayModalRef(''); setPayModalRemarks(''); setPayModalDate(new Date().toISOString().slice(0, 10)); setShowPayModal(true); })() : undefined)}
                       className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-md shadow-sm transition-colors text-xs"
@@ -870,7 +905,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
                           ))}
                           <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Line Due</th>
-                          <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Disputed</th>
+                          <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute Date</th>
                           <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute</th>
                         </tr>
                       </thead>
@@ -891,9 +926,19 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                                 <span className="font-mono font-bold text-slate-900">{fmtINR(m.total)}</span>
                               </td>
                               <td className="py-1.5 px-3 text-center">
-                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${dCount > 0 ? 'bg-orange-100 text-orange-700' : 'text-slate-400'}`}>
-                                  {dCount > 0 ? 'Yes' : '--'}
-                                </span>
+                                {(() => {
+                                  const rowDisputes = disputes.filter(d => d.row_number === m.sno);
+                                  if (rowDisputes.length === 0) {
+                                    return <span className="text-slate-400 text-[10px]">--</span>;
+                                  }
+                                  const latest = rowDisputes.reduce((a, b) => a.dispute_date > b.dispute_date ? a : b);
+                                  return (
+                                    <span className="inline-flex flex-col items-center gap-0.5">
+                                      <span className="text-[10px] font-semibold text-orange-700 tabular-nums">{fmtDateShort(latest.dispute_date)}</span>
+                                      {rowDisputes.length > 1 && <span className="text-[8px] text-orange-400">({rowDisputes.length} disputes)</span>}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="py-1.5 px-3 text-center">
                                 <button
@@ -1249,7 +1294,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                         <th className="px-1.5 py-1 text-right font-bold">Remaining</th>
                         <th className="px-1.5 py-1 text-center font-bold">Status</th>
                         <th className="px-1.5 py-1 text-center font-bold">Action</th>
-                        <th className="px-1.5 py-1 text-center font-bold">Disputed</th>
+                        <th className="px-1.5 py-1 text-center font-bold">Dispute Date</th>
                         <th className="px-1.5 py-1 text-center font-bold">Dispute</th>
                       </tr>
                     </thead>
@@ -1307,9 +1352,19 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                                 )}
                               </td>
                               <td className="px-1.5 py-1 text-center">
-                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${dCount > 0 ? 'bg-orange-100 text-orange-700' : 'text-slate-400'}`}>
-                                  {dCount > 0 ? 'Yes' : '--'}
-                                </span>
+                                {(() => {
+                                  const rowDisputes = disputes.filter(d => d.row_number === row.row_number);
+                                  if (rowDisputes.length === 0) {
+                                    return <span className="text-slate-400 text-[9px]">--</span>;
+                                  }
+                                  const latest = rowDisputes.reduce((a, b) => a.dispute_date > b.dispute_date ? a : b);
+                                  return (
+                                    <span className="inline-flex flex-col items-center gap-0.5">
+                                      <span className="text-[9px] font-semibold text-orange-700 tabular-nums">{fmtDateShort(latest.dispute_date)}</span>
+                                      {rowDisputes.length > 1 && <span className="text-[8px] text-orange-400">({rowDisputes.length})</span>}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="px-1.5 py-1 text-center">
                                 <button
@@ -1435,114 +1490,115 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
         {/* ═══ Tab 3: Demand Paid History ══════════════════════════════════════════ */}
         {effectiveTab === 'paid_history' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            {/* Unified demand and payment header */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <FileSpreadsheet size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900">Demand Paid History</h3>
-              <span className={`ml-auto inline-flex px-2 py-0.5 rounded text-[9px] font-bold ${tile.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : tile.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                {tile.status}
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {payments.length} payment{payments.length !== 1 ? 's' : ''}
-              </span>
+          <div className="space-y-3">
+            {/* Demand summary tile */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className={`h-1 ${st.dot} shrink-0`} />
+              <div className="px-4 py-3">
+                {/* Row 1: Identity + status */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 truncate leading-snug">
+                      {tile.object_description || tile.object_ref}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.owner_name}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total Demand</span>
+                    <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.total_amount)}</span>
+                  </div>
+                </div>
+
+                {/* Row 2: Key details grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-x-3 gap-y-2 border-t border-slate-100 pt-2.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Date</span>
+                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{fmtDateShort(tile.demand_run_date)}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Due Date</span>
+                    <span className={`text-xs font-semibold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(tile.due_date)}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected</span>
+                    <span className="text-xs font-bold text-emerald-700 tabular-nums">{fmtINR(tile.amount_paid)}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Outstanding</span>
+                    <span className={`text-xs font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmtINR(tile.amount_due)}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Last Paid</span>
+                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">GST</span>
+                    <span className="text-xs font-semibold text-slate-800 tabular-nums">{tile.include_gst ? `${tile.gst_pct}%` : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Demand details — single horizontal row */}
-            <div className="flex items-stretch divide-x divide-slate-100 overflow-x-auto bg-slate-50/50">
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Type</p>
-                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.demand_type_label}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Object</p>
-                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.object_ref}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Owner</p>
-                <p className="text-[11px] font-bold text-slate-800 leading-tight">{tile.owner_name}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Run / Due</p>
-                <p className="text-[11px] font-bold text-slate-800 leading-tight">{fmtDateShort(tile.demand_run_date)}</p>
-                <p className="text-[9px] text-slate-500 leading-tight">{fmtDateShort(tile.due_date)}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Total</p>
-                <p className="text-[11px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.total_amount)}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Collected</p>
-                <p className="text-[11px] font-bold text-emerald-700 tabular-nums leading-tight">{fmtINR(tile.amount_paid)}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">Outstanding</p>
-                <p className="text-[11px] font-bold text-red-600 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</p>
-              </div>
-              <div className="px-3 py-2 shrink-0">
-                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide leading-tight">GST</p>
-                <p className="text-[11px] font-bold text-slate-800 tabular-nums leading-tight">{tile.include_gst ? `${tile.gst_pct}%` : 'N/A'}</p>
-              </div>
-            </div>
-
-            {/* Payment entries */}
-            <div className="flex items-center gap-2 px-3 py-2 border-y border-slate-100">
-              <History size={14} className="text-slate-500" />
-              <h4 className="text-xs font-bold text-slate-900">Payments</h4>
-              <span className="ml-auto text-[10px] text-slate-400">
-                {payments.length > 0 && `Total collected: ${fmtINR(payments.reduce((s, p) => s + p.amount, 0))}`}
-              </span>
-            </div>
+            {/* Collection lines */}
             {payments.length === 0 ? (
-              <div className="text-center py-10 text-slate-400">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm text-center py-10 text-slate-400">
                 <Receipt size={28} className="mx-auto mb-2 opacity-30" />
                 <p className="text-xs">No payments recorded yet</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {(() => {
-                  const chronological = [...payments].reverse();
-                  let runningPaid = 0;
-                  return chronological.map((p, idx) => {
-                    runningPaid += p.amount;
-                    const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
-                    const isLast = idx === chronological.length - 1;
-                    return (
-                      <div key={p.id} className="px-3 py-2.5 hover:bg-slate-50/60 transition-colors">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold">{receiptNumber(p.id)}</span>
-                          <span className="text-[10px] text-slate-500 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />{fmtDate(p.payment_date)}</span>
-                          <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span>
-                          <span className="ml-auto text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span>
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50">
+                  <Receipt size={14} className="text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-800">Collections</span>
+                  <span className="text-[10px] text-slate-400">({payments.length})</span>
+                  <span className="ml-auto text-[10px] font-semibold text-emerald-700 tabular-nums">
+                    Total: {fmtINR(payments.reduce((s, p) => s + p.amount, 0))}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {(() => {
+                    const chronological = [...payments].reverse();
+                    let runningPaid = 0;
+                    return chronological.map((p, idx) => {
+                      runningPaid += p.amount;
+                      const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
+                      const isLast = idx === chronological.length - 1;
+                      return (
+                        <div key={p.id} className="px-4 py-2.5 hover:bg-emerald-50/30 transition-colors">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold">{receiptNumber(p.id)}</span>
+                            <span className="text-[10px] text-slate-500 inline-flex items-center gap-1"><Calendar size={9} className="opacity-50" />{fmtDate(p.payment_date)}</span>
+                            <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span>
+                            <span className="ml-auto text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap mt-1.5 pl-1">
+                            <span className="text-[10px] text-slate-400">Ref: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
+                            {p.remarks && <span className="text-[10px] text-slate-400 max-w-[200px] truncate" title={p.remarks}>· {p.remarks}</span>}
+                            <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>Balance: {fmtINR(balanceAfter)}</span>
+                            <button
+                              onClick={() => {
+                                if (!tile) return;
+                                setDownloadingReceiptId(p.id);
+                                try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
+                              }}
+                              disabled={downloadingReceiptId === p.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                            >
+                              {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                              {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap mt-1.5 pl-1">
-                          <span className="text-[10px] text-slate-400">Ref: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
-                          {p.remarks && <span className="text-[10px] text-slate-400 max-w-[200px] truncate" title={p.remarks}>· {p.remarks}</span>}
-                          <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>Balance: {fmtINR(balanceAfter)}</span>
-                          <button
-                            onClick={() => {
-                              if (!tile) return;
-                              setDownloadingReceiptId(p.id);
-                              try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
-                            }}
-                            disabled={downloadingReceiptId === p.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
-                          >
-                            {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                            {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-            {payments.length > 0 && (
-              <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border-t-2 border-slate-200 text-[10px]">
-                <span className="font-bold text-slate-600">Total Demand: <span className="text-slate-900 tabular-nums">{fmtINR(tile.total_amount)}</span></span>
-                <span className="font-bold text-emerald-700">Collected: <span className="tabular-nums">{fmtINR(payments.reduce((s, p) => s + p.amount, 0))}</span></span>
-                <span className="ml-auto font-bold text-red-600">Outstanding: <span className="tabular-nums">{fmtINR(tile.amount_due)}</span></span>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             )}
           </div>
