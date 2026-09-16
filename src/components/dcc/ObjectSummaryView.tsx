@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Users, Phone, MapPin, Building2, Receipt,
   Calendar, Clock, Wallet, CheckCircle2, AlertTriangle,
-  Loader2, ChevronRight, LayoutGrid, List, Table2,
+  Loader2, ChevronRight, LayoutGrid, Table2,
   Filter, RotateCcw, Search, TrendingUp, ChevronLeft,
   Car, FileText, Home, Landmark, CircleDollarSign, Eye,
 } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
   fmtINR, fmtDateShort,
 } from '../../constants/dccTheme';
 
-type ViewMode = 'card' | 'list' | 'table';
+type ViewMode = 'card' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
 
 interface ObjectGroup {
@@ -208,7 +208,7 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
   const [tiles, setTiles] = useState<DccTile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [activeKpi, setActiveKpi] = useState<KpiKey>('ALL');
   const [filterState, setFilterState] = useState<LocalFilterState>(emptyFilterState);
   const [showFilter, setShowFilter] = useState(false);
@@ -346,75 +346,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
     );
   };
 
-  // ── List view ───────────────────────────────────────────────────────────────
-  const ListView: React.FC<{ group: ObjectGroup; idx: number }> = ({ group, idx }) => {
-    const Icon = getObjectIcon(group.objectType);
-    const collectionPct = group.totalDemand > 0 ? Math.round((group.totalPaid / group.totalDemand) * 100) : 0;
-    const runDateRange = group.runDateMin
-      ? `${fmtDateShort(group.runDateMin)}${group.runDateMax && group.runDateMin !== group.runDateMax ? `–${fmtDateShort(group.runDateMax)}` : ''}`
-      : '—';
-    const dueDateRange = group.dueDateMin
-      ? `${fmtDateShort(group.dueDateMin)}${group.dueDateMax && group.dueDateMin !== group.dueDateMax ? `–${fmtDateShort(group.dueDateMax)}` : ''}`
-      : '—';
-
-    const outstandingCls =
-      group.totalOutstanding > 0
-        ? group.overallStatus === 'OVERDUE'
-          ? { bg: 'bg-red-50', border: 'border-red-200', label: 'text-red-500', value: 'text-red-700' }
-          : { bg: 'bg-amber-50', border: 'border-amber-200', label: 'text-amber-500', value: 'text-amber-700' }
-        : { bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'text-emerald-500', value: 'text-emerald-700' };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.1) }}
-        className="flex relative bg-white rounded-xl border border-slate-200 shadow-[0_4px_16px_rgba(30,64,175,0.06)] overflow-hidden hover:shadow-[0_8px_24px_rgba(30,64,175,0.1)] transition-all"
-      >
-        <div className={`w-1 shrink-0 ${STRIP[group.overallStatus]}`} />
-        <button
-          onClick={() => onViewObject(group.objectId, group.objectRef)}
-          className="flex-1 flex items-center min-w-0 py-2 px-2.5 gap-2 text-left"
-        >
-          <div className="flex items-center gap-2 shrink-0 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-              <Icon size={13} className="text-blue-700" />
-            </div>
-            <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
-              <span className="text-[11px] font-bold text-slate-900 truncate">{group.objectDescription || group.objectRef}</span>
-              <span className="text-[8px] text-slate-400 truncate">{group.objectRef} · {group.objectType}</span>
-            </div>
-            <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
-              <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Demands</span>
-              <span className="mt-0.5 text-[11px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
-            </div>
-          </div>
-          <div className="flex items-center min-w-0 overflow-hidden">
-            <LV label="Run Date" value={runDateRange} valueCls="text-slate-600" width="w-[80px]" />
-            <LV label="Due Date" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'} width="w-[80px]" />
-            <LV label="Demand" value={fmtINR(group.totalDemand)} valueCls="text-slate-800" width="w-[78px]" />
-            <LV label="Paid" value={fmtINR(group.totalPaid)} valueCls="text-emerald-600" width="w-[72px]" />
-            {group.overdueAmount > 0 && (
-              <LV label="Overdue" value={fmtINR(group.overdueAmount)} valueCls="text-red-600" width="w-[72px]" />
-            )}
-            <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-[48px]" />
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
-              <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Outstanding</span>
-              <span className={`mt-0.5 text-[11px] font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
-                {fmtINR(group.totalOutstanding)}
-              </span>
-            </div>
-            <span className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap shrink-0">
-              View Demand <ChevronRight size={10} />
-            </span>
-          </div>
-        </button>
-      </motion.div>
-    );
-  };
-
   // ── Table view ──────────────────────────────────────────────────────────────
   const TableView: React.FC = () => (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -494,7 +425,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
   const ViewModeSelector: React.FC = () => {
     const modes: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
       { mode: 'card', icon: <LayoutGrid size={16} />, label: 'Card View' },
-      { mode: 'list', icon: <List size={16} />, label: 'List View' },
       { mode: 'table', icon: <Table2 size={16} />, label: 'Table View' },
     ];
     return (
@@ -653,10 +583,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {filteredGroups.map((group, idx) => <CardView key={group.objectId} group={group} idx={idx} />)}
-            </div>
-          ) : viewMode === 'list' ? (
-            <div className="flex flex-col gap-2">
-              {filteredGroups.map((group, idx) => <ListView key={group.objectId} group={group} idx={idx} />)}
             </div>
           ) : (
             <TableView />

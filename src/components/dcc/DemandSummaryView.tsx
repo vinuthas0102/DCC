@@ -3,19 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Phone, MapPin, Building2, Receipt,
   Calendar, Clock, Wallet, CheckCircle2, AlertTriangle,
-  Loader2, ChevronRight, LayoutGrid, List, Table2,
+  Loader2, ChevronRight, LayoutGrid, Table2,
   Filter, RotateCcw, Search, TrendingUp, ChevronLeft, Eye,
 } from 'lucide-react';
 import { dccService } from '../../services/dccService';
 import { DCCDemandDetailModal } from '../../pages/DCCDemandDetailPage';
-import { DemandListRecord } from '../../components/dcc/DemandListRecord';
 import type { DccTile, DccDemandStatus } from '../../types/dcc';
 import {
   DCC_STATUS,
   fmtINR, fmtDateShort,
 } from '../../constants/dccTheme';
 
-type ViewMode = 'card' | 'list' | 'table';
+type ViewMode = 'card' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
 
 interface LocalFilterState {
@@ -116,7 +115,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [activeKpi, setActiveKpi] = useState<KpiKey>('ALL');
   const [filterState, setFilterState] = useState<LocalFilterState>(emptyFilterState);
   const [showFilter, setShowFilter] = useState(false);
@@ -309,7 +308,6 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
   const ViewModeSelector: React.FC = () => {
     const modes: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
       { mode: 'card', icon: <LayoutGrid size={16} />, label: 'Card View' },
-      { mode: 'list', icon: <List size={16} />, label: 'List View' },
       { mode: 'table', icon: <Table2 size={16} />, label: 'Table View' },
     ];
     return (
@@ -470,17 +468,6 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {filteredTiles.map((tile, idx) => <CardView key={tile.id} tile={tile} idx={idx} />)}
-            </div>
-          ) : viewMode === 'list' ? (
-            <div className="flex flex-col gap-2">
-              {filteredTiles.map((tile, idx) => (
-                <DemandListRecord
-                  key={tile.id}
-                  tile={tile}
-                  idx={idx}
-                  onViewDetails={(t) => setDetailDemandId(t.id)}
-                />
-              ))}
             </div>
           ) : (
             <TableView />

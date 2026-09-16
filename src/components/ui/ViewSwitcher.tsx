@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutGrid, List, Table2, Users } from 'lucide-react';
+import { LayoutGrid, List, Table2 } from 'lucide-react';
 
-export type ViewMode = 'card' | 'table' | 'list' | 'client';
+export type ViewMode = 'card' | 'table' | 'list';
 
 interface ViewSwitcherProps {
   currentView: ViewMode;
@@ -15,7 +15,6 @@ export const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
   className = '',
 }) => {
   const views: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
-    { mode: 'client', icon: <Users size={18} />, label: 'Client-Wise' },
     { mode: 'card', icon: <LayoutGrid size={18} />, label: 'Cards' },
     { mode: 'table', icon: <Table2 size={18} />, label: 'Table' },
     { mode: 'list', icon: <List size={18} />, label: 'List' },

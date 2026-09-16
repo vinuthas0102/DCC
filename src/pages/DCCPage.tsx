@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Phone, MapPin, AlertTriangle,
+  AlertTriangle,
   CheckCircle2, Receipt, TrendingUp, Clock,
-  SlidersHorizontal, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Users, Plus, FileText,
-  LayoutGrid, List, Table2, Calendar,
+  SlidersHorizontal, ChevronLeft, ChevronRight,
+  Plus, FileText,
+  LayoutGrid, List, Table2,
   MessageSquare, Send, X, Loader2, LogOut,
-  CalendarDays, Landmark, Gauge, CircleUser as UserCircle,
+  Landmark, Gauge,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { useNavigate } from 'react-router-dom';
@@ -29,18 +28,16 @@ import {
 } from '../components/dcc/DCCFilterModal';
 import { DCCReportsTab } from '../components/dcc/DCCReportsTab';
 import { ClientWiseView } from '../components/dcc/ClientWiseView';
-import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { useViewPreference } from '../hooks/useViewPreference';
 
-import type { ViewMode } from '../components/ui/ViewSwitcher';
+import type { ViewMode } from '../hooks/useViewPreference';
 import SplitLayout from '../components/ui/SplitLayout';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 import { ChatDeliveryModePicker } from '../components/ui/ChatDeliveryModePicker';
 import type { ChatDeliveryMode } from '../types/dcc';
 import {
   DCC_STATUS,
-  DEMAND_TYPE_COLORS,
-  fmtINR, fmtDateShort,
+  fmtINR,
 } from '../constants/dccTheme';
 
 type DeliveryModes = ChatDeliveryMode[];
@@ -70,10 +67,9 @@ const IconViewToggle: React.FC<{
   onViewChange: (v: ViewMode) => void;
 }> = ({ currentView, onViewChange }) => {
   const views: { mode: ViewMode; icon: typeof LayoutGrid; label: string }[] = [
-    { mode: 'client', icon: Users, label: 'Client-Wise' },
     { mode: 'card', icon: LayoutGrid, label: 'Cards' },
-    { mode: 'list', icon: List, label: 'List' },
     { mode: 'table', icon: Table2, label: 'Table' },
+    { mode: 'list', icon: List, label: 'List' },
   ];
   return (
     <div className="inline-flex items-center bg-white rounded-md border border-slate-300 p-0.5">
@@ -95,127 +91,7 @@ const IconViewToggle: React.FC<{
   );
 };
 
-// ── High-Density Demand Tile (card view) ───────────────────────────────────────
-const DemandTile: React.FC<{
-  tile: DccTile;
-  onViewDetails: (tile: DccTile) => void;
-  onChat: (tile: DccTile) => void;
-  onShowDuePayment: (tile: DccTile) => void;
-  isChatActive: boolean;
-}> = ({ tile, onViewDetails, onChat, onShowDuePayment, isChatActive }) => {
-  const [expanded, setExpanded] = useState(false);
-  const st = DCC_STATUS[tile.status];
-  const canShowDue = tile.status === 'DUE' || tile.status === 'OVERDUE';
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      whileHover={{ y: -2 }}
-      className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col"
-    >
-      {/* Status strip */}
-      <div className={`h-0.5 ${st.dot} shrink-0`} />
-
-      {/* Header: Status badge + Demand type + Object + Outstanding amount */}
-      <div className="px-3 pt-2 pb-1.5 flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-              {st.label}
-            </span>
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">
-              {tile.demand_type_label}
-            </span>
-          </div>
-          <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">{tile.object_description || tile.object_ref}</h3>
-          <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide leading-none">Outstanding</div>
-          <div className="text-base font-extrabold text-slate-900 leading-tight">{fmtINR(tile.amount_due)}</div>
-          <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
-        </div>
-      </div>
-
-      {/* Owner & demand info */}
-      <div className="px-3 pb-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px] text-slate-600">
-        <span className="flex items-center gap-0.5 min-w-0">
-          <Users size={10} className="text-slate-400 shrink-0" />
-          <span className="truncate font-medium">{tile.owner_name}</span>
-        </span>
-        <span className="flex items-center gap-0.5 shrink-0">
-          <Calendar size={10} className="text-slate-400" />
-          <span className={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : ''}>Due {fmtDateShort(tile.due_date)}</span>
-        </span>
-        {tile.overdue_amount > 0 && (
-          <span className="flex items-center gap-0.5 shrink-0 text-red-600 font-semibold">
-            <AlertTriangle size={10} /> Overdue {fmtINR(tile.overdue_amount)}
-          </span>
-        )}
-        {tile.amount_paid > 0 && (
-          <span className="flex items-center gap-0.5 shrink-0 text-emerald-600">
-            <CheckCircle2 size={10} /> Paid {fmtINR(tile.amount_paid)}
-          </span>
-        )}
-      </div>
-
-      {/* Collapsible detail panel */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-3 pb-2 text-[10px] text-slate-600 space-y-1 border-t border-slate-100 pt-1.5 bg-slate-50/40">
-              <div className="flex items-center gap-1"><Phone size={10} className="text-slate-400" />{tile.owner_contact || '—'}</div>
-              <div className="flex items-start gap-1"><MapPin size={10} className="text-slate-400 mt-0.5" />{tile.owner_address || '—'}</div>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                <span><span className="text-slate-400">Run Date:</span> {fmtDateShort(tile.demand_run_date)}</span>
-                {tile.region && <span><span className="text-slate-400">Region:</span> {tile.region}</span>}
-                {tile.group_name && <span><span className="text-slate-400">Group:</span> {tile.group_name}</span>}
-                {tile.subgroup && <span><span className="text-slate-400">Subgroup:</span> {tile.subgroup}</span>}
-              </div>
-              {tile.avg_overdue_days > 0 && <div><span className="text-slate-400">Overdue Days:</span> {tile.avg_overdue_days}d</div>}
-              {tile.last_paid_date && <div><span className="text-slate-400">Last Payment:</span> {fmtINR(tile.last_paid_amount ?? 0)} on {fmtDateShort(tile.last_paid_date)}</div>}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tile Action Bar — explicit buttons, no 3-dot menu */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-slate-200 bg-slate-50/50">
-        <button
-          onClick={() => onViewDetails(tile)}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          View Demand
-        </button>
-        <button
-          onClick={() => onChat(tile)}
-          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
-            isChatActive
-              ? 'text-white bg-slate-800'
-              : 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-100'
-          }`}
-        >
-          <MessageSquare size={11} /> Chat
-        </button>
-        <button
-          onClick={() => setExpanded(v => !v)}
-          className="flex items-center justify-center w-6 h-6 rounded text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
-          title={expanded ? 'Collapse' : 'Expand'}
-        >
-          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        </button>
-      </div>
-    </motion.div>
-  );
-};
 
 // ── DCC Chat Panel ─────────────────────────────────────────────────────────────
 const DccChatPanel: React.FC<{
@@ -345,191 +221,7 @@ const DccChatPanel: React.FC<{
   );
 };
 
-// ── Table View ──────────────────────────────────────────────────────────────────
-type SortDir = 'asc' | 'desc';
-type SortKey = 'status' | 'object_description' | 'owner_name' | 'demand_type_label' | 'demand_run_date' | 'due_date' | 'total_amount' | 'amount_paid' | 'amount_due';
 
-const DemandTable: React.FC<{
-  tiles: DccTile[];
-  onRowClick: (tile: DccTile) => void;
-  onChat: (tile: DccTile) => void;
-  chatTileId: string | null;
-}> = ({ tiles, onRowClick, onChat, chatTileId }) => {
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
-
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('asc'); }
-  };
-
-  const sortedTiles = useMemo(() => {
-    if (!sortKey) return tiles;
-    const statusRank: Record<string, number> = { OVERDUE: 0, DUE: 1, DISPUTED: 2, EXEMPTED: 3, PAID: 4 };
-    return [...tiles].sort((a, b) => {
-      let av: string | number = (a as any)[sortKey] ?? '';
-      let bv: string | number = (b as any)[sortKey] ?? '';
-      if (sortKey === 'status') { av = statusRank[av as string] ?? 5; bv = statusRank[bv as string] ?? 5; }
-      if (typeof av === 'number' && typeof bv === 'number') return sortDir === 'asc' ? av - bv : bv - av;
-      const cmp = String(av) > String(bv) ? 1 : String(av) < String(bv) ? -1 : 0;
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-  }, [tiles, sortKey, sortDir]);
-
-  const SortIcon: React.FC<{ k: SortKey }> = ({ k }) => {
-    if (sortKey !== k) return <ChevronDown size={9} className="text-slate-300" />;
-    return sortDir === 'asc'
-      ? <ChevronUp size={9} className="text-slate-600" />
-      : <ChevronDown size={9} className="text-slate-600" />;
-  };
-
-  const TH = 'py-2 px-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap';
-  const TD = 'py-2 px-2.5 text-xs align-middle';
-  const ACTION_STICKY = 'sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] z-[5]';
-
-  return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <div className="overflow-y-auto max-h-full">
-        <table className="w-full" style={{ tableLayout: 'fixed' }}>
-          <colgroup>
-            <col className="w-[90px]" />
-            <col style={{ width: 'minmax(180px,1.5fr)' }} />
-            <col style={{ width: 'minmax(140px,1fr)' }} />
-            <col className="w-[120px]" />
-            <col className="w-[80px]" />
-            <col className="w-[80px]" />
-            <col className="w-[95px]" />
-            <col className="w-[85px]" />
-            <col className="w-[100px]" />
-            <col className="w-[150px]" />
-          </colgroup>
-          <thead>
-            <tr className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('status')}>
-                <span className="inline-flex items-center gap-1">Status <SortIcon k="status" /></span>
-              </th>
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('object_description')}>
-                <span className="inline-flex items-center gap-1">Object <SortIcon k="object_description" /></span>
-              </th>
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('owner_name')}>
-                <span className="inline-flex items-center gap-1">Owner <SortIcon k="owner_name" /></span>
-              </th>
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('demand_type_label')}>
-                <span className="inline-flex items-center gap-1">Type <SortIcon k="demand_type_label" /></span>
-              </th>
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('demand_run_date')}>
-                <span className="inline-flex items-center gap-1">Run Date <SortIcon k="demand_run_date" /></span>
-              </th>
-              <th className={`${TH} cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('due_date')}>
-                <span className="inline-flex items-center gap-1">Due Date <SortIcon k="due_date" /></span>
-              </th>
-              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('total_amount')}>
-                <span className="inline-flex items-center gap-1">Total Amt <SortIcon k="total_amount" /></span>
-              </th>
-              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_paid')}>
-                <span className="inline-flex items-center gap-1">Paid Amt <SortIcon k="amount_paid" /></span>
-              </th>
-              <th className={`${TH} text-right cursor-pointer select-none hover:bg-slate-100`} onClick={() => handleSort('amount_due')}>
-                <span className="inline-flex items-center gap-1">Due Amt <SortIcon k="amount_due" /></span>
-              </th>
-              <th className={`${TH} ${ACTION_STICKY} text-center`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sortedTiles.map((t, idx) => {
-              const st = DCC_STATUS[t.status];
-              return (
-                <tr
-                  key={t.id}
-                  onClick={() => onRowClick(t)}
-                  className={`cursor-pointer transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
-                >
-                  {/* Status */}
-                  <td className={TD}>
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border} whitespace-nowrap`}>
-                      {st.label}
-                      {t.status === 'OVERDUE' && t.avg_overdue_days > 0 && <span className="ml-0.5">·{t.avg_overdue_days}d</span>}
-                    </span>
-                  </td>
-                  {/* Object */}
-                  <td className={TD}>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-slate-900 truncate text-xs leading-tight">{t.object_description || t.object_ref}</div>
-                      <div className="text-[10px] text-slate-400 truncate leading-tight">{t.object_ref} · {t.object_type}</div>
-                    </div>
-                  </td>
-                  {/* Owner */}
-                  <td className={TD}>
-                    <div className="min-w-0">
-                      <div className="font-medium text-slate-700 truncate text-xs leading-tight">{t.owner_name}</div>
-                      <div className="text-[10px] text-slate-400 truncate leading-tight">{t.owner_contact || '—'}</div>
-                    </div>
-                  </td>
-                  {/* Type */}
-                  <td className={TD}>
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEMAND_TYPE_COLORS[t.demand_type_code] || 'bg-slate-400'}`} />
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide truncate">
-                        {t.demand_type_label}
-                      </span>
-                    </div>
-                  </td>
-                  {/* Run Date */}
-                  <td className={TD}>
-                    <span className="text-xs text-slate-600 whitespace-nowrap">{fmtDateShort(t.demand_run_date)}</span>
-                  </td>
-                  {/* Due Date */}
-                  <td className={TD}>
-                    <span className={`text-xs font-medium whitespace-nowrap ${t.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`}>
-                      {fmtDateShort(t.due_date)}
-                    </span>
-                  </td>
-                  {/* Total */}
-                  <td className={`${TD} text-right`}>
-                    <span className="text-xs font-medium text-slate-700 tabular-nums whitespace-nowrap">{fmtINR(t.total_amount)}</span>
-                  </td>
-                  {/* Paid */}
-                  <td className={`${TD} text-right`}>
-                    <span className="text-xs font-semibold text-emerald-600 tabular-nums whitespace-nowrap">{fmtINR(t.amount_paid)}</span>
-                  </td>
-                  {/* Due Amt */}
-                  <td className={`${TD} text-right`}>
-                    <span className={`text-xs font-bold tabular-nums whitespace-nowrap ${t.amount_due > 0 ? 'text-red-600' : 'text-slate-700'}`}>
-                      {fmtINR(t.amount_due)}
-                    </span>
-                  </td>
-                  {/* Actions — pinned right */}
-                  <td className={`${TD} ${ACTION_STICKY}`}>
-                    <div className="flex items-center justify-center gap-1 shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onRowClick(t); }}
-                        title="View Demand"
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap"
-                      >
-                        View Demand
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onChat(t); }}
-                        title="Chat"
-                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 ${
-                          chatTileId === t.id
-                            ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <MessageSquare size={11} /> Chat
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
 
 // ── Sub-DP Drilldown Ribbon ─────────────────────────────────────────────────────
 const SUB_DP_ACCENTS = ['border-l-amber-500', 'border-l-rose-500', 'border-l-rose-700', 'border-l-blue-500', 'border-l-emerald-500', 'border-l-slate-600', 'border-l-amber-600'];
@@ -630,7 +322,7 @@ export const DCCPage: React.FC = () => {
   const [dpFilter, setDpFilter] = useState<DpKey>('ALL');
   const [subDpFilter, setSubDpFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useViewPreference('dccView', 'client');
+  const [viewMode, setViewMode] = useViewPreference('dccView', 'list');
   const [filterState, setFilterState] = useState<DCCFilterState>(emptyFilterState);
 
   // Chat state
@@ -976,7 +668,6 @@ export const DCCPage: React.FC = () => {
         <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
           {(() => {
             const viewLabel =
-              viewMode === 'client' ? 'Client-Wise' :
               viewMode === 'card' ? 'Cards' :
               viewMode === 'table' ? 'Table' : 'List';
             const dpLabel =
@@ -990,9 +681,7 @@ export const DCCPage: React.FC = () => {
             const countText = hasAdvFilters
               ? `${visibleCount} of ${totalCount}`
               : `${visibleCount}`;
-            const clientCount = viewMode === 'client'
-              ? new Set(filteredTiles.map(t => t.owner_id)).size
-              : 0;
+            const clientCount = new Set(filteredTiles.map(t => t.owner_id)).size;
             const handleClear = () => {
               setFilterState(emptyFilterState);
               setDpFilter('ALL');
@@ -1077,47 +766,15 @@ export const DCCPage: React.FC = () => {
             <div className="text-sm font-medium text-slate-600">No demands found</div>
             <div className="text-xs mt-1">Try adjusting your filters or search.</div>
           </div>
-        ) : viewMode === 'card' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {filteredTiles.map(tile => (
-              <DemandTile
-                key={tile.id}
-                tile={tile}
-                onViewDetails={handleViewDetails}
-                onChat={handleOpenChat}
-                onShowDuePayment={handleShowDuePayment}
-                isChatActive={chatTileId === tile.id}
-              />
-            ))}
-          </div>
-        ) : viewMode === 'table' ? (
-          <DemandTable
-            tiles={filteredTiles}
-            onRowClick={handleViewDetails}
-            onChat={handleOpenChat}
-            chatTileId={chatTileId}
-          />
-        ) : viewMode === 'client' ? (
+        ) : (
           <ClientWiseView
             tiles={filteredTiles}
             onViewDetails={handleViewDetails}
             onChat={handleOpenChat}
             onShowDuePayment={handleShowDuePayment}
             chatTileId={chatTileId}
+            viewMode={viewMode}
           />
-        ) : (
-          <div className="flex flex-col gap-1 min-w-0 overflow-hidden pb-2">
-            {filteredTiles.map((tile, idx) => (
-              <DemandListRecord
-                key={tile.id}
-                tile={tile}
-                idx={idx}
-                onViewDetails={handleViewDetails}
-                onChat={handleOpenChat}
-                isChatActive={chatTileId === tile.id}
-              />
-            ))}
-          </div>
         )}
       </div>
 
