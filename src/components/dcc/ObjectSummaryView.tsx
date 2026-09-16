@@ -383,6 +383,13 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
               <span className="text-[10px] font-bold text-slate-900 truncate">{group.objectDescription || group.objectRef}</span>
               <span className="text-[8px] text-slate-400 truncate">{group.objectRef} · {group.objectType}</span>
+              <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+                {group.demandTypes.slice(0, 3).map((dt) => (
+                  <span key={dt.label} className="inline-flex px-1 py-0 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]">
+                    {dt.label}
+                  </span>
+                ))}
+              </div>
             </div>
             <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
               <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Demands</span>
@@ -400,6 +407,13 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-[48px]" />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
+              group.overallStatus === 'OVERDUE' ? 'bg-red-50 text-red-600 border border-red-200' :
+              group.overallStatus === 'DUE' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+              'bg-emerald-50 text-emerald-600 border border-emerald-200'
+            }`}>
+              {group.overallStatus}
+            </span>
             <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
               <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Outstanding</span>
               <span className={`mt-0.5 text-[10px] font-bold tabular-nums leading-tight ${outstandingCls.value}`}>
@@ -424,6 +438,7 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <tr className="bg-slate-50 border-b border-slate-200">
               <th className="py-2 px-3 text-left font-bold text-slate-600">Object / Description</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Type</th>
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Demand Types</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Due Date</th>
               <th className="py-2 px-3 text-right font-bold text-slate-600">Total</th>
@@ -456,6 +471,15 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
                   </td>
                   <td className="py-1.5 px-3">
                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{group.objectType}</span>
+                  </td>
+                  <td className="py-1.5 px-3">
+                    <div className="flex items-center gap-0.5 flex-wrap max-w-[140px]">
+                      {group.demandTypes.slice(0, 3).map((dt) => (
+                        <span key={dt.label} className="inline-flex px-1 py-0 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]">
+                          {dt.label}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="py-1.5 px-3 text-slate-600">{runDateRange}</td>
                   <td className="py-1.5 px-3">
