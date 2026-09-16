@@ -156,7 +156,7 @@ const ClientCard: React.FC<{
           }`}>
             {group.overallStatus}
           </span>
-          <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
+          <div className="text-[10px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
           <div className="text-[9px] text-slate-400">of {fmtINR(group.totalDemand)}</div>
         </div>
       </div>
@@ -225,11 +225,11 @@ const ClientListRow: React.FC<{
           </div>
           <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
             <span className={LABEL_CLS}>Props</span>
-            <span className="mt-0.5 text-[11px] font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
+            <span className="mt-0.5 text-[10px] font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
           </div>
           <div className="flex flex-col leading-tight shrink-0 w-[58px] pl-2 border-l border-slate-100">
             <span className={LABEL_CLS}>Demands</span>
-            <span className="mt-0.5 text-[11px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
+            <span className="mt-0.5 text-[10px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
           </div>
         </div>
         <div className="flex items-center min-w-0 overflow-hidden">
@@ -252,7 +252,7 @@ const ClientListRow: React.FC<{
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
             <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Outstanding</span>
-            <span className={`mt-0.5 text-[11px] font-extrabold tabular-nums leading-tight ${outstandingCls.value}`}>
+            <span className={`mt-0.5 text-[10px] font-bold tabular-nums leading-tight ${outstandingCls.value}`}>
               {fmtINR(group.totalOutstanding)}
             </span>
           </div>
@@ -271,7 +271,7 @@ const ClientTable: React.FC<{
   onRowClick: (group: ClientGroup) => void;
 }> = ({ groups, onRowClick }) => {
   const TH = 'py-2 px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap';
-  const TD = 'py-1.5 px-3 text-xs align-middle';
+  const TD = 'py-1.5 px-3 text-[10px] align-middle';
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -333,10 +333,10 @@ const ClientTable: React.FC<{
                     <span className="text-[10px] text-slate-500 truncate">{group.ownerContact || '—'}</span>
                   </td>
                   <td className={`${TD} text-center`}>
-                    <span className="text-xs font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
+                    <span className="text-[10px] font-bold text-blue-700 tabular-nums">{group.propertyCount}</span>
                   </td>
                   <td className={`${TD} text-center`}>
-                    <span className="text-xs font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
+                    <span className="text-[10px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
                   </td>
                   <td className={TD}>
                     <span className="text-[10px] text-slate-600 whitespace-nowrap">{runDateRange}</span>
@@ -347,19 +347,19 @@ const ClientTable: React.FC<{
                     </span>
                   </td>
                   <td className={`${TD} text-right`}>
-                    <span className="text-xs font-semibold text-slate-700 tabular-nums whitespace-nowrap">{fmtINR(group.totalDemand)}</span>
+                    <span className="text-[10px] font-semibold text-slate-700 tabular-nums whitespace-nowrap">{fmtINR(group.totalDemand)}</span>
                   </td>
                   <td className={`${TD} text-right`}>
-                    <span className="text-xs font-semibold text-emerald-600 tabular-nums whitespace-nowrap">{fmtINR(group.totalPaid)}</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 tabular-nums whitespace-nowrap">{fmtINR(group.totalPaid)}</span>
                   </td>
                   <td className={`${TD} text-right`}>
-                    <span className="text-xs font-semibold text-red-600 tabular-nums whitespace-nowrap">{group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'}</span>
+                    <span className="text-[10px] font-semibold text-red-600 tabular-nums whitespace-nowrap">{group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'}</span>
                   </td>
                   <td className={`${TD} text-right`}>
-                    <span className="text-xs font-semibold text-slate-700 tabular-nums whitespace-nowrap">{collectionPct}%</span>
+                    <span className="text-[10px] font-semibold text-slate-700 tabular-nums whitespace-nowrap">{collectionPct}%</span>
                   </td>
                   <td className={`${TD} text-right`}>
-                    <span className="text-xs font-bold text-slate-900 tabular-nums whitespace-nowrap">{fmtINR(group.totalOutstanding)}</span>
+                    <span className="text-[10px] font-bold text-slate-900 tabular-nums whitespace-nowrap">{fmtINR(group.totalOutstanding)}</span>
                   </td>
                   <td className={`${TD} text-center`}>
                     <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>

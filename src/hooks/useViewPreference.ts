@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react';
 
 export type ViewMode = 'card' | 'table' | 'list';
 
-const migrateView = (stored: string | null, defaultView: ViewMode): ViewMode => {
-  if (!stored) return defaultView;
-  if (stored === 'client') return 'list';
-  if (stored === 'card' || stored === 'table' || stored === 'list') return stored;
-  return defaultView;
-};
+const VIEW_VERSION = 'v2';
 
 export const useViewPreference = (storageKey: string, defaultView: ViewMode = 'list') => {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
+      const version = localStorage.getItem(`${storageKey}_version`);
+      if (version !== VIEW_VERSION) {
+        localStorage.setItem(`${storageKey}_version`, VIEW_VERSION);
+        return defaultView;
+      }
       const stored = localStorage.getItem(storageKey);
-      return migrateView(stored, defaultView);
+      if (!stored) return defaultView;
+      if (stored === 'client') return 'list';
+      if (stored === 'card' || stored === 'table' || stored === 'list') return stored;
+      return defaultView;
     } catch {
       return defaultView;
     }

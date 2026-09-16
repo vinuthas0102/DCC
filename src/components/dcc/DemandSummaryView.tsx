@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Phone, MapPin, Building2, Receipt,
   Calendar, Clock, Wallet, CheckCircle2, AlertTriangle,
-  Loader2, ChevronRight, LayoutGrid, Table2,
+  Loader2, ChevronRight, LayoutGrid, List, Table2,
   Filter, RotateCcw, Search, TrendingUp, ChevronLeft, Eye,
 } from 'lucide-react';
 import { dccService } from '../../services/dccService';
@@ -14,7 +14,7 @@ import {
   fmtINR, fmtDateShort,
 } from '../../constants/dccTheme';
 
-type ViewMode = 'card' | 'table';
+type ViewMode = 'card' | 'list' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
 
 interface LocalFilterState {
@@ -47,12 +47,12 @@ const countActiveFilters = (s: LocalFilterState): number => {
   return n;
 };
 
-const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string }> = ({
-  label, value, valueCls = 'text-slate-900',
+const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; width?: string }> = ({
+  label, value, valueCls = 'text-slate-900', width = 'w-[80px]',
 }) => (
-  <div className="flex flex-col gap-0.5 min-w-0">
-    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{label}</span>
-    <span className={`text-xs font-semibold tabular-nums truncate ${valueCls}`}>{value}</span>
+  <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2 overflow-hidden`}>
+    <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">{label}</span>
+    <span className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
@@ -115,7 +115,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeKpi, setActiveKpi] = useState<KpiKey>('ALL');
   const [filterState, setFilterState] = useState<LocalFilterState>(emptyFilterState);
   const [showFilter, setShowFilter] = useState(false);
@@ -216,7 +216,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
               {st.label}
             </span>
-            <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
+            <div className="text-[10px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
             <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
           </div>
         </div>
@@ -240,11 +240,71 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
     );
   };
 
+  // ── List view ───────────────────────────────────────────────────────────────
+  const ListView: React.FC<{ tile: DccTile; idx: number }> = ({ tile, idx }) => {
+    const st = DCC_STATUS[tile.status];
+    const outstandingCls =
+      tile.amount_due > 0
+        ? tile.status === 'OVERDUE'
+          ? { bg: 'bg-red-50', border: 'border-red-200', label: 'text-red-500', value: 'text-red-700' }
+          : { bg: 'bg-amber-50', border: 'border-amber-200', label: 'text-amber-500', value: 'text-amber-700' }
+        : { bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'text-emerald-500', value: 'text-emerald-700' };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.1) }}
+        className="flex relative bg-white rounded-xl border border-slate-200 shadow-[0_4px_16px_rgba(30,64,175,0.06)] overflow-hidden hover:shadow-[0_8px_24px_rgba(30,64,175,0.1)] transition-all"
+      >
+        <div className={`w-1 shrink-0 ${st.dot}`} />
+        <button
+          onClick={() => setDetailDemandId(tile.id)}
+          className="flex-1 flex items-center min-w-0 py-2 px-2.5 gap-2 text-left"
+        >
+          <div className="flex items-center gap-2 shrink-0 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <Receipt size={13} className="text-blue-700" />
+            </div>
+            <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
+              <span className="text-[10px] font-bold text-slate-900 truncate">{tile.demand_type_label}</span>
+              <span className="text-[8px] text-slate-400 truncate">{tile.object_ref} · {tile.demand_type_code}</span>
+            </div>
+          </div>
+          <div className="flex items-center min-w-0 overflow-hidden">
+            <LV label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-slate-600" width="w-[80px]" />
+            <LV label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'} width="w-[80px]" />
+            <LV label="Total" value={fmtINR(tile.total_amount)} valueCls="text-slate-800" width="w-[78px]" />
+            <LV label="Paid" value={fmtINR(tile.amount_paid)} valueCls="text-emerald-600" width="w-[72px]" />
+            {tile.overdue_amount > 0 && (
+              <LV label="Penalty" value={fmtINR(tile.overdue_amount)} valueCls="text-red-600" width="w-[72px]" />
+            )}
+            <LV label="GST" value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'} valueCls="text-slate-700" width="w-[60px]" />
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
+              <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Pending</span>
+              <span className={`mt-0.5 text-[10px] font-bold tabular-nums leading-tight ${outstandingCls.value}`}>
+                {fmtINR(tile.amount_due)}
+              </span>
+            </div>
+            <span className={`inline-flex px-1.5 py-1 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border} whitespace-nowrap shrink-0`}>
+              {st.label}
+            </span>
+            <span className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap shrink-0">
+              View <ChevronRight size={10} />
+            </span>
+          </div>
+        </button>
+      </motion.div>
+    );
+  };
+
   // ── Table view ──────────────────────────────────────────────────────────────
   const TableView: React.FC = () => (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">
+        <table className="w-full text-[10px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
               <th className="py-2 px-3 text-left font-bold text-slate-600">Txn Type</th>
@@ -307,6 +367,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
 
   const ViewModeSelector: React.FC = () => {
     const modes: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
+      { mode: 'list', icon: <List size={16} />, label: 'List View' },
       { mode: 'card', icon: <LayoutGrid size={16} />, label: 'Card View' },
       { mode: 'table', icon: <Table2 size={16} />, label: 'Table View' },
     ];
@@ -464,6 +525,10 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
                   <RotateCcw size={12} /> Clear filters
                 </button>
               )}
+            </div>
+          ) : viewMode === 'list' ? (
+            <div className="flex flex-col gap-2">
+              {filteredTiles.map((tile, idx) => <ListView key={tile.id} tile={tile} idx={idx} />)}
             </div>
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
