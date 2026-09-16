@@ -106,7 +106,7 @@ const Field: React.FC<{
 }> = ({ label, value, valueCls = VALUE_CLS, width = 'w-[72px]' }) => (
   <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2`}>
     <span className={LABEL_CLS}>{label}</span>
-    <span className={`mt-0.5 truncate whitespace-nowrap ${valueCls}`}>{value || '—'}</span>
+    <span className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
