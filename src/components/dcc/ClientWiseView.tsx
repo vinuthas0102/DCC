@@ -132,19 +132,19 @@ const ClientCard: React.FC<{
       transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
       whileHover={{ scale: 1.01 }}
       onClick={onViewDetails}
-      className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all text-left overflow-hidden"
+      className="flex flex-col justify-between h-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-left overflow-hidden"
     >
       <div className={`h-0.5 ${STRIP[group.overallStatus]} shrink-0`} />
-      <div className="px-3 py-2.5 flex items-start justify-between gap-3">
+      <div className="px-3.5 py-2.5 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-0.5">
             <div className="w-5 h-5 rounded-md bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
               {group.ownerName.charAt(0).toUpperCase()}
             </div>
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Client</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Client</span>
           </div>
-          <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">{group.ownerName}</h3>
-          <p className="text-[10px] text-slate-500 truncate flex items-center gap-0.5">
+          <h3 className="text-sm font-bold text-slate-900 truncate leading-snug" title={group.ownerName}>{group.ownerName}</h3>
+          <p className="text-[11px] text-slate-500 font-mono truncate flex items-center gap-0.5" title={group.ownerContact || '—'}>
             <Phone size={8} /> {group.ownerContact || '—'}
           </p>
         </div>
@@ -156,11 +156,11 @@ const ClientCard: React.FC<{
           }`}>
             {group.overallStatus}
           </span>
-          <div className="text-[10px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
+          <div className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
           <div className="text-[9px] text-slate-400">of {fmtINR(group.totalDemand)}</div>
         </div>
       </div>
-      <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
+      <div className="px-3.5 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
         <Field label="Run Date" value={runDateRange} width="w-full" />
         <Field label="Due Date" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} width="w-full" />
         <Field label="Total" value={fmtINR(group.totalDemand)} width="w-full" />
@@ -168,17 +168,23 @@ const ClientCard: React.FC<{
         <Field label="Pending" value={group.totalOutstanding > 0 ? fmtINR(group.totalOutstanding) : '—'} valueCls="text-red-600" width="w-full" />
         <Field label="Penalty" value={group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'} valueCls="text-red-600" width="w-full" />
       </div>
-      <div className="px-3 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
+      <div className="px-3.5 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
         <Field label="Props" value={group.propertyCount} valueCls="text-blue-700" width="w-full" />
         <Field label="Demands" value={group.demandCount} valueCls="text-slate-700" width="w-full" />
         <Field label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-full" />
         <div className="col-span-3 flex items-center gap-1 overflow-hidden">
           {group.demandTypes.slice(0, 3).map((dt) => (
-            <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]">
+            <span key={dt.label} title={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]">
               {dt.label}: {dt.count}
             </span>
           ))}
         </div>
+      </div>
+      <div className="px-3.5 pt-2.5 mt-auto border-t border-slate-100 flex items-center justify-between gap-2">
+        <span className="text-[9px] text-slate-400">{group.propertyCount} {group.propertyCount === 1 ? 'property' : 'properties'} · {group.demandCount} demands</span>
+        <span className="flex items-center gap-0.5 py-1.5 px-3 text-[10px] font-bold text-white bg-blue-600 rounded-lg whitespace-nowrap shrink-0 shadow-sm">
+          View Object <ChevronRight size={10} />
+        </span>
       </div>
     </motion.button>
   );

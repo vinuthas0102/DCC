@@ -301,26 +301,26 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
         transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onViewObject(group.objectId, group.objectRef)}
-        className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all text-left overflow-hidden group"
+        className="flex flex-col justify-between h-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-left overflow-hidden group"
       >
         <div className={`h-0.5 ${STRIP[group.overallStatus]} shrink-0`} />
-        <div className="px-3 py-2.5 flex items-start justify-between gap-3">
+        <div className="px-3.5 py-2.5 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
               <Icon size={12} className="text-slate-400" />
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{group.objectType}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider" title={group.objectType}>{group.objectType}</span>
             </div>
-            <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">
+            <h3 className="text-sm font-bold text-slate-900 truncate leading-snug" title={group.objectDescription || group.objectRef}>
               {group.objectDescription || group.objectRef}
             </h3>
-            <p className="text-[10px] text-slate-500 truncate">{group.objectRef}</p>
+            <p className="text-[11px] text-slate-500 font-mono truncate" title={group.objectRef}>{group.objectRef}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="flex items-center justify-end gap-1 max-w-[190px] overflow-hidden">
               {group.demandTypes.slice(0, 2).map((dt) => {
                 const db = dtBadgeCls(dt.label);
                 return (
-                  <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[90px]`}>
+                  <span key={dt.label} title={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[90px]`}>
                     <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
                     {dt.label}: {dt.count}
                   </span>
@@ -334,11 +334,11 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             }`}>
               {group.overallStatus}
             </span>
-            <div className="text-[10px] font-bold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
+            <div className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
             <div className="text-[9px] text-slate-400">of {fmtINR(group.totalDemand)}</div>
           </div>
         </div>
-        <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
+        <div className="px-3.5 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
           <LV label="Run Date" value={runDateRange} />
           <LV label="Due Date" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} />
           <LV label="Total" value={fmtINR(group.totalDemand)} />
@@ -346,11 +346,17 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
           <LV label="Pending" value={group.totalOutstanding > 0 ? fmtINR(group.totalOutstanding) : '—'} valueCls="text-red-600" />
           <LV label="Penalty" value={group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'} valueCls="text-red-600" />
         </div>
-        <div className="px-3 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
+        <div className="px-3.5 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
           <LV label="Demands" value={group.demandCount} valueCls="text-slate-700" />
           <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" />
           <LV label="Region" value={group.region || '—'} valueCls="text-slate-500" />
           <LV label="Group" value={group.groupName || '—'} valueCls="text-slate-500" />
+        </div>
+        <div className="px-3.5 pt-2.5 mt-auto border-t border-slate-100 flex items-center justify-between gap-2">
+          <span className="text-[9px] text-slate-400">{group.demandCount} demands · {collectionPct}% collected</span>
+          <span className="flex items-center gap-0.5 py-1.5 px-3 text-[10px] font-bold text-white bg-blue-600 rounded-lg whitespace-nowrap shrink-0 shadow-sm">
+            View Demands <ChevronRight size={10} />
+          </span>
         </div>
       </motion.button>
     );

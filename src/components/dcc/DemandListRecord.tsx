@@ -59,14 +59,14 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           <ObjectIcon size={11} strokeWidth={1.8} />
         </div>
 
-        <div className="flex w-40 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden" title={tile.object_description || tile.object_ref}>
+        <div className="flex w-40 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden">
           <div className={LABEL_CLS}>Object</div>
-          <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-slate-900">{tile.object_description || tile.object_ref}</div>
+          <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-slate-900" title={tile.object_description || tile.object_ref}>{tile.object_description || tile.object_ref}</div>
         </div>
 
-        <div className="flex w-28 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden" title={tile.owner_name}>
+        <div className="flex w-28 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden">
           <div className={LABEL_CLS}>Client</div>
-          <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700">{tile.owner_name}</div>
+          <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700" title={tile.owner_name}>{tile.owner_name}</div>
         </div>
 
         <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-16" />
@@ -94,7 +94,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         <div className="flex shrink-0 items-center gap-1.5 pl-6">
           <div className="flex w-20 shrink-0 justify-start overflow-hidden">
             <span className="max-w-full truncate whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800" title={tile.object_type}>
-              {tile.object_type}
+              <span className="truncate block" title={tile.object_type}>{tile.object_type}</span>
             </span>
           </div>
           <div className="flex w-24 shrink-0 justify-start overflow-hidden">
@@ -128,7 +128,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
-          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
           View Demand <ChevronRight size={10} />
         </button>

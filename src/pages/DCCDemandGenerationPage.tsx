@@ -574,12 +574,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     transition={{ duration: 0.2, delay: Math.min(logIdx * 0.04, 0.2) }}
                     className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                   >
-                    {/* ── Header: Run ID & Date ── */}
                     <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
-                      <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0">
+                      <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0" title={`RUN-${String(log.run_number).padStart(3, '0')}`}>
                         RUN-{String(log.run_number).padStart(3, '0')}
                       </span>
-                      <span className="text-[11px] font-medium text-slate-500 shrink-0 tabular-nums">
+                      <span className="text-[11px] font-medium text-slate-500 shrink-0 tabular-nums" title={fmtDateDDMMYYYY(log.run_date)}>
                         {fmtDateDDMMYYYY(log.run_date)}
                       </span>
                     </div>
@@ -604,11 +603,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Run Start Date &amp; Time</span>
-                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.started_at)}</span>
+                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate" title={fmtDateTimeDDMMYYYY(log.started_at)}>{fmtDateTimeDDMMYYYY(log.started_at)}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Run End Date &amp; Time</span>
-                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
+                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate" title={fmtDateTimeDDMMYYYY(log.ended_at)}>{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
                       </div>
                     </div>
 
@@ -627,7 +626,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleOpenRunDetails(log)}
-                        className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                        className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                       >
                         <Eye size={13} /> View Run Details
                       </button>
