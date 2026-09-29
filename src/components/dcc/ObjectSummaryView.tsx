@@ -397,8 +397,8 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
               <Icon size={13} className="text-blue-700" />
             </div>
             <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
-              <span className="text-[10px] font-bold text-slate-900 truncate">{group.objectDescription || group.objectRef}</span>
-              <span className="text-[8px] text-slate-400 truncate">{group.objectRef} · {group.objectType}</span>
+              <span className="text-[10px] font-bold text-slate-900 truncate" title={group.objectDescription || group.objectRef}>{group.objectDescription || group.objectRef}</span>
+              <span className="text-[8px] text-slate-400 truncate" title={`${group.objectRef} · ${group.objectType}`}>{group.objectRef} · {group.objectType}</span>
             </div>
             <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
               <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Demands</span>
@@ -486,8 +486,8 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <td className="py-1.5 px-3">
-                    <div className="text-[10px] font-semibold text-slate-900 truncate max-w-[200px]">{group.objectDescription || group.objectRef}</div>
-                    <div className="text-[9px] text-slate-400 truncate max-w-[200px]">{group.objectRef}</div>
+                    <div className="text-[10px] font-semibold text-slate-900 truncate max-w-[200px]" title={group.objectDescription || group.objectRef}>{group.objectDescription || group.objectRef}</div>
+                    <div className="text-[9px] text-slate-400 truncate max-w-[200px]" title={group.objectRef}>{group.objectRef}</div>
                   </td>
                   <td className="py-1.5 px-3">
                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{group.objectType}</span>

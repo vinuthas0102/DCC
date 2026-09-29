@@ -446,6 +446,11 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             <Receipt size={18} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-sm font-bold text-white truncate" title={ownerName}>{ownerName}</span>
+              <span className="text-slate-400 shrink-0">·</span>
+              <span className="text-[11px] font-semibold text-slate-200 truncate" title={objectRef}>{objectRef}</span>
+            </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-300">
               <span className="flex items-center gap-1">
                 <Phone size={10} /> {ownerContact || '—'}
