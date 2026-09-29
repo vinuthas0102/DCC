@@ -26,7 +26,7 @@ const Metric: React.FC<{ label: string; value: React.ReactNode; valueCls?: strin
 }) => (
   <div className={`flex ${width} shrink-0 flex-col justify-center border-r border-slate-100 pr-2 overflow-hidden`}>
     <div className={LABEL_CLS}>{label}</div>
-    <div className={`mt-0.5 whitespace-nowrap truncate ${valueCls}`}>{value || '—'}</div>
+    <div title={typeof value === 'string' ? value : undefined} className={`mt-0.5 whitespace-nowrap truncate ${valueCls}`}>{value || '—'}</div>
   </div>
 );
 

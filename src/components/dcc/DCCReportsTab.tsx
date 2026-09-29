@@ -254,11 +254,11 @@ const ScheduledReportsList: React.FC<{
               <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
                 <span>{rt?.label ?? s.report_type}</span>
                 <span>·</span>
-                <span>Next Run Date &amp; Time: {fmtDateTime(s.next_run_at)}</span>
+                <span title={`Next Run Date & Time: ${fmtDateTime(s.next_run_at)}`}>Next Run Date &amp; Time: {fmtDateTime(s.next_run_at)}</span>
                 {s.last_run_at && (
                   <>
                     <span>·</span>
-                    <span>Last Run Date: {fmtDate(s.last_run_at)}</span>
+                    <span title={`Last Run Date: ${fmtDate(s.last_run_at)}`}>Last Run Date: {fmtDate(s.last_run_at)}</span>
                   </>
                 )}
               </div>
@@ -382,7 +382,7 @@ const DetailedTable: React.FC<{ rows: DccTile[] }> = ({ rows }) => (
               <td className="px-3 py-2 text-xs text-right font-semibold text-emerald-700">{fmtINR(t.amount_paid)}</td>
               <td className="px-3 py-2 text-xs text-right font-semibold text-amber-700">{fmtINR(t.amount_due)}</td>
               <td className="px-3 py-2 text-xs text-right font-semibold text-slate-700">{t.include_gst && t.gst_amount > 0 ? fmtINR(t.gst_amount) : '—'}</td>
-              <td className="px-3 py-2 text-xs text-slate-600">{fmtDate(t.due_date)}</td>
+              <td className="px-3 py-2 text-xs text-slate-600" title={fmtDate(t.due_date)}>{fmtDate(t.due_date)}</td>
               <td className="px-3 py-2 text-center">
                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${
                   t.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' :

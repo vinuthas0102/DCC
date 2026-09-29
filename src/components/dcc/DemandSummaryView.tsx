@@ -53,7 +53,7 @@ const LV: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; w
 }) => (
   <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2 overflow-hidden`}>
     <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">{label}</span>
-    <span className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
+    <span title={typeof value === 'string' ? value : undefined} className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
@@ -216,7 +216,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Due Date</span>
-            <span className={`text-xs font-bold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(tile.due_date)}</span>
+            <span title={fmtDateShort(tile.due_date)} className={`text-xs font-bold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(tile.due_date)}</span>
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Amount</span>
@@ -356,9 +356,9 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
                       </span>
                     ); })()}
                   </td>
-                  <td className="py-1.5 px-3 text-slate-600">{fmtDateShort(tile.demand_run_date)}</td>
+                  <td className="py-1.5 px-3 text-slate-600" title={fmtDateShort(tile.demand_run_date)}>{fmtDateShort(tile.demand_run_date)}</td>
                   <td className="py-1.5 px-3">
-                    <span className={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}>
+                    <span title={fmtDateShort(tile.due_date)} className={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}>
                       {fmtDateShort(tile.due_date)}
                     </span>
                   </td>

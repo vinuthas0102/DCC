@@ -106,7 +106,7 @@ const Field: React.FC<{
 }> = ({ label, value, valueCls = VALUE_CLS, width = 'w-[72px]' }) => (
   <div className={`flex flex-col justify-center shrink-0 ${width} border-r border-slate-100 pr-2`}>
     <span className={LABEL_CLS}>{label}</span>
-    <span className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
+    <span title={typeof value === 'string' ? value : undefined} className={`mt-0.5 truncate whitespace-nowrap text-[10px] font-bold tabular-nums leading-tight ${valueCls}`}>{value || '—'}</span>
   </div>
 );
 
@@ -152,7 +152,7 @@ const ClientCard: React.FC<{
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Due Date</span>
-          <span className={`text-xs font-bold tabular-nums truncate ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{dueDateRange}</span>
+          <span title={dueDateRange} className={`text-xs font-bold tabular-nums truncate ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{dueDateRange}</span>
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Demand</span>
@@ -348,10 +348,10 @@ const ClientTable: React.FC<{
                     <span className="text-[10px] font-bold text-slate-700 tabular-nums">{group.demandCount}</span>
                   </td>
                   <td className={TD}>
-                    <span className="text-[10px] text-slate-600 whitespace-nowrap">{runDateRange}</span>
+                    <span title={runDateRange} className="text-[10px] text-slate-600 whitespace-nowrap">{runDateRange}</span>
                   </td>
                   <td className={TD}>
-                    <span className={`text-[10px] whitespace-nowrap ${group.overallStatus === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>
+                    <span title={dueDateRange} className={`text-[10px] whitespace-nowrap ${group.overallStatus === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>
                       {dueDateRange}
                     </span>
                   </td>

@@ -145,7 +145,7 @@ export function LogDetailsModal({ title, subtitle, entries, loading, onClose }: 
                               </span>
                             )}
                           </div>
-                          <span className="text-[9px] text-gray-400 shrink-0 whitespace-nowrap">{fmtDateTime(entry.timestamp)}</span>
+                          <span title={fmtDateTime(entry.timestamp)} className="text-[9px] text-gray-400 shrink-0 whitespace-nowrap">{fmtDateTime(entry.timestamp)}</span>
                         </div>
                         <p className="text-xs text-gray-700 leading-relaxed">{entry.message}</p>
                         {entry.documentUrls && entry.documentUrls.length > 0 && (
