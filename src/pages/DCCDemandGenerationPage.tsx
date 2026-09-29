@@ -589,10 +589,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-slate-100">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[10px] font-bold text-slate-400 tabular-nums shrink-0">RUN-{String(log.run_number).padStart(3, '0')}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                          {log.source}
-                        </span>
-                        <DemandTypeBadge code={log.demand_type?.code ?? ''} label={log.demand_type?.label ?? '—'} />
                       </div>
                       <span className="text-[10px] text-slate-400 shrink-0">{fmtDate(log.run_date)}</span>
                     </div>
@@ -632,6 +628,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <span className="text-sm font-extrabold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                          {log.source}
+                        </span>
                         <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
                         <button
                           onClick={() => handleOpenRunDetails(log)}
@@ -652,8 +651,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run #</th>
-                    <th className="py-2 px-3 text-left font-bold text-slate-600">Source</th>
-                    <th className="py-2 px-3 text-left font-bold text-slate-600">Demand Type</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Started</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Ended</th>
@@ -674,14 +671,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         <td className="py-1.5 px-3 text-[10px] font-bold text-slate-500 tabular-nums">RUN-{String(log.run_number).padStart(3, '0')}</td>
-                        <td className="py-1.5 px-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                            {log.source}
-                          </span>
-                        </td>
-                        <td className="py-1.5 px-3">
-                          <DemandTypeBadge code={log.demand_type?.code ?? ''} label={log.demand_type?.label ?? '—'} />
-                        </td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDate(log.run_date)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.started_at)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.ended_at)}</td>
@@ -692,6 +681,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</td>
                         <td className="py-1.5 px-3 text-center">
                           <div className="flex items-center gap-2 justify-end">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                              {log.source}
+                            </span>
                             <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
                             <button
                               onClick={() => handleOpenRunDetails(log)}
@@ -716,14 +708,10 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 return (
                   <div
                     key={log.id}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 ${rowStyle} hover:shadow-sm transition-all group lg:grid lg:grid-cols-[1.25rem_4.5rem_8.5rem_7rem_minmax(0,1fr)_auto_auto]`}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 ${rowStyle} hover:shadow-sm transition-all group lg:grid lg:grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_auto]`}
                   >
                     {/* Left: primary info */}
                     <span className="text-[10px] font-bold text-slate-500 tabular-nums shrink-0">RUN-{String(log.run_number).padStart(3, '0')}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                      {log.source}
-                    </span>
-                    <span className="shrink-0 hidden md:block"><DemandTypeBadge code={log.demand_type?.code ?? ''} label={log.demand_type?.label ?? '—'} /></span>
                     <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block lg:min-w-0 lg:truncate">{fmtDate(log.run_date)}</span>
 
                     {/* Run summary */}
@@ -765,6 +753,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
                     {/* Right: actions */}
                     <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                        {log.source}
+                      </span>
                       <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
                       <button
                         onClick={() => handleOpenRunDetails(log)}
