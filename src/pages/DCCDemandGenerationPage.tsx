@@ -32,6 +32,12 @@ const fmtDate = (d: string | null) =>
 const fmtDateTime = (d: string | null) =>
   d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
+const fmtDateDDMMYYYY = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+const fmtDateTimeDDMMYYYY = (d: string | null) =>
+  d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
+
 const fmtDuration = (ms: number | null) => {
   if (ms == null) return '—';
   if (ms < 1000) return `${ms} ms`;
@@ -568,7 +574,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
             </div>
           ) : historyViewMode === 'card' ? (
             /* ── Card View ── */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
               {filteredRunLog.map((log, logIdx) => {
                 const processedCount = log.records_created + log.records_failed;
                 const objCount = log.run_summary?.object_count as number ?? null;
@@ -578,65 +584,62 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: Math.min(logIdx * 0.04, 0.2) }}
-                    className="border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between p-3.5"
-                    style={{ minHeight: '180px', maxHeight: '190px' }}
+                    className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                   >
-                    {/* ── Card Header: Run ID & Date ── */}
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2.5">
-                      <span className="text-xs font-bold text-blue-700 tabular-nums shrink-0">
+                    {/* ── Header: Run ID & Date ── */}
+                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+                      <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0">
                         RUN-{String(log.run_number).padStart(3, '0')}
                       </span>
-                      <span className="text-[11px] text-slate-500 shrink-0 tabular-nums">
-                        {fmtDate(log.run_date)}
+                      <span className="text-[11px] font-medium text-slate-500 shrink-0 tabular-nums">
+                        {fmtDateDDMMYYYY(log.run_date)}
                       </span>
                     </div>
 
                     {/* ── 2-Column Metrics Grid ── */}
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-left mb-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3 flex-1">
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Demands Processed</span>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums leading-tight">{processedCount}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Demands Processed</span>
+                        <span className="text-xs font-bold text-slate-800 tabular-nums">{processedCount}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Objects Processed</span>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums leading-tight">{objCount ?? '—'}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Objects Processed</span>
+                        <span className="text-xs font-bold text-slate-800 tabular-nums">{objCount ?? '—'}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Created</span>
-                        <span className="text-xs font-bold text-emerald-600 tabular-nums leading-tight">{log.records_created}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Created</span>
+                        <span className="text-xs font-bold text-emerald-600 tabular-nums">{log.records_created}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Failed</span>
-                        <span className="text-xs font-bold tabular-nums leading-tight">
-                          {log.records_failed > 0 ? <span className="text-red-500">{log.records_failed}</span> : <span className="text-slate-400">0</span>}
-                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Failed</span>
+                        <span className="text-xs font-bold text-red-600 tabular-nums">{log.records_failed}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Started</span>
-                        <span className="text-[10px] font-bold text-slate-700 truncate leading-tight tabular-nums">{fmtDateTime(log.started_at)}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Run Start Date &amp; Time</span>
+                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.started_at)}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Ended</span>
-                        <span className="text-[10px] font-bold text-slate-700 truncate leading-tight tabular-nums">{fmtDateTime(log.ended_at)}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Run End Date &amp; Time</span>
+                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
                       </div>
                     </div>
 
-                    {/* ── Card Footer: Financials & Action ── */}
-                    <div className="border-t border-slate-100 pt-2.5 mt-auto">
-                      <div className="flex items-center justify-between gap-1.5 overflow-hidden">
+                    {/* ── Footer: Financials & Action ── */}
+                    <div className="pt-3 border-t border-slate-100 mt-auto">
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
                         <span className="text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
                           {fmtINR(log.total_amount)}
                         </span>
-                        <div className="flex items-center gap-1.5 overflow-hidden shrink-1">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                             {log.source}
                           </span>
-                          <div className="overflow-hidden"><RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} /></div>
+                          <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
                         </div>
                       </div>
                       <button
                         onClick={() => handleOpenRunDetails(log)}
-                        className="w-full py-1.5 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1.5 mt-2 transition-colors"
+                        className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
                       >
                         <Eye size={13} /> View Run Details
                       </button>
