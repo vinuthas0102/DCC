@@ -194,59 +194,63 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
   const CardView: React.FC<{ tile: DccTile; idx: number }> = ({ tile, idx }) => {
     const st = DCC_STATUS[tile.status];
     return (
-      <motion.button
+      <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
-        whileHover={{ scale: 1.01 }}
-        onClick={() => setDetailDemandId(tile.id)}
-        className="flex flex-col justify-between h-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-left overflow-hidden group"
+        transition={{ duration: 0.2, delay: Math.min(idx * 0.04, 0.2) }}
+        className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
       >
-        <div className={`h-0.5 ${st.dot} shrink-0`} />
-        <div className="px-3.5 py-2.5 flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-slate-900 truncate leading-snug" title={tile.object_description || tile.object_ref}>
-              {tile.object_description || tile.object_ref}
-            </h3>
-            <p className="text-[11px] text-slate-500 font-mono truncate" title={`${tile.object_ref} · ${tile.object_type}`}>{tile.object_ref} · {tile.object_type}</p>
-          </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
-              <span className={`inline-flex max-w-[120px] items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap truncate ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
-                <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                <span className="truncate" title={tile.demand_type_label}>{tile.demand_type_label}</span>
-              </span>
-            ); })()}
-            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-              {st.label}
-            </span>
-            <div className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
-            <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
-          </div>
-        </div>
-        <div className="px-3.5 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
-          <LV label="Run Date" value={fmtDateShort(tile.demand_run_date)} />
-          <LV label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} />
-          <LV label="Total" value={fmtINR(tile.total_amount)} />
-          <LV label="Paid" value={tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'} valueCls="text-emerald-600" />
-          <LV label="Pending" value={tile.amount_due > 0 ? fmtINR(tile.amount_due) : '—'} valueCls="text-red-600" />
-          <LV label="Penalty" value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'} valueCls="text-red-600" />
-        </div>
-        <div className="px-3.5 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
-          <LV label="Txn Type" value={tile.demand_type_code} valueCls="text-slate-500" />
-          <LV label="Last Paid" value={tile.last_paid_date ? fmtDateShort(tile.last_paid_date) : '—'} />
-          <LV label="Last Amt" value={tile.last_paid_amount && tile.last_paid_amount > 0 ? fmtINR(tile.last_paid_amount) : '—'} valueCls="text-emerald-600" />
-          <LV label="Avg OD Days" value={tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '—'} valueCls={tile.avg_overdue_days > 0 ? 'text-red-600' : 'text-slate-500'} />
-          <LV label="GST" value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'} valueCls={tile.include_gst && tile.gst_amount > 0 ? 'text-slate-700' : 'text-slate-400'} />
-          <LV label="Region" value={tile.region || '—'} valueCls="text-slate-500" />
-        </div>
-        <div className="px-3.5 pt-2.5 mt-auto border-t border-slate-100 flex items-center justify-between gap-2">
-          <span className="text-[9px] text-slate-400">{tile.demand_type_code} · {tile.region || 'No region'}</span>
-          <span className="flex items-center gap-0.5 py-1.5 px-3 text-[10px] font-bold text-white bg-blue-600 rounded-lg whitespace-nowrap shrink-0 shadow-sm">
-            View Details <ChevronRight size={10} />
+        <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+          <span className="text-xs font-bold text-slate-800 shrink-0 truncate max-w-[55%]" title={tile.demand_type_label}>
+            {tile.demand_type_label}
+          </span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${st.bg} ${st.text} border ${st.border}`}>
+            {st.label}
           </span>
         </div>
-      </motion.button>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3 flex-1">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Object</span>
+            <span className="text-xs font-bold text-slate-800 truncate" title={tile.object_description || tile.object_ref}>{tile.object_description || tile.object_ref}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Due Date</span>
+            <span className={`text-xs font-bold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(tile.due_date)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Amount</span>
+            <span className="text-xs font-bold text-slate-800 tabular-nums truncate">{fmtINR(tile.total_amount)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Paid</span>
+            <span className="text-xs font-bold text-emerald-600 tabular-nums truncate">{tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Penalty</span>
+            <span className="text-xs font-bold text-red-600 tabular-nums truncate">{tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">GST</span>
+            <span className="text-xs font-bold text-slate-800 tabular-nums truncate">{tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}</span>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 mt-auto">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <span className="text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
+              {fmtINR(tile.amount_due)}
+            </span>
+            <span className="text-[10px] font-semibold text-slate-400 shrink-0 truncate" title={tile.object_ref}>{tile.object_ref}</span>
+          </div>
+          <button
+            onClick={() => setDetailDemandId(tile.id)}
+            className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Eye size={13} /> View Details
+          </button>
+        </div>
+      </motion.div>
     );
   };
 
@@ -552,7 +556,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
               {filteredTiles.map((tile, idx) => <ListView key={tile.id} tile={tile} idx={idx} />)}
             </div>
           ) : viewMode === 'card' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredTiles.map((tile, idx) => <CardView key={tile.id} tile={tile} idx={idx} />)}
             </div>
           ) : (

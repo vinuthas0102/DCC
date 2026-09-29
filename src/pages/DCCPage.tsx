@@ -619,31 +619,42 @@ export const DCCPage: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               onClick={() => { if (!isRate) { setDpFilter(prev => prev === dp.key ? 'ALL' : dp.key); setSubDpFilter(null); } }}
-              className={`relative text-left flex-1 min-w-0 rounded-xl bg-white px-3.5 py-2.5 overflow-hidden transition-all border flex flex-col justify-between h-full min-h-[120px] ${
+              className={`flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left ${
                 isSelected
-                  ? 'ring-2 ring-blue-500 border-blue-400 shadow-[0_4px_12px_rgba(37,99,235,0.12)]'
-                  : 'border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'
+                  ? 'ring-2 ring-blue-500 border-blue-400'
+                  : 'hover:border-slate-300'
               }`}
             >
-              <div className={`absolute top-0 left-0 right-0 h-0.5 ${dp.accentBar} ${isSelected ? 'opacity-100' : 'opacity-70'}`} />
-              <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
-                  <Icon size={14} strokeWidth={2} />
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${dp.iconBg} ${dp.iconText} shrink-0`}>
+                    <Icon size={14} strokeWidth={2} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 truncate" title={dp.label}>
+                    {dp.label}
+                  </span>
                 </div>
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate leading-tight" title={dp.label}>
-                  {dp.label}
-                </span>
-              </div>
-              <div className="mt-1.5 flex items-baseline gap-1.5">
-                <span className="text-base font-extrabold text-slate-900 tabular-nums leading-none">{value}</span>
-                <span className="text-[10px] font-bold text-slate-500 tabular-nums leading-none truncate" title={isRate ? `of ${fmtINR(amount)}` : fmtINR(amount)}>{isRate ? `of ${fmtINR(amount)}` : fmtINR(amount)}</span>
-                <span className={`ml-auto text-[10px] font-bold tabular-nums leading-none ${shareColor}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-500'}`}>
                   {sharePct}%
                 </span>
               </div>
-              <div className="pt-2 mt-auto border-t border-slate-100 flex items-center justify-between gap-1">
-                <span className="text-[9px] text-slate-400 truncate">{isRate ? 'Collection Rate' : `${value} records`}</span>
-                <span className={`text-[9px] font-bold tabular-nums shrink-0 ${shareColor}`}>{sharePct}% share</span>
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3 flex-1">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">{isRate ? 'Rate' : 'Records'}</span>
+                  <span className="text-sm font-extrabold text-slate-900 tabular-nums truncate">{value}</span>
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">{isRate ? 'Of Total' : 'Amount'}</span>
+                  <span className="text-xs font-bold text-slate-800 tabular-nums truncate" title={isRate ? fmtINR(amount) : fmtINR(amount)}>{isRate ? fmtINR(amount) : fmtINR(amount)}</span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 mt-auto">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold text-slate-400 shrink-0">{isRate ? 'Collection Rate' : `${value} records`}</span>
+                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${shareColor}`}>{sharePct}% share</span>
+                </div>
               </div>
             </motion.button>
           );

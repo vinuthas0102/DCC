@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ObjectSummaryModal } from './ObjectSummaryView';
 import { DemandSummaryModal } from './DemandSummaryView';
 import {
-  Users, ChevronRight, Phone, MapPin,
+  Users, ChevronRight, Phone, MapPin, Eye,
   LayoutGrid, List, Table2,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
@@ -126,67 +126,70 @@ const ClientCard: React.FC<{
   const dueDateRange = dateRange(group.dueDateMin, group.dueDateMax);
 
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
-      whileHover={{ scale: 1.01 }}
-      onClick={onViewDetails}
-      className="flex flex-col justify-between h-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-left overflow-hidden"
+      transition={{ duration: 0.2, delay: Math.min(idx * 0.04, 0.2) }}
+      className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
     >
-      <div className={`h-0.5 ${STRIP[group.overallStatus]} shrink-0`} />
-      <div className="px-3.5 py-2.5 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <div className="w-5 h-5 rounded-md bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-              {group.ownerName.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Client</span>
-          </div>
-          <h3 className="text-sm font-bold text-slate-900 truncate leading-snug" title={group.ownerName}>{group.ownerName}</h3>
-          <p className="text-[11px] text-slate-500 font-mono truncate flex items-center gap-0.5" title={group.ownerContact || '—'}>
-            <Phone size={8} /> {group.ownerContact || '—'}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
-            group.overallStatus === 'OVERDUE' ? 'bg-red-50 text-red-600 border border-red-200' :
-            group.overallStatus === 'DUE' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-            'bg-emerald-50 text-emerald-600 border border-emerald-200'
-          }`}>
-            {group.overallStatus}
-          </span>
-          <div className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(group.totalOutstanding)}</div>
-          <div className="text-[9px] text-slate-400">of {fmtINR(group.totalDemand)}</div>
-        </div>
-      </div>
-      <div className="px-3.5 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
-        <Field label="Run Date" value={runDateRange} width="w-full" />
-        <Field label="Due Date" value={dueDateRange} valueCls={group.overallStatus === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-900'} width="w-full" />
-        <Field label="Total" value={fmtINR(group.totalDemand)} width="w-full" />
-        <Field label="Paid" value={group.totalPaid > 0 ? fmtINR(group.totalPaid) : '—'} valueCls="text-emerald-600" width="w-full" />
-        <Field label="Pending" value={group.totalOutstanding > 0 ? fmtINR(group.totalOutstanding) : '—'} valueCls="text-red-600" width="w-full" />
-        <Field label="Penalty" value={group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'} valueCls="text-red-600" width="w-full" />
-      </div>
-      <div className="px-3.5 pb-2.5 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100 bg-slate-50/50">
-        <Field label="Props" value={group.propertyCount} valueCls="text-blue-700" width="w-full" />
-        <Field label="Demands" value={group.demandCount} valueCls="text-slate-700" width="w-full" />
-        <Field label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-full" />
-        <div className="col-span-3 flex items-center gap-1 overflow-hidden">
-          {group.demandTypes.slice(0, 3).map((dt) => (
-            <span key={dt.label} title={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]">
-              {dt.label}: {dt.count}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="px-3.5 pt-2.5 mt-auto border-t border-slate-100 flex items-center justify-between gap-2">
-        <span className="text-[9px] text-slate-400">{group.propertyCount} {group.propertyCount === 1 ? 'property' : 'properties'} · {group.demandCount} demands</span>
-        <span className="flex items-center gap-0.5 py-1.5 px-3 text-[10px] font-bold text-white bg-blue-600 rounded-lg whitespace-nowrap shrink-0 shadow-sm">
-          View Object <ChevronRight size={10} />
+      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+        <span className="text-xs font-bold text-slate-800 shrink-0 truncate max-w-[55%]" title={group.ownerName}>
+          {group.ownerName}
+        </span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+          group.overallStatus === 'OVERDUE' ? 'bg-red-50 text-red-600 border border-red-200' :
+          group.overallStatus === 'DUE' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+          'bg-emerald-50 text-emerald-600 border border-emerald-200'
+        }`}>
+          {group.overallStatus}
         </span>
       </div>
-    </motion.button>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3 flex-1">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Contact</span>
+          <span className="text-xs font-bold text-slate-800 truncate" title={group.ownerContact || '—'}>{group.ownerContact || '—'}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Due Date</span>
+          <span className={`text-xs font-bold tabular-nums truncate ${group.overallStatus === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{dueDateRange}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Demand</span>
+          <span className="text-xs font-bold text-slate-800 tabular-nums truncate">{fmtINR(group.totalDemand)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Paid</span>
+          <span className="text-xs font-bold text-emerald-600 tabular-nums truncate">{group.totalPaid > 0 ? fmtINR(group.totalPaid) : '—'}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Penalty</span>
+          <span className="text-xs font-bold text-red-600 tabular-nums truncate">{group.overdueAmount > 0 ? fmtINR(group.overdueAmount) : '—'}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Properties</span>
+          <span className="text-xs font-bold text-blue-700 tabular-nums truncate">{group.propertyCount}</span>
+        </div>
+      </div>
+
+      <div className="pt-3 border-t border-slate-100 mt-auto">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className="text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
+            {fmtINR(group.totalOutstanding)}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-semibold text-slate-400">{group.demandCount} demands</span>
+            <span className="text-[10px] font-bold text-slate-600">{collectionPct}%</span>
+          </div>
+        </div>
+        <button
+          onClick={onViewDetails}
+          className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+        >
+          <Eye size={13} /> View Objects
+        </button>
+      </div>
+    </motion.div>
   );
 };
 
@@ -418,7 +421,7 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles, viewMode 
   return (
     <div className="flex flex-col gap-1.5">
       {viewMode === 'card' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {clientGroups.map((group, idx) => (
             <ClientCard
               key={group.ownerId}

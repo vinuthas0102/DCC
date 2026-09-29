@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Zap, Loader2,
   CheckCircle2, AlertCircle, Play, History,
-  RefreshCw, ChevronDown, ChevronRight,
+  RefreshCw, ChevronDown,
   Filter, X, Clock, FileText, TrendingUp, Users,
   Calendar, Sparkles, Receipt, Wallet, AlertTriangle,
   Eye, Plus, Check, LayoutGrid, List, Table2,
@@ -1046,60 +1046,63 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
   const CardView: React.FC<{ tile: RunDemandTile; idx: number }> = ({ tile, idx }) => {
     const st = DCC_STATUS[tile.status];
     return (
-      <motion.button
+      <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15) }}
-        whileHover={{ scale: 1.01 }}
-        onClick={() => onViewDemand(tile.id)}
-        className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all text-left overflow-hidden group"
+        transition={{ duration: 0.2, delay: Math.min(idx * 0.04, 0.2) }}
+        className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
       >
-        <div className={`h-0.5 ${st.dot} shrink-0`} />
-        <div className="px-3 py-2.5 flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
-            </div>
-            <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">
-              {tile.object_description || tile.object_ref}
-            </h3>
-            <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
+        <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+          <span className="text-xs font-bold text-slate-800 tabular-nums shrink-0 truncate max-w-[60%]" title={tile.object_description || tile.object_ref}>
+            {tile.object_description || tile.object_ref}
+          </span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${st.bg} ${st.text} border ${st.border}`}>
+            {st.label}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3 flex-1">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Demand Type</span>
+            <span className="text-xs font-bold text-slate-800 truncate" title={tile.demand_type_label}>{tile.demand_type_label}</span>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
-              {st.label}
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Owner</span>
+            <span className="text-xs font-bold text-slate-800 truncate" title={tile.owner_name}>{tile.owner_name}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Due Date</span>
+            <span className={`text-xs font-bold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateDDMMYYYY(tile.due_date)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Amount</span>
+            <span className="text-xs font-bold text-slate-800 tabular-nums truncate">{fmtINR(tile.total_amount)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Paid</span>
+            <span className="text-xs font-bold text-emerald-600 tabular-nums truncate">{tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'}</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Pending</span>
+            <span className="text-xs font-bold text-red-600 tabular-nums truncate">{tile.amount_due > 0 ? fmtINR(tile.amount_due) : '—'}</span>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 mt-auto">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <span className="text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
+              {fmtINR(tile.amount_due)}
             </span>
-            <div className="text-sm font-extrabold text-slate-900 tabular-nums leading-tight">{fmtINR(tile.amount_due)}</div>
-            <div className="text-[9px] text-slate-400">of {fmtINR(tile.total_amount)}</div>
+            <span className="text-[10px] font-semibold text-slate-400 shrink-0 truncate" title={tile.object_ref}>{tile.object_ref}</span>
           </div>
+          <button
+            onClick={() => onViewDemand(tile.id)}
+            className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Eye size={13} /> View Details
+          </button>
         </div>
-        <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Date</span>
-            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtDateDDMMYYYY(tile.demand_run_date)}</span>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Due Date</span>
-            <span className={`text-xs font-semibold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-900'}`}>{fmtDateDDMMYYYY(tile.due_date)}</span>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total</span>
-            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtINR(tile.total_amount)}</span>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Paid</span>
-            <span className="text-xs font-semibold tabular-nums truncate text-emerald-600">{tile.amount_paid > 0 ? fmtINR(tile.amount_paid) : '—'}</span>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Pending</span>
-            <span className="text-xs font-semibold tabular-nums truncate text-red-600">{tile.amount_due > 0 ? fmtINR(tile.amount_due) : '—'}</span>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Owner</span>
-            <span className="text-xs font-semibold truncate text-slate-700">{tile.owner_name}</span>
-          </div>
-        </div>
-      </motion.button>
+      </motion.div>
     );
   };
 
@@ -1355,7 +1358,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
               </button>
             </div>
           ) : viewMode === 'card' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredTiles.map((tile, idx) => <CardView key={tile.id} tile={tile} idx={idx} />)}
             </div>
           ) : viewMode === 'list' ? (
