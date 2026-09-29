@@ -868,7 +868,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
               }
               charges['penalty'] = status === 'OVERDUE' ? Math.round(monthlyAmount * penaltyPct) : 0;
               const total = Object.values(charges).reduce((s, v) => s + v, 0);
-              out.push({ sno: i + 1, label: d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }), charges, total, status });
+              out.push({ sno: i + 1, label: d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), charges, total, status });
             }
             return out;
           })() : (() => {
@@ -882,7 +882,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             const periodLabel = (() => {
               const runDate = new Date(tile.demand_run_date);
               if (isNaN(runDate.getTime())) return 'One-Time / Initial Deposit';
-              return runDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+              return runDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
             })();
             return [{ sno: 1, label: periodLabel, charges, total, status: tile.status }];
           })();

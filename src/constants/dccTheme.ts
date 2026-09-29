@@ -126,10 +126,16 @@ export const fmtINRShort = (n: number) => {
 };
 
 export const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 export const fmtDateShort = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+export const fmtDateDDMMYYYY = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+export const fmtDateTimeDDMMYYYY = (d: string | null) =>
+  d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 
 // ── GST helper ──────────────────────────────────────────────────────────────
 // Given the base amount and GST config, returns total GST, CGST (half), SGST

@@ -17,13 +17,13 @@ const fmtINR = (n: number) =>
 
 const fmtDate = (d: string | null) => {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const fmtDateTime = (d: string) => {
-  return new Date(d).toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+  return new Date(d).toLocaleString('en-GB', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
   });
 };
 
@@ -254,11 +254,11 @@ const ScheduledReportsList: React.FC<{
               <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
                 <span>{rt?.label ?? s.report_type}</span>
                 <span>·</span>
-                <span>Next: {fmtDateTime(s.next_run_at)}</span>
+                <span>Next Run Date &amp; Time: {fmtDateTime(s.next_run_at)}</span>
                 {s.last_run_at && (
                   <>
                     <span>·</span>
-                    <span>Last: {fmtDate(s.last_run_at)}</span>
+                    <span>Last Run Date: {fmtDate(s.last_run_at)}</span>
                   </>
                 )}
               </div>
@@ -531,7 +531,7 @@ export const DCCReportsTab: React.FC = () => {
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
     <style>body{font-family:sans-serif;font-size:13px;color:#1f2937;margin:32px}h2{margin:0 0 4px}p{margin:2px 0;color:#6b7280;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#1e40af;color:#fff;padding:8px 10px;text-align:left}td{padding:7px 10px;border-bottom:1px solid #f3f4f6}</style></head>
-    <body><h2>${title}</h2><p>Generated: ${new Date().toLocaleString('en-IN')}</p>
+    <body><h2>${title}</h2><p>Generated: ${new Date().toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>
     <table><thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>
     ${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}
     </tbody></table></body></html>`;

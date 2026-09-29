@@ -6,10 +6,10 @@ const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 const fmtDateTime = (d: string | null) =>
-  d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 
 export function receiptNumber(paymentId: string): string {
   const short = paymentId.replace(/-/g, '').slice(-8).toUpperCase();
@@ -25,7 +25,7 @@ export interface ReceiptContext {
 export function generatePaymentReceipt({ payment, tile, demand }: ReceiptContext): void {
   const rcpNo = receiptNumber(payment.id);
   const modeLabel = PAYMENT_MODE_LABELS[payment.payment_mode as PaymentMode] ?? payment.payment_mode;
-  const generatedAt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const generatedAt = new Date().toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 
   const ownerAddress = [tile.owner_address].filter(Boolean).join(', ');
 

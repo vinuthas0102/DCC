@@ -19,24 +19,12 @@ import { ROLE_LABELS } from '../constants/roles';
 import { frequencyCodeLabel } from '../types/payableCriteria';
 import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
-import { DCC_STATUS, fmtINR, fmtDateShort, getDemandTypeBadgeStyle } from '../constants/dccTheme';
+import { DCC_STATUS, fmtINR, fmtDateDDMMYYYY, fmtDateTimeDDMMYYYY, getDemandTypeBadgeStyle } from '../constants/dccTheme';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 import { RunHistoryFilterModal, emptyRunHistoryFilter, countActiveRunHistoryFilters } from '../components/dcc/RunHistoryFilterModal';
 import type { RunHistoryFilterState } from '../components/dcc/RunHistoryFilterModal';
 import { useViewPreference } from '../hooks/useViewPreference';
-
-const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-const fmtDateTime = (d: string | null) =>
-  d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-
-const fmtDateDDMMYYYY = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-
-const fmtDateTimeDDMMYYYY = (d: string | null) =>
-  d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 
 const fmtDuration = (ms: number | null) => {
   if (ms == null) return '—';
@@ -656,8 +644,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run #</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
-                    <th className="py-2 px-3 text-left font-bold text-slate-600">Started</th>
-                    <th className="py-2 px-3 text-left font-bold text-slate-600">Ended</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Run Start Date &amp; Time</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Run End Date &amp; Time</th>
                     <th className="py-2 px-3 text-right font-bold text-slate-600">Objects</th>
                     <th className="py-2 px-3 text-right font-bold text-slate-600">Created</th>
                     <th className="py-2 px-3 text-right font-bold text-slate-600">Failed</th>
@@ -675,9 +663,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         <td className="py-1.5 px-3 text-[10px] font-bold text-slate-500 tabular-nums">RUN-{String(log.run_number).padStart(3, '0')}</td>
-                        <td className="py-1.5 px-3 text-slate-500">{fmtDate(log.run_date)}</td>
-                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.started_at)}</td>
-                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTime(log.ended_at)}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDateDDMMYYYY(log.run_date)}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.started_at)}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.ended_at)}</td>
                         <td className="py-1.5 px-3 text-right tabular-nums text-slate-600">{log.run_summary?.object_count as number ?? '—'}</td>
                         <td className="py-1.5 px-3 text-right tabular-nums font-semibold text-emerald-600">{log.records_created}</td>
                         <td className="py-1.5 px-3 text-right tabular-nums">{log.records_failed > 0 ? <span className="text-red-500 font-semibold">{log.records_failed}</span> : <span className="text-slate-400">0</span>}</td>
@@ -721,7 +709,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     {/* Cols 1-2: RUN ID & Date */}
                     <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
                       <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">RUN-{String(log.run_number).padStart(3, '0')}</div>
-                      <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDate(log.run_date)}</div>
+                      <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDateDDMMYYYY(log.run_date)}</div>
                     </div>
 
                     {/* Cols 3-4: Demands Processed */}
@@ -734,12 +722,12 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
                       <div className="flex flex-col gap-0.5">
                         <div className="min-w-0">
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Start </span>
-                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTime(log.started_at)}</span>
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Run Start </span>
+                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.started_at)}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">End </span>
-                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTime(log.ended_at)}</span>
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Run End </span>
+                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
                         </div>
                       </div>
                     </div>
@@ -1089,11 +1077,11 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
         <div className="px-3 pb-2 pt-1 grid grid-cols-3 md:grid-cols-6 gap-x-2 gap-y-1.5 border-t border-slate-100">
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Date</span>
-            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtDateShort(tile.demand_run_date)}</span>
+            <span className="text-xs font-semibold tabular-nums truncate text-slate-900">{fmtDateDDMMYYYY(tile.demand_run_date)}</span>
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Due Date</span>
-            <span className={`text-xs font-semibold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-900'}`}>{fmtDateShort(tile.due_date)}</span>
+            <span className={`text-xs font-semibold tabular-nums truncate ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-900'}`}>{fmtDateDDMMYYYY(tile.due_date)}</span>
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total</span>
@@ -1153,7 +1141,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                   </td>
                   <td className="py-1.5 px-3">
                     <span className={tile.status === 'OVERDUE' ? 'text-red-600 font-semibold' : 'text-slate-600'}>
-                      {fmtDateShort(tile.due_date)}
+                      {fmtDateDDMMYYYY(tile.due_date)}
                     </span>
                   </td>
                   <td className="py-1.5 px-3 text-right font-semibold text-slate-700 tabular-nums">{fmtINR(tile.total_amount)}</td>
@@ -1212,7 +1200,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-300 mt-0.5">
                 <span className="font-semibold text-slate-200">RUN-{String(log.run_number).padStart(3, '0')}</span>
                 <span className="flex items-center gap-1">
-                  <Calendar size={10} /> {fmtDate(log.run_date)}
+                  <Calendar size={10} /> {fmtDateDDMMYYYY(log.run_date)}
                 </span>
                 <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                   {log.source}
@@ -1233,10 +1221,10 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
           </div>
           <div className="flex items-center gap-x-4 gap-y-1 px-4 pb-2 text-[10px] text-slate-300 flex-wrap">
             <span className="flex items-center gap-1">
-              <Clock size={10} className="text-slate-400" /> Started: <span className="font-semibold text-slate-200">{fmtDateTime(log.started_at)}</span>
+              <Clock size={10} className="text-slate-400" /> Run Start Date & Time: <span className="font-semibold text-slate-200">{fmtDateTimeDDMMYYYY(log.started_at)}</span>
             </span>
             <span className="flex items-center gap-1">
-              <Clock size={10} className="text-slate-400" /> Ended: <span className="font-semibold text-slate-200">{fmtDateTime(log.ended_at)}</span>
+              <Clock size={10} className="text-slate-400" /> Run End Date & Time: <span className="font-semibold text-slate-200">{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
             </span>
             <span className="flex items-center gap-1">
               <Clock size={10} className="text-slate-400" /> Duration: <span className="font-semibold text-slate-200">{fmtDuration(log.duration_ms)}</span>

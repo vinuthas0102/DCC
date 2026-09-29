@@ -50,7 +50,7 @@ import { RuleFilterModal, emptyRuleFilterState, countActiveRuleFilters, type Rul
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 const fmtINR = (n: number | null) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -749,7 +749,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                           <div className="mt-0.5 text-xs font-bold text-slate-700 truncate">{fmtINR(demandAmt)}</div>
                         </div>
                         <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Next Run</div>
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Next Run Date</div>
                           <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{hasRun ? fmtDate(rec.next_run_date) : 'No run yet'}</div>
                         </div>
                         <div className="min-w-0 border-l border-slate-200/80 pl-3">
@@ -1024,7 +1024,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                         <span className="text-sky-600 font-semibold">Next Instalment: #{nextInstalmentSeq}</span>
                       )}
                       {computedNextRun && (
-                        <span className="text-gray-500">Next Run: {fmtDate(computedNextRun)}</span>
+                        <span className="text-gray-500">Next Run Date: {fmtDate(computedNextRun)}</span>
                       )}
                     </div>
                   </div>

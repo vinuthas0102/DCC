@@ -73,7 +73,7 @@ const FieldGrid: React.FC<{ cols?: 2 | 3 | 4; children: React.ReactNode }> = ({ 
 
 function fmtDate(iso?: string) {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  try { return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
   catch { return iso; }
 }
 
