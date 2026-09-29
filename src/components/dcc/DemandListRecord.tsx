@@ -98,14 +98,6 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             </span>
           </div>
           <div className="flex w-24 shrink-0 justify-start overflow-hidden">
-            {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
-              <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
-                <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                <span className="truncate">{tile.demand_type_label}</span>
-              </span>
-            ); })()}
-          </div>
-          <div className="flex w-24 shrink-0 justify-start overflow-hidden">
             <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
               <span className={`h-1 w-1 shrink-0 rounded-full ${st.dot}`} />
               <span className="truncate">{st.label}{odText && <span className="opacity-75"> ·{odText}</span>}</span>
@@ -116,7 +108,15 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 border-l border-slate-200 bg-slate-50/40 px-2.5 py-1.5">
+      <div className="flex shrink-0 items-center gap-1.5 border-l border-slate-200 bg-slate-50/40 px-2.5 py-1.5">
+        <div className="flex shrink-0 justify-end overflow-hidden max-w-[110px]">
+          {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+            <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
+              <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+              <span className="truncate">{tile.demand_type_label}</span>
+            </span>
+          ); })()}
+        </div>
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
