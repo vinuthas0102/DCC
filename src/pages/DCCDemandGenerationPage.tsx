@@ -49,13 +49,6 @@ const SOURCE_BADGE: Record<string, string> = {
   MANUAL: 'bg-slate-100 text-slate-700 border border-slate-200',
 };
 
-const SOURCE_ROW_STYLE: Record<string, string> = {
-  TPA: 'bg-blue-50/55 border-l-blue-400',
-  EXCEL: 'bg-emerald-50/55 border-l-emerald-400',
-  AUTO: 'bg-amber-50/55 border-l-amber-400',
-  MANUAL: 'bg-slate-50/80 border-l-slate-400',
-};
-
 type ViewMode = 'card' | 'list' | 'table';
 type RunHistoryViewMode = 'card' | 'list' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
@@ -703,60 +696,65 @@ export const DCCDemandGenerationPage: React.FC = () => {
             /* ── List View (default, original row layout) ── */
             <div className="space-y-1.5">
               {filteredRunLog.map((log, logIdx) => {
-                const rowStyle = SOURCE_ROW_STYLE[log.source] ?? 'bg-white border-l-slate-300';
+                const accentBorder = log.source === 'AUTO' ? 'border-l-amber-400'
+                  : log.source === 'MANUAL' ? 'border-l-slate-400'
+                  : log.source === 'TPA' ? 'border-l-blue-400'
+                  : log.source === 'EXCEL' ? 'border-l-emerald-400'
+                  : 'border-l-slate-300';
                 const processedCount = log.records_created + log.records_failed;
                 return (
                   <div
                     key={log.id}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 ${rowStyle} hover:shadow-sm transition-all group lg:grid lg:grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_auto]`}
+                    className={`grid grid-cols-12 items-center gap-2 px-3.5 py-2 min-h-[50px] w-full border border-slate-200 border-l-[3px] ${accentBorder} rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow`}
                   >
-                    {/* Left: primary info */}
-                    <span className="text-[10px] font-bold text-slate-500 tabular-nums shrink-0">RUN-{String(log.run_number).padStart(3, '0')}</span>
-                    <span className="text-[10px] text-slate-400 shrink-0 hidden lg:block lg:min-w-0 lg:truncate">{fmtDate(log.run_date)}</span>
+                    {/* Cols 1-2: RUN ID & Date */}
+                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                      <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">RUN-{String(log.run_number).padStart(3, '0')}</div>
+                      <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDate(log.run_date)}</div>
+                    </div>
 
-                    {/* Run summary */}
-                    <div className="hidden lg:grid min-w-0 grid-cols-3 gap-4">
-                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Demands Processed</div>
-                        <div className="mt-0.5 text-xs font-bold text-slate-700 truncate">{processedCount}</div>
-                      </div>
-                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Started</div>
-                        <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{fmtDateTime(log.started_at)}</div>
-                      </div>
-                      <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Run Ended</div>
-                        <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{fmtDateTime(log.ended_at)}</div>
+                    {/* Cols 3-4: Demands Processed */}
+                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Demands Processed</div>
+                      <div className="text-xs font-bold text-slate-800 tabular-nums leading-tight mt-0.5">{processedCount}</div>
+                    </div>
+
+                    {/* Cols 5-6: Run Timestamps */}
+                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Start </span>
+                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTime(log.started_at)}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">End </span>
+                          <span className="text-[10px] font-semibold text-slate-700 tabular-nums truncate">{fmtDateTime(log.ended_at)}</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Right: totals and status */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden md:flex">
-                        <Users size={11} /> {log.run_summary?.object_count as number ?? '—'}
-                      </span>
-                      <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                        <FileText size={11} /> {log.records_created}
-                      </span>
-                      {log.records_failed > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] text-red-500">
-                          <AlertCircle size={11} /> {log.records_failed}
-                        </span>
-                      )}
-                      {log.duration_ms != null && (
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500 hidden xl:flex">
-                          <Clock size={11} /> {fmtDuration(log.duration_ms)}
-                        </span>
-                      )}
-                      <span className="text-xs font-bold text-slate-900">{fmtINR(log.total_amount)}</span>
+                    {/* Cols 7-8: Counts & Total Amount */}
+                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 leading-tight">
+                        <span className="flex items-center gap-0.5"><Users size={10} /> {log.run_summary?.object_count as number ?? '—'}</span>
+                        <span className="flex items-center gap-0.5"><FileText size={10} /> {log.records_created}</span>
+                        {log.records_failed > 0 && (
+                          <span className="flex items-center gap-0.5 text-red-500"><AlertCircle size={10} /> {log.records_failed}</span>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{fmtINR(log.total_amount)}</div>
                     </div>
 
-                    {/* Right: actions */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                    {/* Cols 9-10: Type & Rule Badges */}
+                    <div className="col-span-2 min-w-0 flex flex-col gap-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 w-fit ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {log.source}
                       </span>
                       <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                    </div>
+
+                    {/* Cols 11-12: Action Button */}
+                    <div className="col-span-2 flex items-center justify-end whitespace-nowrap">
                       <button
                         onClick={() => handleOpenRunDetails(log)}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
