@@ -316,7 +316,7 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <p className="text-[10px] text-slate-500 truncate">{group.objectRef}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <div className="flex flex-col gap-0.5 items-end">
+            <div className="flex items-center justify-end gap-1 max-w-[190px] overflow-hidden">
               {group.demandTypes.slice(0, 2).map((dt) => {
                 const db = dtBadgeCls(dt.label);
                 return (
@@ -410,7 +410,7 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-[48px]" />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <div className="flex flex-col gap-0.5 shrink-0 max-w-[120px]">
+            <div className="flex items-center gap-1 shrink-0 max-w-[190px] overflow-hidden">
               {group.demandTypes.slice(0, 2).map((dt) => {
                 const db = dtBadgeCls(dt.label);
                 return (
