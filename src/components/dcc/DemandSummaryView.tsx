@@ -12,6 +12,7 @@ import type { DccTile, DccDemandStatus } from '../../types/dcc';
 import {
   DCC_STATUS,
   fmtINR, fmtDateShort,
+  getDemandTypeBadgeStyle,
 } from '../../constants/dccTheme';
 
 type ViewMode = 'card' | 'list' | 'table';
@@ -205,7 +206,12 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
         <div className="px-3 py-2.5 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_label}</span>
+              {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[9px] font-bold`}>
+                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                  {tile.demand_type_label}
+                </span>
+              ); })()}
             </div>
             <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">
               {tile.object_description || tile.object_ref}
@@ -269,6 +275,12 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
               <span className="text-[10px] font-bold text-slate-900 truncate">{tile.demand_type_label}</span>
               <span className="text-[8px] text-slate-400 truncate">{tile.object_ref} · {tile.demand_type_code}</span>
+              {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+                <span className={`mt-0.5 inline-flex items-center gap-0.5 self-start px-1 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[100px]`}>
+                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                  {tile.demand_type_label}
+                </span>
+              ); })()}
             </div>
           </div>
           <div className="flex items-center min-w-0 overflow-hidden">
@@ -329,7 +341,12 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <td className="py-1.5 px-3">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{tile.demand_type_code}</span>
+                    {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+                      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[9px] font-bold whitespace-nowrap`}>
+                        <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                        {tile.demand_type_label}
+                      </span>
+                    ); })()}
                   </td>
                   <td className="py-1.5 px-3 text-slate-600">{fmtDateShort(tile.demand_run_date)}</td>
                   <td className="py-1.5 px-3">

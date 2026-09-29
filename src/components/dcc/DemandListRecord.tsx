@@ -5,7 +5,7 @@ import {
   Car, FileText, Home, Landmark, CircleDollarSign, Building2,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
-import { DCC_STATUS, fmtINR, fmtDateShort } from '../../constants/dccTheme';
+import { DCC_STATUS, fmtINR, fmtDateShort, getDemandTypeBadgeStyle } from '../../constants/dccTheme';
 
 const getObjectIcon = (objectType: string) => {
   const type = objectType.toLowerCase();
@@ -98,9 +98,12 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             </span>
           </div>
           <div className="flex w-24 shrink-0 justify-start overflow-hidden">
-            <span className="max-w-full truncate whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-600" title={tile.demand_type_label}>
-              {tile.demand_type_label}
-            </span>
+            {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+              <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
+                <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                <span className="truncate">{tile.demand_type_label}</span>
+              </span>
+            ); })()}
           </div>
           <div className="flex w-24 shrink-0 justify-start overflow-hidden">
             <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>

@@ -12,7 +12,13 @@ import type { DccTile, DccDemandStatus } from '../../types/dcc';
 import {
   DCC_STATUS,
   fmtINR, fmtDateShort,
+  getDemandTypeBadgeStyle,
 } from '../../constants/dccTheme';
+
+const dtBadgeCls = (label: string) => {
+  const code = label.toUpperCase().replace(/\s+/g, '_');
+  return getDemandTypeBadgeStyle(code);
+};
 
 type ViewMode = 'card' | 'list' | 'table';
 type KpiKey = 'ALL' | 'PAID' | 'OUTSTANDING' | 'OVERDUE';
@@ -335,11 +341,15 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
           <LV label="Region" value={group.region || '—'} valueCls="text-slate-500" />
           <LV label="Group" value={group.groupName || '—'} valueCls="text-slate-500" />
           <div className="col-span-2 flex items-center gap-1 overflow-hidden">
-            {group.demandTypes.slice(0, 2).map((dt) => (
-              <span key={dt.label} className="inline-flex px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]">
-                {dt.label}: {dt.count}
-              </span>
-            ))}
+            {group.demandTypes.slice(0, 2).map((dt) => {
+              const db = dtBadgeCls(dt.label);
+              return (
+                <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]`}>
+                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                  {dt.label}: {dt.count}
+                </span>
+              );
+            })}
           </div>
         </div>
       </motion.button>
@@ -384,11 +394,15 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
               <span className="text-[10px] font-bold text-slate-900 truncate">{group.objectDescription || group.objectRef}</span>
               <span className="text-[8px] text-slate-400 truncate">{group.objectRef} · {group.objectType}</span>
               <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
-                {group.demandTypes.slice(0, 3).map((dt) => (
-                  <span key={dt.label} className="inline-flex px-1 py-0 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]">
-                    {dt.label}
-                  </span>
-                ))}
+                {group.demandTypes.slice(0, 3).map((dt) => {
+                  const db = dtBadgeCls(dt.label);
+                  return (
+                    <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]`}>
+                      <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                      {dt.label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
             <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
@@ -474,11 +488,15 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
                   </td>
                   <td className="py-1.5 px-3">
                     <div className="flex items-center gap-0.5 flex-wrap max-w-[140px]">
-                      {group.demandTypes.slice(0, 3).map((dt) => (
-                        <span key={dt.label} className="inline-flex px-1 py-0 rounded-full bg-slate-100 text-slate-600 text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]">
-                          {dt.label}
-                        </span>
-                      ))}
+                      {group.demandTypes.slice(0, 3).map((dt) => {
+                        const db = dtBadgeCls(dt.label);
+                        return (
+                          <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]`}>
+                            <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                            {dt.label}
+                          </span>
+                        );
+                      })}
                     </div>
                   </td>
                   <td className="py-1.5 px-3 text-slate-600">{runDateRange}</td>

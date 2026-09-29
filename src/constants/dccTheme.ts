@@ -69,6 +69,52 @@ export const DEMAND_TYPE_COLORS: Record<string, string> = {
   MAINTENANCE: 'bg-orange-500',
 };
 
+export interface DemandTypeBadgeStyle {
+  dot: string;
+  bg: string;
+  text: string;
+  border: string;
+}
+
+const DEMAND_TYPE_BADGE_FALLBACK: DemandTypeBadgeStyle = {
+  dot: 'bg-slate-400',
+  bg: 'bg-slate-50',
+  text: 'text-slate-600',
+  border: 'border-slate-200',
+};
+
+const DEMAND_TYPE_BADGE_MAP: Record<string, DemandTypeBadgeStyle> = {
+  emerald: { dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  slate:   { dot: 'bg-slate-600',   bg: 'bg-slate-100',  text: 'text-slate-700',   border: 'border-slate-300' },
+  amber:   { dot: 'bg-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
+  blue:    { dot: 'bg-blue-500',    bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200' },
+  teal:    { dot: 'bg-teal-500',    bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200' },
+  indigo:  { dot: 'bg-indigo-500',  bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200' },
+  orange:  { dot: 'bg-orange-500',  bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200' },
+};
+
+const COLOR_NAME_FROM_HEX: Record<string, string> = {
+  'bg-emerald-500': 'emerald',
+  'bg-slate-600': 'slate',
+  'bg-amber-500': 'amber',
+  'bg-blue-500': 'blue',
+  'bg-teal-500': 'teal',
+  'bg-indigo-500': 'indigo',
+  'bg-orange-500': 'orange',
+};
+
+const FALLBACK_COLOR_ORDER = ['emerald', 'slate', 'amber', 'blue', 'teal', 'indigo', 'orange'];
+let _fallbackIdx = 0;
+
+export const getDemandTypeBadgeStyle = (code: string): DemandTypeBadgeStyle => {
+  const hex = DEMAND_TYPE_COLORS[code];
+  const colorName = hex ? COLOR_NAME_FROM_HEX[hex] : undefined;
+  if (colorName && DEMAND_TYPE_BADGE_MAP[colorName]) return DEMAND_TYPE_BADGE_MAP[colorName];
+  const fallback = FALLBACK_COLOR_ORDER[_fallbackIdx % FALLBACK_COLOR_ORDER.length];
+  _fallbackIdx++;
+  return DEMAND_TYPE_BADGE_MAP[fallback] ?? DEMAND_TYPE_BADGE_FALLBACK;
+};
+
 export const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
