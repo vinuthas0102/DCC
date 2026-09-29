@@ -205,20 +205,18 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
         <div className={`h-0.5 ${st.dot} shrink-0`} />
         <div className="px-3 py-2.5 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
-                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[9px] font-bold`}>
-                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                  {tile.demand_type_label}
-                </span>
-              ); })()}
-            </div>
             <h3 className="text-xs font-bold text-slate-900 truncate leading-snug">
               {tile.object_description || tile.object_ref}
             </h3>
             <p className="text-[10px] text-slate-500 truncate">{tile.object_ref} · {tile.object_type}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
+            {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+              <span className={`inline-flex max-w-[120px] items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap truncate ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
+                <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                <span className="truncate">{tile.demand_type_label}</span>
+              </span>
+            ); })()}
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text} border ${st.border}`}>
               {st.label}
             </span>
@@ -275,12 +273,6 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
               <span className="text-[10px] font-bold text-slate-900 truncate">{tile.demand_type_label}</span>
               <span className="text-[8px] text-slate-400 truncate">{tile.object_ref} · {tile.demand_type_code}</span>
-              {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
-                <span className={`mt-0.5 inline-flex items-center gap-0.5 self-start px-1 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[100px]`}>
-                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                  {tile.demand_type_label}
-                </span>
-              ); })()}
             </div>
           </div>
           <div className="flex items-center min-w-0 overflow-hidden">
@@ -294,6 +286,12 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             <LV label="GST" value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'} valueCls="text-slate-700" width="w-[60px]" />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-auto">
+            {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
+              <span className={`inline-flex max-w-[110px] items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap truncate ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
+                <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                <span className="truncate">{tile.demand_type_label}</span>
+              </span>
+            ); })()}
             <div className={`flex flex-col items-end leading-tight px-2 py-1 rounded-lg border shrink-0 ${outstandingCls.bg} ${outstandingCls.border}`}>
               <span className={`text-[8px] font-semibold uppercase tracking-wider leading-none ${outstandingCls.label}`}>Pending</span>
               <span className={`mt-0.5 text-[10px] font-bold tabular-nums leading-tight ${outstandingCls.value}`}>

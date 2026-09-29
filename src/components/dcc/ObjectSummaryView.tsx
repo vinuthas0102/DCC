@@ -316,6 +316,17 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <p className="text-[10px] text-slate-500 truncate">{group.objectRef}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex flex-col gap-0.5 items-end">
+              {group.demandTypes.slice(0, 2).map((dt) => {
+                const db = dtBadgeCls(dt.label);
+                return (
+                  <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[90px]`}>
+                    <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                    {dt.label}: {dt.count}
+                  </span>
+                );
+              })}
+            </div>
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
               group.overallStatus === 'OVERDUE' ? 'bg-red-50 text-red-600 border border-red-200' :
               group.overallStatus === 'DUE' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
@@ -340,17 +351,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
           <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" />
           <LV label="Region" value={group.region || '—'} valueCls="text-slate-500" />
           <LV label="Group" value={group.groupName || '—'} valueCls="text-slate-500" />
-          <div className="col-span-2 flex items-center gap-1 overflow-hidden">
-            {group.demandTypes.slice(0, 2).map((dt) => {
-              const db = dtBadgeCls(dt.label);
-              return (
-                <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[80px]`}>
-                  <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                  {dt.label}: {dt.count}
-                </span>
-              );
-            })}
-          </div>
         </div>
       </motion.button>
     );
@@ -393,17 +393,6 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <div className="flex flex-col leading-tight min-w-0 w-[120px] shrink-0">
               <span className="text-[10px] font-bold text-slate-900 truncate">{group.objectDescription || group.objectRef}</span>
               <span className="text-[8px] text-slate-400 truncate">{group.objectRef} · {group.objectType}</span>
-              <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
-                {group.demandTypes.slice(0, 3).map((dt) => {
-                  const db = dtBadgeCls(dt.label);
-                  return (
-                    <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[70px]`}>
-                      <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
-                      {dt.label}
-                    </span>
-                  );
-                })}
-              </div>
             </div>
             <div className="flex flex-col leading-tight shrink-0 w-[52px] pl-2 border-l border-slate-100">
               <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none">Demands</span>
@@ -421,6 +410,17 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
             <LV label="Coll %" value={`${collectionPct}%`} valueCls="text-slate-700" width="w-[48px]" />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <div className="flex flex-col gap-0.5 shrink-0 max-w-[120px]">
+              {group.demandTypes.slice(0, 2).map((dt) => {
+                const db = dtBadgeCls(dt.label);
+                return (
+                  <span key={dt.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full border ${db.bg} ${db.text} ${db.border} text-[8px] font-semibold shrink-0 whitespace-nowrap truncate max-w-[110px]`}>
+                    <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
+                    {dt.label}: {dt.count}
+                  </span>
+                );
+              })}
+            </div>
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
               group.overallStatus === 'OVERDUE' ? 'bg-red-50 text-red-600 border border-red-200' :
               group.overallStatus === 'DUE' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
