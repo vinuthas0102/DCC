@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('demo@fms.com');
   const [password, setPassword] = useState('demo123');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('govt_official');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('manager');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {

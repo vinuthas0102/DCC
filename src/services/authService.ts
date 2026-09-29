@@ -108,7 +108,7 @@ function getDemoUser(role?: string): UserDTO {
   if (role === 'manager' || role === 'admin') return { ...DEMO_EO_USER, role: role as UserDTO['role'] };
   if (role === 'govt_official') return DEMO_GOVT_OFFICIAL;
   if (role === 'public' || role === 'dept_user') return { ...DEMO_GOVT_OFFICIAL, role: role as UserDTO['role'] };
-  return DEMO_GOVT_OFFICIAL;
+  return { ...DEMO_EO_USER, role: 'manager' };
 }
 
 export const authService = {
