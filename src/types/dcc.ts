@@ -126,6 +126,7 @@ export interface DccInstallmentRow {
 
 export interface DccDemandRunLog {
   id: string;
+  run_number: number;
   run_date: string;
   source: DccGenerationSource;
   demand_type_id: string | null;
