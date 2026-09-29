@@ -368,6 +368,28 @@ export const dccService = {
     return (data ?? []) as DccDemandRunLog[];
   },
 
+  async getRunDemandTypes(runLog: DccDemandRunLog): Promise<DccDemandType[]> {
+    const { data, error } = await supabase
+      .from(DEMANDS)
+      .select('demand_type:demand_type_id(id, code, label, description, is_active, created_at)')
+      .eq('demand_run_date', runLog.run_date)
+      .eq('generation_source', runLog.source);
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
+    const seen = new Set<string>();
+    const types: DccDemandType[] = [];
+    for (const row of (data ?? []) as Array<{ demand_type: DccDemandType | null }>) {
+      const dt = row.demand_type;
+      if (dt && !seen.has(dt.id)) {
+        seen.add(dt.id);
+        types.push(dt);
+      }
+    }
+    return types;
+  },
+
   async getRunLogDetails(runLog: DccDemandRunLog): Promise<DccDemand[]> {
     let q = supabase
       .from(DEMANDS)

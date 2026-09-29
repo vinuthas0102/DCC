@@ -167,6 +167,40 @@ const DemandTypeBadge: React.FC<{ code: string; label: string }> = ({ code, labe
   );
 };
 
+const RunDemandTypeBadge: React.FC<{ types: DccDemandType[] }> = ({ types }) => {
+  const [showHover, setShowHover] = useState(false);
+  if (types.length === 0) return null;
+  const primary = types[0];
+  const extraCount = types.length - 1;
+  const style = getDemandTypeBadgeStyle(primary.code);
+  return (
+    <div
+      className="relative inline-block shrink-0"
+      onMouseEnter={() => setShowHover(true)}
+      onMouseLeave={() => setShowHover(false)}
+    >
+      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${style.bg} ${style.text} border ${style.border}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+        {primary.label}
+        {extraCount > 0 && <span className="ml-0.5 px-1 py-px rounded-full bg-slate-200/80 text-slate-600 text-[9px] font-bold leading-none">+{extraCount}</span>}
+      </span>
+      {showHover && extraCount > 0 && (
+        <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] bg-white border border-slate-200 rounded-lg shadow-lg p-1.5 space-y-1">
+          {types.slice(1).map(dt => {
+            const s = getDemandTypeBadgeStyle(dt.code);
+            return (
+              <div key={dt.id} className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded ${s.bg} ${s.text} text-[10px] font-bold`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                {dt.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const DCCDemandGenerationPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -191,6 +225,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [detailModalLog, setDetailModalLog] = useState<DccDemandRunLog | null>(null);
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
+  const [runDemandTypesMap, setRunDemandTypesMap] = useState<Record<string, DccDemandType[]>>({});
 
   // Filters
   const [filterState, setFilterState] = useState<RunHistoryFilterState>(emptyRunHistoryFilter);
@@ -206,6 +241,15 @@ export const DCCDemandGenerationPage: React.FC = () => {
     try {
       const log = await dccService.listRunLog();
       setRunLog(log);
+      const typesMap: Record<string, DccDemandType[]> = {};
+      await Promise.all(log.map(async (l) => {
+        try {
+          typesMap[l.id] = await dccService.getRunDemandTypes(l);
+        } catch {
+          typesMap[l.id] = [];
+        }
+      }));
+      setRunDemandTypesMap(typesMap);
     } catch {
       // ignore
     } finally {
@@ -587,12 +631,15 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         )}
                         <span className="text-sm font-extrabold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</span>
                       </div>
-                      <button
-                        onClick={() => handleOpenRunDetails(log)}
-                        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
-                      >
-                        <Eye size={11} /> View Run Details
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                        <button
+                          onClick={() => handleOpenRunDetails(log)}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                        >
+                          <Eye size={11} /> View Run Details
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 );
@@ -644,12 +691,15 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <td className="py-1.5 px-3 text-right tabular-nums text-slate-500">{log.duration_ms != null ? fmtDuration(log.duration_ms) : '—'}</td>
                         <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</td>
                         <td className="py-1.5 px-3 text-center">
-                          <button
-                            onClick={() => handleOpenRunDetails(log)}
-                            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
-                          >
-                            <Eye size={11} /> View
-                          </button>
+                          <div className="flex items-center gap-2 justify-end">
+                            <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                            <button
+                              onClick={() => handleOpenRunDetails(log)}
+                              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                            >
+                              <Eye size={11} /> View
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -715,6 +765,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
                     {/* Right: actions */}
                     <div className="flex items-center gap-1.5 shrink-0">
+                      <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
                       <button
                         onClick={() => handleOpenRunDetails(log)}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
