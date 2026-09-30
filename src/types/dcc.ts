@@ -65,6 +65,8 @@ export interface DccDemand {
   gst_pct: number;
   gst_type: 'inclusive' | 'exclusive';
   gst_amount: number;
+  interest_pct: number;
+  defaulted_interest_pct: number;
   created_at: string;
   updated_at: string;
   // Joined
@@ -95,6 +97,7 @@ export interface DccInstallmentPlan {
   late_fee: number;
   due_days_with_late_fee: number;
   interest_pct_pa: number;
+  defaulted_interest_pct: number;
   discount_full_payment_pct: number;
   gst_pct: number;
   gst_type: 'inclusive' | 'exclusive';
@@ -120,6 +123,8 @@ export interface DccInstallmentRow {
   late_fee: number;
   due_date_with_late_fee: string | null;
   gst_amount: number;
+  interest_pct: number;
+  defaulted_interest_pct: number;
   created_at: string;
   updated_at: string;
 }

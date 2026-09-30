@@ -138,6 +138,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const [instLateFee, setInstLateFee] = useState('0');
   const [instDueDaysLate, setInstDueDaysLate] = useState('0');
   const [instInterestPct, setInstInterestPct] = useState('0.00');
+  const [instDefaultedInterestPct, setInstDefaultedInterestPct] = useState('0.00');
   const [instDiscountFullPct, setInstDiscountFullPct] = useState('0.00');
   const [instGstPct, setInstGstPct] = useState('0.00');
   const [instGstType, setInstGstType] = useState<'inclusive' | 'exclusive'>('inclusive');
@@ -303,6 +304,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
         lateFee: parseFloat(instLateFee) || 0,
         dueDaysWithLateFee: parseInt(instDueDaysLate) || 0,
         interestPctPa: parseFloat(instInterestPct) || 0,
+        defaultedInterestPct: parseFloat(instDefaultedInterestPct) || 0,
         discountFullPaymentPct: parseFloat(instDiscountFullPct) || 0,
         gstPct: parseFloat(instGstPct) || 0,
         gstType: instGstType,
@@ -1125,6 +1127,10 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       <div>
                         <label className={DCC_LABEL_CLS}>Interest % p.a.</label>
                         <input type="number" step="0.01" min={0} value={instInterestPct} onChange={e => setInstInterestPct(e.target.value)} className={DCC_INPUT_CLS} />
+                      </div>
+                      <div>
+                        <label className={DCC_LABEL_CLS}>Defaulted Int % p.a.</label>
+                        <input type="number" step="0.01" min={0} value={instDefaultedInterestPct} onChange={e => setInstDefaultedInterestPct(e.target.value)} className={DCC_INPUT_CLS} />
                       </div>
                       <div>
                         <label className={DCC_LABEL_CLS}>Full Pay Disc %</label>

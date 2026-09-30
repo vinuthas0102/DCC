@@ -27,6 +27,8 @@ import type {
   CollectionExceptionType,
   PctBasis,
   DueDateReference,
+  InterestBasis,
+  INTEREST_BASIS_LABELS,
 } from '../types/payableCriteria';
 import {
   PAYABLE_TRANSACTION_TYPES,
@@ -83,6 +85,8 @@ const emptyPenaltySlab = (row: number): PayablePenaltySlab => ({
   penalty_type: 'PERCENTAGE',
   penalty_value: 0,
   late_days: 0,
+  interest_pct: 0,
+  defaulted_interest_pct: 0,
 });
 
 const emptyIncreaseSpec = (): PayableIncreaseSpec => ({
@@ -106,6 +110,8 @@ const emptyInstalmentLine = (seq: number): PayableInstalmentLine => ({
   amount: 0,
   due_date_reference: 'payable_generation_date',
   days_offset: 0,
+  interest_pct: 0,
+  defaulted_interest_pct: 0,
 });
 
 const computeAutoInstalmentLines = (
@@ -186,6 +192,7 @@ const emptyInput = (): PayableCriteriaInput => ({
   due_date_reference: null,
   grace_period_days: 0,
   tpa_url_id: null,
+  interest_basis: 'demand_amount',
   full_payment_spec: {
     reference_date: 'allotted_date',
     days_offset: 0,
@@ -364,6 +371,7 @@ export const DCCRuleSetupPage: React.FC = () => {
       due_date_reference: rec.due_date_reference ?? null,
       grace_period_days: rec.grace_period_days ?? 0,
       tpa_url_id: rec.tpa_url_id ?? null,
+      interest_basis: rec.interest_basis ?? 'demand_amount',
       full_payment_spec: {
         reference_date: rec.full_payment_spec?.reference_date ?? 'allotted_date',
         days_offset: rec.full_payment_spec?.days_offset ?? 0,
@@ -1313,25 +1321,27 @@ export const DCCRuleSetupPage: React.FC = () => {
                         <p className="text-[11px] text-slate-400 py-2">No instalment lines defined. Click "Add Line" to start.</p>
                       ) : (
                         <>
-                          <div className="grid grid-cols-12 gap-1.5 px-1 text-[9px] font-bold uppercase text-slate-400">
+                          <div className="grid grid-cols-14 gap-1.5 px-1 text-[9px] font-bold uppercase text-slate-400">
                             <span className="col-span-1">Seq</span>
-                            <span className="col-span-3">Amount</span>
-                            <span className="col-span-5">Due Date Reference</span>
+                            <span className="col-span-2">Amount</span>
+                            <span className="col-span-3">Due Date Reference</span>
                             <span className="col-span-2">Days Offset</span>
-                            <span className="col-span-1"></span>
+                            <span className="col-span-2">Interest %</span>
+                            <span className="col-span-2">Def Int %</span>
+                            <span className="col-span-2"></span>
                           </div>
                           {form.installment_spec.instalment_lines.map((line, idx) => (
-                            <div key={idx} className="grid grid-cols-12 gap-1.5 items-center">
+                            <div key={idx} className="grid grid-cols-14 gap-1.5 items-center">
                               <span className="col-span-1 text-[11px] font-bold text-slate-500 text-center">{line.seq}</span>
                               <input
                                 type="number"
                                 placeholder="Amount"
-                                className={`${inputCls} col-span-3`}
+                                className={`${inputCls} col-span-2`}
                                 value={line.amount}
                                 onChange={(e) => updateInstalmentLine(idx, 'amount', Number(e.target.value))}
                               />
                               <select
-                                className={`${inputCls} col-span-5`}
+                                className={`${inputCls} col-span-3`}
                                 value={line.due_date_reference}
                                 onChange={(e) => updateInstalmentLine(idx, 'due_date_reference', e.target.value)}
                               >
@@ -1346,10 +1356,26 @@ export const DCCRuleSetupPage: React.FC = () => {
                                 value={line.days_offset}
                                 onChange={(e) => updateInstalmentLine(idx, 'days_offset', Number(e.target.value))}
                               />
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Int %"
+                                className={`${inputCls} col-span-2`}
+                                value={line.interest_pct}
+                                onChange={(e) => updateInstalmentLine(idx, 'interest_pct', Number(e.target.value))}
+                              />
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Def %"
+                                className={`${inputCls} col-span-2`}
+                                value={line.defaulted_interest_pct}
+                                onChange={(e) => updateInstalmentLine(idx, 'defaulted_interest_pct', Number(e.target.value))}
+                              />
                               <button
                                 type="button"
                                 onClick={() => removeInstalmentLine(idx)}
-                                className="col-span-1 flex items-center justify-center p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                className="col-span-2 flex items-center justify-center p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -1412,6 +1438,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                             <th className="px-2.5 py-1.5 text-right">Amount</th>
                             <th className="px-2.5 py-1.5 text-left">Due Date Reference</th>
                             <th className="px-2.5 py-1.5 text-right">Days Offset</th>
+                            <th className="px-2.5 py-1.5 text-right">Int %</th>
+                            <th className="px-2.5 py-1.5 text-right">Def Int %</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1430,6 +1458,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                                   {REFERENCE_DATE_LABELS[line.due_date_reference as ReferenceDateType] ?? line.due_date_reference}
                                 </td>
                                 <td className="px-2.5 py-1.5 text-right text-slate-600">{line.days_offset} days</td>
+                                <td className="px-2.5 py-1.5 text-right text-slate-600">{line.interest_pct?.toFixed(2) ?? '0.00'}%</td>
+                                <td className="px-2.5 py-1.5 text-right text-slate-600">{line.defaulted_interest_pct?.toFixed(2) ?? '0.00'}%</td>
                               </tr>
                             );
                           })}
@@ -1442,9 +1472,33 @@ export const DCCRuleSetupPage: React.FC = () => {
 
               {/* Penalty Slabs */}
               <Section title="Penalty Slabs Grid" icon={<Percent size={13} className="text-red-500" />}>
+                <div className="mb-3">
+                  <Field label="Interest Basis">
+                    <select
+                      className={inputCls}
+                      value={form.interest_basis}
+                      onChange={(e) => setForm({ ...form, interest_basis: e.target.value as InterestBasis })}
+                    >
+                      {Object.entries(INTEREST_BASIS_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Controls whether interest is calculated on each individual demand amount or on the total outstanding amount.
+                  </p>
+                </div>
                 <div className="space-y-1.5">
+                  <div className="grid grid-cols-6 gap-1.5 px-1 text-[9px] font-bold uppercase text-slate-400">
+                    <span>Row</span>
+                    <span>Penalty Type</span>
+                    <span>Value</span>
+                    <span>Late Days</span>
+                    <span>Interest %</span>
+                    <span>Defaulted Int %</span>
+                  </div>
                   {form.penalty_slabs.map((slab, idx) => (
-                    <div key={idx} className="grid grid-cols-4 gap-1.5 items-center">
+                    <div key={idx} className="grid grid-cols-6 gap-1.5 items-center">
                       <span className="text-[10px] font-bold text-slate-400">Row {slab.slab_row}</span>
                       <select className={inputCls} value={slab.penalty_type} onChange={(e) => updatePenaltySlab(idx, 'penalty_type', e.target.value)}>
                         <option value="PERCENTAGE">Percentage</option>
@@ -1452,9 +1506,14 @@ export const DCCRuleSetupPage: React.FC = () => {
                       </select>
                       <input type="number" placeholder="Value" className={inputCls} value={slab.penalty_value} onChange={(e) => updatePenaltySlab(idx, 'penalty_value', Number(e.target.value))} />
                       <input type="number" placeholder="Late Days" className={inputCls} value={slab.late_days} onChange={(e) => updatePenaltySlab(idx, 'late_days', Number(e.target.value))} />
+                      <input type="number" step="0.01" placeholder="Int %" className={inputCls} value={slab.interest_pct} onChange={(e) => updatePenaltySlab(idx, 'interest_pct', Number(e.target.value))} />
+                      <input type="number" step="0.01" placeholder="Def Int %" className={inputCls} value={slab.defaulted_interest_pct} onChange={(e) => updatePenaltySlab(idx, 'defaulted_interest_pct', Number(e.target.value))} />
                     </div>
                   ))}
                 </div>
+                <p className="text-[10px] text-slate-400 mt-2">
+                  Interest % applies to the demand amount for the penalty period. Defaulted Interest % is the additional rate applied after the due date is missed.
+                </p>
               </Section>
 
               {/* Alert Criteria */}

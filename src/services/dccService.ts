@@ -635,6 +635,7 @@ export const dccService = {
       lateFee: number;
       dueDaysWithLateFee: number;
       interestPctPa: number;
+      defaultedInterestPct: number;
       discountFullPaymentPct: number;
       gstPct: number;
       gstType: 'inclusive' | 'exclusive';
@@ -668,6 +669,8 @@ export const dccService = {
         late_fee: r.late_fee ?? 0,
         due_date_with_late_fee: r.due_date_with_late_fee ?? null,
         gst_amount: r.gst_amount ?? 0,
+        interest_pct: config.interestPctPa,
+        defaulted_interest_pct: config.defaultedInterestPct,
       }));
     } else {
       const total = config.balancePayment;
@@ -686,6 +689,8 @@ export const dccService = {
           late_fee: 0,
           due_date_with_late_fee: null,
           gst_amount: fullPayGst,
+          interest_pct: config.interestPctPa,
+          defaulted_interest_pct: config.defaultedInterestPct,
         },
       ];
       for (let i = 1; i <= config.noOfInstallments; i++) {
@@ -702,6 +707,8 @@ export const dccService = {
           late_fee: config.lateFee,
           due_date_with_late_fee: dueWithLate.toISOString().split('T')[0],
           gst_amount: perInstGst,
+          interest_pct: config.interestPctPa,
+          defaulted_interest_pct: config.defaultedInterestPct,
         });
       }
     }
@@ -712,6 +719,7 @@ export const dccService = {
       late_fee: config.lateFee,
       due_days_with_late_fee: config.dueDaysWithLateFee,
       interest_pct_pa: config.interestPctPa,
+      defaulted_interest_pct: config.defaultedInterestPct,
       discount_full_payment_pct: config.discountFullPaymentPct,
       gst_pct: config.gstPct,
       gst_type: config.gstType,

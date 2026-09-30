@@ -247,6 +247,8 @@ export const payableCriteriaService = {
         amount: l.amount,
         due_date_reference: l.due_date_reference,
         days_offset: l.days_offset,
+        interest_pct: l.interest_pct ?? 0,
+        defaulted_interest_pct: l.defaulted_interest_pct ?? 0,
       }));
       const { error } = await supabase.from(LINES).insert(rows);
       if (error) throw error;
@@ -262,6 +264,8 @@ export const payableCriteriaService = {
         penalty_type: s.penalty_type,
         penalty_value: s.penalty_value,
         late_days: s.late_days,
+        interest_pct: s.interest_pct ?? 0,
+        defaulted_interest_pct: s.defaulted_interest_pct ?? 0,
       }));
       const { error } = await supabase.from(PENALTY).insert(rows);
       if (error) throw error;

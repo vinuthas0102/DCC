@@ -246,6 +246,13 @@ export const COLLECTION_EXCEPTION_TYPE_LABELS: Record<CollectionExceptionType, s
   Alert: 'Alert',
 };
 
+export type InterestBasis = 'demand_amount' | 'outstanding_amount';
+
+export const INTEREST_BASIS_LABELS: Record<InterestBasis, string> = {
+  demand_amount: 'On Demand Amount',
+  outstanding_amount: 'On Outstanding Amount',
+};
+
 export type PctBasis = 'Daily' | 'Monthly' | 'Yearly';
 
 export const PCT_BASIS_OPTIONS: PctBasis[] = ['Daily', 'Monthly', 'Yearly'];
@@ -285,6 +292,8 @@ export interface PayableInstalmentLine {
   amount: number;
   due_date_reference: ReferenceDateType;
   days_offset: number;
+  interest_pct: number;
+  defaulted_interest_pct: number;
 }
 
 export interface PayableInstallmentSpec {
@@ -307,6 +316,8 @@ export interface PayablePenaltySlab {
   penalty_type: 'PERCENTAGE' | 'AMOUNT';
   penalty_value: number;
   late_days: number;
+  interest_pct: number;
+  defaulted_interest_pct: number;
 }
 
 export interface PayableAlertSpec {
@@ -387,6 +398,7 @@ export interface PayableCriteria {
   tpa_url_id: string | null;
   last_run_date: string | null;
   next_instalment_seq: number | null;
+  interest_basis: InterestBasis;
   // Child specs (populated when fetched with joins)
   full_payment_spec?: PayableFullPaymentSpec | null;
   advance_spec?: PayableAdvanceSpec | null;
@@ -424,6 +436,7 @@ export interface PayableCriteriaInput {
   due_date_reference: DueDateReference | null;
   grace_period_days: number;
   tpa_url_id: string | null;
+  interest_basis: InterestBasis;
   // Child specs
   full_payment_spec: PayableFullPaymentSpec;
   advance_spec: PayableAdvanceSpec;
