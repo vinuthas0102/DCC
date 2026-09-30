@@ -4,7 +4,7 @@ import {
   SlidersHorizontal, Plus, Search, Trash2, Save, X, ChevronDown,
   ChevronRight, Percent, IndianRupee, Calendar, AlertCircle, Loader2,
   CheckCircle2, Layers, Tag, Building2, ArrowLeft,
-  TrendingUp, Upload, Filter, LogOut,
+  TrendingUp, Upload, Filter, LogOut, Lock, Power,
 } from 'lucide-react';
 import { payableCriteriaService } from '../services/payableCriteriaService';
 import { dccService } from '../services/dccService';
@@ -278,6 +278,8 @@ const Field: React.FC<{
 
 const inputCls =
   'w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500 bg-white text-slate-700 transition-colors';
+const roInputCls =
+  'w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-slate-50 text-slate-500 cursor-not-allowed';
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export const DCCRuleSetupPage: React.FC = () => {
@@ -296,6 +298,8 @@ export const DCCRuleSetupPage: React.FC = () => {
   const [showNew, setShowNew] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [ruleFilters, setRuleFilters] = useState<RuleFilterState>(emptyRuleFilterState);
+  const [usedRuleIds, setUsedRuleIds] = useState<Set<string>>(new Set());
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // DCC reference data
   const [demandTypes, setDemandTypes] = useState<DccDemandType[]>([]);
@@ -311,9 +315,13 @@ export const DCCRuleSetupPage: React.FC = () => {
     dccService.listObjectOwners().then(setOwners).catch(() => {});
 
     try {
-      const data = await payableCriteriaService.listWithSpecs();
+      const [data, usedIds] = await Promise.all([
+        payableCriteriaService.listWithSpecs(),
+        payableCriteriaService.getUsedCriteriaIds().catch(() => new Set<string>()),
+      ]);
       const dccRules = data.filter(r => r.demand_type_id !== null || r.object_type !== null);
       setRecords(dccRules);
+      setUsedRuleIds(usedIds);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load demand rules');
     } finally {
@@ -443,6 +451,18 @@ export const DCCRuleSetupPage: React.FC = () => {
       setError(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (id: string, makeActive: boolean) => {
+    setTogglingId(id);
+    try {
+      await payableCriteriaService.toggleActive(id, makeActive);
+      await loadList();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to toggle rule');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -652,6 +672,7 @@ export const DCCRuleSetupPage: React.FC = () => {
   }, [form.generation_frequency_code, form.instalment_grid]);
 
   const showForm = showNew || editing !== null;
+  const isLocked = editing !== null && usedRuleIds.has(editing.id);
   const showInstalmentGrid = isInstalmentCode(form.generation_frequency_code);
   const showTPAField = form.import_source === 'TPA';
   const showFixedDate = isFixedDateCode(form.generation_frequency_code);
@@ -790,12 +811,12 @@ export const DCCRuleSetupPage: React.FC = () => {
               <div className="space-y-1.5 p-2">
                 {filtered.map((rec, idx) => {
                   const isActive = selectedId === rec.id;
+                  const isUsed = usedRuleIds.has(rec.id);
                   const hasRun = rec.next_run_date !== null;
                   const dtLabel = demandTypes.find(d => d.id === rec.demand_type_id)?.label ?? '—';
                   const ownerName = owners.find(o => o.id === rec.object_owner_id)?.name ?? '—';
                   const freqLabel = frequencyCodeLabel(rec.generation_frequency_code ?? 1);
                   const demandAmt = rec.default_demand_amount;
-                  const gstPct = rec.default_gst_pct;
                   const fp = rec.full_payment_spec;
                   const adv = rec.advance_spec;
                   const inst = rec.installment_spec;
@@ -807,7 +828,10 @@ export const DCCRuleSetupPage: React.FC = () => {
                   const activePenaltySlabs = pens.filter(s => s.penalty_value > 0);
                   const activeDiscounts = fp?.discount_slabs?.filter(d => d.discount_pct > 0 || d.discount_amount > 0) ?? [];
                   const srcKey = (rec.import_source ?? 'MANUAL') as string;
-                  const rowStyle = SOURCE_ROW_STYLE[srcKey] ?? 'bg-white border-l-slate-300';
+                  const accentBorder = srcKey === 'TPA' ? 'border-l-blue-400'
+                    : srcKey === 'EXCEL' ? 'border-l-emerald-400'
+                    : srcKey === 'AUTO' ? 'border-l-amber-400'
+                    : 'border-l-slate-400';
 
                   const specChips: { label: string; cls: string }[] = [];
                   rec.available_payment_modes.forEach(m =>
@@ -832,74 +856,114 @@ export const DCCRuleSetupPage: React.FC = () => {
                     specChips.push({ label: `Grid ${grid.length}`, cls: 'bg-indigo-50 text-indigo-700' });
                   if (excs.length > 0)
                     specChips.push({ label: `Exc ${excs.length}`, cls: 'bg-slate-100 text-slate-600' });
-                  if (fp)
-                    specChips.push({ label: `FullPay ${fp.days_offset ?? 0}d`, cls: 'bg-gray-50 text-gray-500' });
 
                   return (
                     <div
                       key={rec.id}
                       onClick={() => handleSelect(rec)}
-                      className={`group flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 cursor-pointer transition-all relative ${isActive ? 'ring-2 ring-emerald-400/40 border-emerald-400' : ''} ${rowStyle} hover:shadow-sm`}
+                      className={`grid grid-cols-12 items-center gap-2 px-3.5 py-2.5 min-h-[56px] w-full border border-slate-200 border-l-[3px] ${accentBorder} rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isActive ? 'ring-2 ring-emerald-400/40 border-emerald-400' : ''} ${isUsed ? 'opacity-75' : ''}`}
                     >
-                      {/* Left: primary info */}
-                      <span className="text-[10px] font-bold text-slate-400 w-8 text-right shrink-0 tabular-nums">R{String(rec.rule_number ?? idx + 1).padStart(3, '0')}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[srcKey] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                        {srcKey}
-                      </span>
-                      <div className="min-w-0 shrink-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-slate-700 truncate">{dtLabel}</span>
+                      {/* Cols 1-2: Rule # & Status Badge */}
+                      <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                        <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">R{String(rec.rule_number ?? idx + 1).padStart(3, '0')}</div>
+                        <div className="mt-1">
+                          {isUsed ? (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full">
+                              <CheckCircle2 size={8} /> Used
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-px rounded-full">
+                              Unused
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cols 3-4: Demand Type & Object/Owner */}
+                      <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                        <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Demand Type</div>
+                        <div className="text-xs font-bold text-slate-800 leading-tight mt-0.5 truncate flex items-center gap-1">
+                          {dtLabel}
                           {rec.include_gst && (
                             <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-px rounded shrink-0">GST</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-px">
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
                           <Building2 size={9} className="shrink-0 text-slate-400" />
-                          <span className="truncate">{rec.object_type ?? '—'}  ·  {ownerName}</span>
+                          <span className="truncate">{rec.object_type ?? '—'} · {ownerName}</span>
                         </div>
                       </div>
 
-                      {/* Middle: rule summary */}
-                      <div className="hidden lg:grid flex-1 min-w-0 grid-cols-3 gap-4 mx-2">
-                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Default Amount</div>
-                          <div className="mt-0.5 text-xs font-bold text-slate-700 truncate">{fmtINR(demandAmt)}</div>
-                        </div>
-                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Next Run Date</div>
-                          <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{hasRun ? fmtDate(rec.next_run_date) : 'No run yet'}</div>
-                        </div>
-                        <div className="min-w-0 border-l border-slate-200/80 pl-3">
-                          <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Frequency</div>
-                          <div className="mt-0.5 text-[11px] font-semibold text-slate-700 truncate">{freqLabel}</div>
+                      {/* Cols 5-6: Default Amount & Frequency */}
+                      <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                        <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Default Amount</div>
+                        <div className="text-xs font-bold text-slate-800 tabular-nums leading-tight mt-0.5">{fmtINR(demandAmt)}</div>
+                        <div className="text-[10px] text-slate-500 leading-tight mt-0.5 truncate">{freqLabel}</div>
+                      </div>
+
+                      {/* Cols 7-8: Next Run Date & Spec Chips */}
+                      <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                        <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Next Run Date</div>
+                        <div className="text-[11px] font-semibold text-slate-700 tabular-nums leading-tight mt-0.5 truncate">{hasRun ? fmtDate(rec.next_run_date) : 'No run yet'}</div>
+                        <div className="flex flex-wrap gap-0.5 mt-1">
+                          {specChips.slice(0, 3).map((c, i) => (
+                            <span key={i} className={`text-[8px] font-semibold px-1 py-px rounded shrink-0 ${c.cls}`}>
+                              {c.label}
+                            </span>
+                          ))}
+                          {specChips.length > 3 && (
+                            <span className="text-[8px] font-semibold text-slate-400 px-1">+{specChips.length - 3}</span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Right: spec chips, status, actions */}
-                      <div className="ml-auto flex items-center gap-2 shrink-0">
-                        {specChips.length > 0 && (
-                          <div className="hidden xl:flex items-center gap-1">
-                            {specChips.map((c, i) => (
-                              <span key={i} className={`text-[8px] font-semibold px-1 py-px rounded shrink-0 ${c.cls}`}>
-                                {c.label}
-                              </span>
-                            ))}
-                          </div>
+                      {/* Cols 9-10: Source Badge & Active Toggle */}
+                      <div className="col-span-2 min-w-0 flex flex-col gap-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 w-fit ${SOURCE_BADGE[srcKey] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                          {srcKey}
+                        </span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 w-fit ${rec.is_active ? 'text-emerald-600 bg-emerald-50 border border-emerald-200' : 'text-slate-400 bg-slate-50 border border-slate-200'}`}>
+                          {rec.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+
+                      {/* Cols 11-12: Action Buttons */}
+                      <div className="col-span-2 flex items-center justify-end gap-1.5 whitespace-nowrap">
+                        {isUsed && (
+                          <span className="flex items-center gap-0.5 text-[9px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-px rounded shrink-0" title="Rule is locked because demands have been generated using it">
+                            <Lock size={9} /> Locked
+                          </span>
                         )}
                         {rec.is_active ? (
-                          <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-px rounded">
-                            <CheckCircle2 size={9} /> Active
-                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleToggleActive(rec.id, false); }}
+                            disabled={togglingId === rec.id}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors whitespace-nowrap disabled:opacity-40"
+                            title="Disable this rule"
+                          >
+                            {togglingId === rec.id ? <Loader2 size={11} className="animate-spin" /> : <Power size={11} />}
+                            Disable
+                          </button>
                         ) : (
-                          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-px rounded">INACTIVE</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleToggleActive(rec.id, true); }}
+                            disabled={togglingId === rec.id}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors whitespace-nowrap disabled:opacity-40"
+                            title="Enable this rule"
+                          >
+                            {togglingId === rec.id ? <Loader2 size={11} className="animate-spin" /> : <Power size={11} />}
+                            Enable
+                          </button>
                         )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
-                          className="p-0.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete"
-                        >
-                          <Trash2 size={11} />
-                        </button>
+                        {!isUsed && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
+                            className="p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
+                            title="Delete"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -913,7 +977,14 @@ export const DCCRuleSetupPage: React.FC = () => {
         {showForm && (
           <div className="w-[520px] shrink-0 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-800 shrink-0">
-              <span className="text-xs font-bold text-white">{editing ? `Edit Rule R${String(editing.rule_number).padStart(3, '0')}` : 'New Rule'}</span>
+              {isLocked ? (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-white">
+                  <Lock size={13} className="text-amber-400" />
+                  View Rule R{String(editing.rule_number).padStart(3, '0')} — Used (Read Only)
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-white">{editing ? `Edit Rule R${String(editing.rule_number).padStart(3, '0')}` : 'New Rule'}</span>
+              )}
               <button
                 onClick={() => { setShowNew(false); setEditing(null); setSelectedId(null); }}
                 className="ml-auto p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
@@ -922,7 +993,13 @@ export const DCCRuleSetupPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <fieldset disabled={isLocked} className="flex-1 overflow-y-auto p-4 space-y-3 border-0 m-0">
+              {isLocked && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-700 font-medium">
+                  <Lock size={13} className="shrink-0" />
+                  This rule has been used to generate demands and cannot be edited. You can only enable or disable it from the list.
+                </div>
+              )}
               {/* DCC Keying */}
               <Section title="Demand Key" icon={<Tag size={13} className="text-emerald-500" />} defaultOpen>
                 <div className="grid grid-cols-2 gap-3">
@@ -1613,23 +1690,30 @@ export const DCCRuleSetupPage: React.FC = () => {
                   <span className="text-xs font-semibold text-slate-700">Active</span>
                 </label>
               </div>
-            </div>
+            </fieldset>
 
             {/* Save bar */}
             <div className="flex items-center gap-2 px-3 py-2.5 border-t border-slate-100 bg-slate-50 shrink-0">
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.demand_type_id || !form.object_type}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                {editing ? 'Update' : 'Create'} Rule
-              </button>
+              {!isLocked && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !form.demand_type_id || !form.object_type}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                  {editing ? 'Update' : 'Create'} Rule
+                </button>
+              )}
+              {isLocked && (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-600">
+                  <Lock size={13} /> Editing disabled — rule in use
+                </span>
+              )}
               <button
                 onClick={() => { setShowNew(false); setEditing(null); setSelectedId(null); }}
-                className="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                className="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors ml-auto"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

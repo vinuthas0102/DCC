@@ -140,6 +140,23 @@ export const payableCriteriaService = {
     if (error) throw error;
   },
 
+  async toggleActive(id: string, isActive: boolean): Promise<void> {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async getUsedCriteriaIds(): Promise<Set<string>> {
+    const { data, error } = await supabase
+      .from('dcc_demands')
+      .select('criteria_id')
+      .not('criteria_id', 'is', null);
+    if (error) throw error;
+    return new Set((data ?? []).map((d) => d.criteria_id as string));
+  },
+
   async upsertChildSpecs(
     criteriaId: string,
     specs: {
