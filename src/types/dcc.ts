@@ -45,6 +45,7 @@ export interface DccDemandType {
 
 export type DccDemandStatus = 'DUE' | 'OVERDUE' | 'PAID' | 'EXEMPTED';
 export type DccGenerationSource = 'TPA' | 'EXCEL' | 'AUTO' | 'MANUAL';
+export type DccRunApprovalStatus = 'PENDING' | 'APPROVED' | 'AMENDED';
 
 export interface DccDemand {
   id: string;
@@ -67,6 +68,7 @@ export interface DccDemand {
   gst_amount: number;
   interest_pct: number;
   defaulted_interest_pct: number;
+  is_amended: boolean;
   created_at: string;
   updated_at: string;
   // Joined
@@ -144,6 +146,11 @@ export interface DccDemandRunLog {
   duration_ms: number | null;
   records_failed: number;
   run_summary: Record<string, unknown> | null;
+  approval_status: DccRunApprovalStatus;
+  approved_at: string | null;
+  approved_by: string | null;
+  amended_at: string | null;
+  amended_by: string | null;
 }
 
 // ── Tile / summary shape for the summary screen ─────────────────────────────────

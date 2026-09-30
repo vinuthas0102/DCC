@@ -8,6 +8,7 @@ import {
   Calendar, Sparkles, Receipt, Wallet, AlertTriangle,
   Eye, Plus, Check, LayoutGrid, List, Table2,
   RotateCcw, Search, Home, LogOut,
+  Pencil, Lock, ShieldCheck, Unlock, Save,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { payableCriteriaService } from '../services/payableCriteriaService';
@@ -17,7 +18,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { ROLE_LABELS } from '../constants/roles';
 import { frequencyCodeLabel } from '../types/payableCriteria';
-import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus } from '../types/dcc';
+import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus, DccRunApprovalStatus } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
 import { DCC_STATUS, fmtINR, fmtDateDDMMYYYY, fmtDateTimeDDMMYYYY, getDemandTypeBadgeStyle } from '../constants/dccTheme';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
@@ -41,6 +42,12 @@ const SOURCE_BADGE: Record<string, string> = {
   EXCEL: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
   AUTO: 'bg-amber-100 text-amber-700 border border-amber-200',
   MANUAL: 'bg-slate-100 text-slate-700 border border-slate-200',
+};
+
+const APPROVAL_BADGE: Record<DccRunApprovalStatus, { cls: string; label: string }> = {
+  PENDING: { cls: 'bg-amber-100 text-amber-700 border border-amber-300', label: 'Pending' },
+  APPROVED: { cls: 'bg-emerald-100 text-emerald-700 border border-emerald-300', label: 'Approved' },
+  AMENDED: { cls: 'bg-blue-100 text-blue-700 border border-blue-300', label: 'Amended' },
 };
 
 type ViewMode = 'card' | 'list' | 'table';
@@ -95,6 +102,7 @@ interface RunDemandTile {
   group_name: string | null;
   subgroup: string | null;
   run_number: number;
+  is_amended: boolean;
 }
 
 function demandsToTiles(demands: DccDemand[], runNumber: number): RunDemandTile[] {
@@ -142,6 +150,7 @@ function demandsToTiles(demands: DccDemand[], runNumber: number): RunDemandTile[
       group_name: obj?.group_name ?? null,
       subgroup: obj?.subgroup ?? null,
       run_number: runNumber,
+      is_amended: d.is_amended ?? false,
     };
   });
 }
@@ -623,9 +632,14 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                   >
                     <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
-                      <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0" title={`RUN-${String(log.run_number).padStart(3, '0')}`}>
-                        RUN-{String(log.run_number).padStart(3, '0')}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0" title={`RUN-${String(log.run_number).padStart(3, '0')}`}>
+                          RUN-{String(log.run_number).padStart(3, '0')}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                          {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                        </span>
+                      </div>
                       <span className="text-[11px] font-medium text-slate-500 shrink-0 tabular-nums" title={fmtDateDDMMYYYY(log.run_date)}>
                         {fmtDateDDMMYYYY(log.run_date)}
                       </span>
@@ -691,6 +705,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run #</th>
+                    <th className="py-2 px-3 text-left font-bold text-slate-600">Approval</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Start Date &amp; Time</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run End Date &amp; Time</th>
@@ -711,6 +726,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         <td className="py-1.5 px-3 text-[10px] font-bold text-slate-500 tabular-nums">RUN-{String(log.run_number).padStart(3, '0')}</td>
+                        <td className="py-1.5 px-3">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                            {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                          </span>
+                        </td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateDDMMYYYY(log.run_date)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.started_at)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.ended_at)}</td>
@@ -759,6 +779,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
                       <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">RUN-{String(log.run_number).padStart(3, '0')}</div>
                       <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDateDDMMYYYY(log.run_date)}</div>
+                      <div className="mt-0.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                          {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Cols 3-4: Demands Processed */}
@@ -828,6 +853,16 @@ export const DCCDemandGenerationPage: React.FC = () => {
             isLoading={loadingDetails === detailModalLog.id}
             onClose={closeRunDetails}
             onViewDemand={(id) => setDetailDemandId(id)}
+            onUpdateLog={(updated) => {
+              setDetailModalLog(updated);
+              setRunLog(prev => prev.map(l => l.id === updated.id ? updated : l));
+            }}
+            onRefreshDetails={async () => {
+              if (detailModalLog) {
+                const fresh = await dccService.getRunLogDetails(detailModalLog);
+                setRunDetails(prev => ({ ...prev, [detailModalLog.id]: fresh }));
+              }
+            }}
           />
         )}
       </AnimatePresence>
@@ -993,13 +1028,22 @@ interface RunDetailsOverlayProps {
   isLoading: boolean;
   onClose: () => void;
   onViewDemand: (demandId: string) => void;
+  onUpdateLog: (log: DccDemandRunLog) => void;
+  onRefreshDetails: () => void;
 }
 
-const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isLoading, onClose, onViewDemand }) => {
+const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isLoading, onClose, onViewDemand, onUpdateLog, onRefreshDetails }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeKpi, setActiveKpi] = useState<KpiKey>('ALL');
   const [filterState, setFilterState] = useState<RunDetailFilterState>(emptyRunFilter);
   const [showFilter, setShowFilter] = useState(false);
+  const [editTile, setEditTile] = useState<RunDemandTile | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editStatus, setEditStatus] = useState<DccDemandStatus>('DUE');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const tiles = useMemo(() => demandsToTiles(details, log.run_number), [details, log.run_number]);
 
@@ -1037,6 +1081,64 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
   const collectionRate = totalDemand > 0 ? Math.round((totalPaid / totalDemand) * 100) : 0;
 
   const activeFilterCount = filterState.statuses.length + (filterState.searchText.trim() ? 1 : 0);
+
+  const canEdit = log.approval_status === 'PENDING' || log.approval_status === 'AMENDED';
+  const isAmending = log.approval_status === 'AMENDED';
+
+  const handleOpenEdit = (tile: RunDemandTile) => {
+    setEditTile(tile);
+    setEditAmount(String(tile.total_amount));
+    setEditDueDate(tile.due_date);
+    setEditStatus(tile.status);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTile) return;
+    setSavingEdit(true);
+    try {
+      await dccService.updateDemand(
+        editTile.id,
+        { amount: Number(editAmount), due_date: editDueDate, status: editStatus },
+        isAmending,
+      );
+      setToastMsg(isAmending ? 'Demand amended successfully' : 'Demand updated successfully');
+      setEditTile(null);
+      onRefreshDetails();
+    } catch {
+      setToastMsg('Failed to save changes');
+    } finally {
+      setSavingEdit(false);
+      setTimeout(() => setToastMsg(null), 2500);
+    }
+  };
+
+  const handleApprove = async () => {
+    setActionLoading(true);
+    try {
+      await dccService.approveRun(log.id, 'Manager');
+      onUpdateLog({ ...log, approval_status: 'APPROVED', approved_at: new Date().toISOString(), approved_by: 'Manager' });
+      setToastMsg('Run approved successfully');
+    } catch {
+      setToastMsg('Failed to approve run');
+    } finally {
+      setActionLoading(false);
+      setTimeout(() => setToastMsg(null), 2500);
+    }
+  };
+
+  const handleAmend = async () => {
+    setActionLoading(true);
+    try {
+      await dccService.amendRun(log.id, 'Manager');
+      onUpdateLog({ ...log, approval_status: 'AMENDED', amended_at: new Date().toISOString(), amended_by: 'Manager' });
+      setToastMsg('Run unlocked for amendment');
+    } catch {
+      setToastMsg('Failed to unlock run');
+    } finally {
+      setActionLoading(false);
+      setTimeout(() => setToastMsg(null), 2500);
+    }
+  };
 
   const ViewModeSelector: React.FC = () => {
     const modes: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
@@ -1149,14 +1251,34 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
             <span className="text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
               {fmtINR(tile.amount_due)}
             </span>
-            <span className="text-[10px] font-semibold text-slate-400 shrink-0 truncate" title={tile.object_ref}>{tile.object_ref}</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {tile.is_amended && (
+                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">Amended</span>
+              )}
+              <span className="text-[10px] font-semibold text-slate-400 shrink-0 truncate" title={tile.object_ref}>{tile.object_ref}</span>
+            </div>
           </div>
-          <button
-            onClick={() => onViewDemand(tile.id)}
-            className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
-          >
-            <Eye size={13} /> View Details
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onViewDemand(tile.id)}
+              className="flex-1 py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            >
+              <Eye size={13} /> View Details
+            </button>
+            {canEdit ? (
+              <button
+                onClick={() => handleOpenEdit(tile)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-all shrink-0"
+                title={isAmending ? 'Amend Demand' : 'Edit Demand'}
+              >
+                <Pencil size={13} />
+              </button>
+            ) : (
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 border border-slate-200 shrink-0" title="Run is approved — click Amend Run to enable editing">
+                <Lock size={13} />
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
     );
@@ -1213,13 +1335,28 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                     </span>
                   </td>
                   <td className="py-1.5 px-3 text-center">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onViewDemand(tile.id); }}
-                      title="View Details"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-all"
-                    >
-                      <Eye size={13} />
-                    </button>
+                    <div className="flex items-center gap-1 justify-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onViewDemand(tile.id); }}
+                        title="View Details"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-all"
+                      >
+                        <Eye size={13} />
+                      </button>
+                      {canEdit ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOpenEdit(tile); }}
+                          title={isAmending ? 'Amend Demand' : 'Edit Demand'}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-all"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      ) : (
+                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-300 border border-slate-200" title="Run is approved — click Amend Run to enable editing">
+                          <Lock size={13} />
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -1266,18 +1403,43 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                   {log.source}
                 </span>
                 <DemandTypeBadge code={log.demand_type?.code ?? ''} label={log.demand_type?.label ?? '—'} />
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                  {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                </span>
                 <span className="flex items-center gap-1">
                   <Receipt size={10} /> {log.records_created} records
                 </span>
                 <span className="font-semibold text-slate-200 tabular-nums">{fmtINR(log.total_amount)}</span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-white hover:bg-blue-700 transition-colors shrink-0"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {log.approval_status === 'PENDING' && (
+                <button
+                  onClick={handleApprove}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
+                  Approve Run
+                </button>
+              )}
+              {log.approval_status === 'APPROVED' && (
+                <button
+                  onClick={handleAmend}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 transition-colors"
+                >
+                  {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />}
+                  Amend Run
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-white hover:bg-blue-700 transition-colors shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-x-4 gap-y-1 px-4 pb-2 text-[10px] text-slate-300 flex-wrap">
             <span className="flex items-center gap-1">
@@ -1422,12 +1584,22 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
           ) : viewMode === 'list' ? (
             <div className="flex flex-col gap-2">
               {filteredTiles.map((tile, idx) => (
-                <DemandListRecord
-                  key={tile.id}
-                  tile={tile}
-                  idx={idx}
-                  onViewDetails={(t) => onViewDemand(t.id)}
-                />
+                <div key={tile.id} className="relative group">
+                  <DemandListRecord
+                    tile={tile}
+                    idx={idx}
+                    onViewDetails={(t) => onViewDemand(t.id)}
+                  />
+                  {canEdit && (
+                    <button
+                      onClick={() => handleOpenEdit(tile)}
+                      title={isAmending ? 'Amend Demand' : 'Edit Demand'}
+                      className="absolute top-2 right-2 z-10 flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           ) : (
@@ -1517,6 +1689,102 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Edit / Amend Demand Modal */}
+      <AnimatePresence>
+        {editTile && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]"
+              onClick={() => setEditTile(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-xl shadow-2xl z-[81] flex flex-col"
+            >
+              <div className={`flex items-center gap-2 px-4 py-3 rounded-t-xl ${isAmending ? 'bg-blue-700' : 'bg-slate-800'}`}>
+                {isAmending ? <Unlock size={16} className="text-white" /> : <Pencil size={16} className="text-white" />}
+                <h2 className="text-sm font-bold text-white">{isAmending ? 'Amend Demand' : 'Edit Demand'}</h2>
+                <button onClick={() => setEditTile(null)} className="ml-auto text-slate-300 hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="px-4 py-4 space-y-3">
+                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                  {editTile.object_description || editTile.object_ref} — {editTile.demand_type_label}
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Amount</label>
+                  <input
+                    type="number"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as DccDemandStatus)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="DUE">Due</option>
+                    <option value="OVERDUE">Overdue</option>
+                    <option value="PAID">Paid</option>
+                    <option value="EXEMPTED">Exempted</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-100">
+                <button
+                  onClick={() => setEditTile(null)}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold text-white transition-colors flex items-center justify-center gap-1.5 ${isAmending ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-600 hover:bg-emerald-500'} disabled:opacity-50`}
+                >
+                  {savingEdit ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                  {isAmending ? 'Save Amendment' : 'Save Changes'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-semibold shadow-xl"
+          >
+            {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

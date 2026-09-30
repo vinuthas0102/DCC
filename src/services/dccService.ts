@@ -6,6 +6,7 @@ import type {
   DccDemand,
   DccPayment,
   DccDemandRunLog,
+  DccDemandStatus,
   DccTile,
   DccTrackerSummary,
   DccDemandFilters,
@@ -64,16 +65,16 @@ function buildDemoDemands(): DccDemand[] {
   const daysFromNow = (n: number) => { const d = new Date(today); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
   const daysAgo = (n: number) => { const d = new Date(today); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
   return [
-    { id: 'dem-1', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysFromNow(5), amount: 25000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 4500, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
-    { id: 'dem-2', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-sd', criteria_id: null, demand_run_date: daysAgo(30), due_date: daysAgo(5), amount: 50000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(30)+'T00:00:00Z', updated_at: daysAgo(30)+'T00:00:00Z' },
-    { id: 'dem-3', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(8), due_date: daysFromNow(2), amount: 18000, amount_paid: 18000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 2746, created_at: daysAgo(8)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
-    { id: 'dem-4', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(15), due_date: daysFromNow(10), amount: 8500, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'TPA', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(15)+'T00:00:00Z', updated_at: daysAgo(15)+'T00:00:00Z' },
-    { id: 'dem-5', object_id: 'obj-4', owner_id: 'own-4', demand_type_id: 'dt-loan', criteria_id: null, demand_run_date: daysAgo(20), due_date: daysAgo(2), amount: 22000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 3960, created_at: daysAgo(20)+'T00:00:00Z', updated_at: daysAgo(20)+'T00:00:00Z' },
-    { id: 'dem-6', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-tax', criteria_id: null, demand_run_date: daysAgo(5), due_date: daysFromNow(25), amount: 45000, amount_paid: 20000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'EXCEL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(5)+'T00:00:00Z', updated_at: daysAgo(2)+'T00:00:00Z' },
-    { id: 'dem-7', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-insurance', criteria_id: null, demand_run_date: daysAgo(12), due_date: daysFromNow(18), amount: 12000, amount_paid: 12000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 1831, created_at: daysAgo(12)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
-    { id: 'dem-8', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-advance', criteria_id: null, demand_run_date: daysAgo(3), due_date: daysFromNow(7), amount: 15000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, created_at: daysAgo(3)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
-    { id: 'dem-9', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysAgo(1), amount: 3200, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 12, gst_type: 'exclusive', gst_amount: 384, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
-    { id: 'dem-10', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(7), due_date: daysFromNow(3), amount: 30000, amount_paid: 15000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 5400, created_at: daysAgo(7)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+    { id: 'dem-1', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysFromNow(5), amount: 25000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 4500, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-2', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-sd', criteria_id: null, demand_run_date: daysAgo(30), due_date: daysAgo(5), amount: 50000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(30)+'T00:00:00Z', updated_at: daysAgo(30)+'T00:00:00Z' },
+    { id: 'dem-3', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(8), due_date: daysFromNow(2), amount: 18000, amount_paid: 18000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 2746, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(8)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-4', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(15), due_date: daysFromNow(10), amount: 8500, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'TPA', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(15)+'T00:00:00Z', updated_at: daysAgo(15)+'T00:00:00Z' },
+    { id: 'dem-5', object_id: 'obj-4', owner_id: 'own-4', demand_type_id: 'dt-loan', criteria_id: null, demand_run_date: daysAgo(20), due_date: daysAgo(2), amount: 22000, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 3960, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(20)+'T00:00:00Z', updated_at: daysAgo(20)+'T00:00:00Z' },
+    { id: 'dem-6', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-tax', criteria_id: null, demand_run_date: daysAgo(5), due_date: daysFromNow(25), amount: 45000, amount_paid: 20000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'EXCEL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(5)+'T00:00:00Z', updated_at: daysAgo(2)+'T00:00:00Z' },
+    { id: 'dem-7', object_id: 'obj-2', owner_id: 'own-2', demand_type_id: 'dt-insurance', criteria_id: null, demand_run_date: daysAgo(12), due_date: daysFromNow(18), amount: 12000, amount_paid: 12000, status: 'PAID', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'inclusive', gst_amount: 1831, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(12)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
+    { id: 'dem-8', object_id: 'obj-3', owner_id: 'own-3', demand_type_id: 'dt-advance', criteria_id: null, demand_run_date: daysAgo(3), due_date: daysFromNow(7), amount: 15000, amount_paid: 0, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'MANUAL', include_gst: false, gst_pct: 0, gst_type: 'exclusive', gst_amount: 0, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(3)+'T00:00:00Z', updated_at: daysAgo(3)+'T00:00:00Z' },
+    { id: 'dem-9', object_id: 'obj-1', owner_id: 'own-1', demand_type_id: 'dt-maint', criteria_id: null, demand_run_date: daysAgo(10), due_date: daysAgo(1), amount: 3200, amount_paid: 0, status: 'OVERDUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 12, gst_type: 'exclusive', gst_amount: 384, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(10)+'T00:00:00Z', updated_at: daysAgo(10)+'T00:00:00Z' },
+    { id: 'dem-10', object_id: 'obj-5', owner_id: 'own-5', demand_type_id: 'dt-rent', criteria_id: null, demand_run_date: daysAgo(7), due_date: daysFromNow(3), amount: 30000, amount_paid: 15000, status: 'DUE', dispute_date: null, dispute_reason: null, dispute_remarks: null, generation_source: 'AUTO', include_gst: true, gst_pct: 18, gst_type: 'exclusive', gst_amount: 5400, interest_pct: 0, defaulted_interest_pct: 0, is_amended: false, created_at: daysAgo(7)+'T00:00:00Z', updated_at: daysAgo(1)+'T00:00:00Z' },
   ];
 }
 
@@ -930,5 +931,45 @@ export const dccService = {
 
   async getDetailedLedger(filters?: DccDemandFilters): Promise<DccTile[]> {
     return this.getTiles(filters);
+  },
+
+  // ── Run approval / amendment ────────────────────────────────────────────────
+
+  async updateDemand(
+    demandId: string,
+    patch: { amount?: number; due_date?: string; status?: DccDemandStatus },
+    markAmended?: boolean,
+  ): Promise<void> {
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.amount !== undefined) update.amount = patch.amount;
+    if (patch.due_date !== undefined) update.due_date = patch.due_date;
+    if (patch.status !== undefined) update.status = patch.status;
+    if (markAmended) update.is_amended = true;
+    const { error } = await supabase.from(DEMANDS).update(update).eq('id', demandId);
+    if (error) throw error;
+  },
+
+  async approveRun(runLogId: string, approvedBy: string): Promise<void> {
+    const { error } = await supabase
+      .from(RUNLOG)
+      .update({
+        approval_status: 'APPROVED',
+        approved_at: new Date().toISOString(),
+        approved_by: approvedBy,
+      })
+      .eq('id', runLogId);
+    if (error) throw error;
+  },
+
+  async amendRun(runLogId: string, amendedBy: string): Promise<void> {
+    const { error } = await supabase
+      .from(RUNLOG)
+      .update({
+        approval_status: 'AMENDED',
+        amended_at: new Date().toISOString(),
+        amended_by: amendedBy,
+      })
+      .eq('id', runLogId);
+    if (error) throw error;
   },
 };
