@@ -276,6 +276,17 @@ export interface PayableAdvanceSpec {
   days_offset: number;
 }
 
+export type InstalmentMode = 'MANUAL_LINES' | 'AUTO_CALC';
+
+export interface PayableInstalmentLine {
+  id?: string;
+  criteria_id?: string;
+  seq: number;
+  amount: number;
+  due_date_reference: ReferenceDateType;
+  days_offset: number;
+}
+
 export interface PayableInstallmentSpec {
   id?: string;
   criteria_id?: string;
@@ -283,6 +294,10 @@ export interface PayableInstallmentSpec {
   installment_value: number;
   reference_date: ReferenceDateType;
   days_offset: number;
+  instalment_mode: InstalmentMode;
+  instalment_count: number | null;
+  interval_days: number;
+  instalment_lines: PayableInstalmentLine[];
 }
 
 export interface PayablePenaltySlab {
@@ -380,6 +395,7 @@ export interface PayableCriteria {
   alert_spec?: PayableAlertSpec | null;
   increase_spec?: PayableIncreaseSpec | null;
   instalment_grid?: PayableInstalmentGridRow[];
+  instalment_lines?: PayableInstalmentLine[];
   collection_exceptions?: PayableCollectionException[];
 }
 

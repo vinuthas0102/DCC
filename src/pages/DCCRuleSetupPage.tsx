@@ -22,6 +22,8 @@ import type {
   PayableIncreaseSpec,
   PayableInstalmentGridRow,
   PayableCollectionException,
+  PayableInstalmentLine,
+  InstalmentMode,
   CollectionExceptionType,
   PctBasis,
   DueDateReference,
@@ -99,6 +101,46 @@ const emptyGridRow = (seq: number): PayableInstalmentGridRow => ({
   next_run_date: null,
 });
 
+const emptyInstalmentLine = (seq: number): PayableInstalmentLine => ({
+  seq,
+  amount: 0,
+  due_date_reference: 'payable_generation_date',
+  days_offset: 0,
+});
+
+const computeAutoInstalmentLines = (
+  instalmentAmount: number,
+  totalDue: number,
+  count: number | null,
+  refDate: string,
+  initialOffset: number,
+  intervalDays: number,
+): PayableInstalmentLine[] => {
+  if (instalmentAmount <= 0) return [];
+  let n = count;
+  if (!n || n <= 0) {
+    n = Math.ceil(totalDue / instalmentAmount);
+  }
+  if (n <= 0) return [];
+  const lines: PayableInstalmentLine[] = [];
+  let remaining = totalDue;
+  for (let i = 1; i <= n; i++) {
+    const isLast = i === n;
+    let amt = instalmentAmount;
+    if (isLast) {
+      amt = Math.max(remaining, instalmentAmount);
+    }
+    remaining -= instalmentAmount;
+    lines.push({
+      seq: i,
+      amount: Math.round(amt * 100) / 100,
+      due_date_reference: refDate as ReferenceDateType,
+      days_offset: initialOffset + (i - 1) * intervalDays,
+    });
+  }
+  return lines;
+};
+
 const emptyException = (type: CollectionExceptionType, seq: number): PayableCollectionException => ({
   exception_type: type,
   seq_no: seq,
@@ -160,6 +202,10 @@ const emptyInput = (): PayableCriteriaInput => ({
     installment_value: 0,
     reference_date: 'allotted_date',
     days_offset: 0,
+    instalment_mode: 'AUTO_CALC' as InstalmentMode,
+    instalment_count: null,
+    interval_days: 30,
+    instalment_lines: [] as PayableInstalmentLine[],
   },
   penalty_slabs: [1, 2, 3, 4, 5].map((n) => emptyPenaltySlab(n)),
   alert_spec: {
@@ -336,6 +382,10 @@ export const DCCRuleSetupPage: React.FC = () => {
         installment_value: rec.installment_spec?.installment_value ?? 0,
         reference_date: rec.installment_spec?.reference_date ?? 'allotted_date',
         days_offset: rec.installment_spec?.days_offset ?? 0,
+        instalment_mode: rec.installment_spec?.instalment_mode ?? 'AUTO_CALC',
+        instalment_count: rec.installment_spec?.instalment_count ?? null,
+        interval_days: rec.installment_spec?.interval_days ?? 30,
+        instalment_lines: rec.installment_spec?.instalment_lines ?? [],
       },
       penalty_slabs: rec.penalty_slabs?.length
         ? [1, 2, 3, 4, 5].map((n) => rec.penalty_slabs!.find((s) => s.slab_row === n) ?? emptyPenaltySlab(n))
@@ -506,6 +556,56 @@ export const DCCRuleSetupPage: React.FC = () => {
     reader.readAsText(file);
     e.target.value = '';
   };
+
+  // ── Instalment line helpers (new instalment mode system) ──────────────────────
+  const addInstalmentLine = () => {
+    setForm((f) => ({
+      ...f,
+      installment_spec: {
+        ...f.installment_spec,
+        instalment_lines: [...f.installment_spec.instalment_lines, emptyInstalmentLine(f.installment_spec.instalment_lines.length + 1)],
+      },
+    }));
+  };
+
+  const updateInstalmentLine = (idx: number, field: keyof PayableInstalmentLine, value: string | number) => {
+    setForm((f) => {
+      const lines = [...f.installment_spec.instalment_lines];
+      lines[idx] = { ...lines[idx], [field]: value } as PayableInstalmentLine;
+      return { ...f, installment_spec: { ...f.installment_spec, instalment_lines: lines } };
+    });
+  };
+
+  const removeInstalmentLine = (idx: number) => {
+    setForm((f) => ({
+      ...f,
+      installment_spec: {
+        ...f.installment_spec,
+        instalment_lines: f.installment_spec.instalment_lines
+          .filter((_, i) => i !== idx)
+          .map((l, i) => ({ ...l, seq: i + 1 })),
+      },
+    }));
+  };
+
+  // ── Computed instalment preview (auto-calc mode) ─────────────────────────────
+  const instalmentPreview = useMemo(() => {
+    const spec = form.installment_spec;
+    if (spec.instalment_mode !== 'AUTO_CALC') return spec.instalment_lines;
+    const advanceAmount =
+      form.advance_spec.advance_type === 'AMOUNT'
+        ? form.advance_spec.advance_value
+        : (form.default_demand_amount ?? 0) * (form.advance_spec.advance_value / 100);
+    const totalDue = Math.max(0, (form.default_demand_amount ?? 0) - advanceAmount);
+    return computeAutoInstalmentLines(
+      spec.installment_value,
+      totalDue,
+      spec.instalment_count,
+      spec.reference_date,
+      spec.days_offset,
+      spec.interval_days,
+    );
+  }, [form.installment_spec, form.advance_spec, form.default_demand_amount]);
 
   // ── Frequency code change handler ──────────────────────────────────────────────
   const handleFrequencyCodeChange = (code: number) => {
@@ -701,8 +801,11 @@ export const DCCRuleSetupPage: React.FC = () => {
                   );
                   if (adv && adv.advance_value > 0)
                     specChips.push({ label: `Adv ${adv.advance_type === 'PERCENTAGE' ? `${adv.advance_value}%` : `Rs${adv.advance_value}`}`, cls: 'bg-amber-50 text-amber-700' });
-                  if (inst && inst.installment_value > 0)
-                    specChips.push({ label: `Inst ${inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}`, cls: 'bg-violet-50 text-violet-700' });
+                  if (inst && inst.installment_value > 0) {
+                    const modeLabel = inst.instalment_mode === 'MANUAL_LINES' ? 'Manual' : 'Auto';
+                    const lineCount = inst.instalment_lines?.length ?? 0;
+                    specChips.push({ label: `Inst ${inst.installment_type === 'PERCENTAGE' ? `${inst.installment_value}%` : `Rs${inst.installment_value}`}${lineCount > 0 ? ` (${lineCount}L ${modeLabel})` : ''}`, cls: 'bg-violet-50 text-violet-700' });
+                  }
                   if (activePenaltySlabs.length > 0)
                     specChips.push({ label: `Penalty ${activePenaltySlabs.length}`, cls: 'bg-red-50 text-red-700' });
                   if (activeDiscounts.length > 0)
@@ -1151,29 +1254,190 @@ export const DCCRuleSetupPage: React.FC = () => {
               </Section>
 
               {/* Installment Payment */}
-              <Section title="Instalment Payment" icon={<Layers size={13} className="text-sky-500" />}>
-                <div className="grid grid-cols-3 gap-3">
+              <Section title="Instalment Payment" icon={<Layers size={13} className="text-sky-500" />} defaultOpen>
+                {/* Mode Toggle */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex rounded-md border border-slate-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, installment_spec: { ...form.installment_spec, instalment_mode: 'MANUAL_LINES' } })}
+                      className={`px-3 py-1.5 text-[11px] font-semibold transition-colors ${form.installment_spec.instalment_mode === 'MANUAL_LINES' ? 'bg-sky-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      Specify Lines
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, installment_spec: { ...form.installment_spec, instalment_mode: 'AUTO_CALC' } })}
+                      className={`px-3 py-1.5 text-[11px] font-semibold transition-colors ${form.installment_spec.instalment_mode === 'AUTO_CALC' ? 'bg-sky-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      Auto-Calculate
+                    </button>
+                  </div>
+                </div>
+
+                {/* Common fields: instalment type and value */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
                   <Field label="Instalment Type">
                     <select className={inputCls} value={form.installment_spec.installment_type} onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, installment_type: e.target.value as 'PERCENTAGE' | 'AMOUNT' } })}>
                       <option value="PERCENTAGE">Percentage</option>
                       <option value="AMOUNT">Exact Amount</option>
                     </select>
                   </Field>
-                  <Field label="Instalment Value">
+                  <Field label="Instalment Value / Amount">
                     <input type="number" className={inputCls} value={form.installment_spec.installment_value} onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, installment_value: Number(e.target.value) } })} />
                   </Field>
-                  <Field label="Days Offset">
-                    <input type="number" className={inputCls} value={form.installment_spec.days_offset} onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, days_offset: Number(e.target.value) } })} />
+                  <Field label="Reference Date">
+                    <select className={inputCls} value={form.installment_spec.reference_date} onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, reference_date: e.target.value as ReferenceDateType } })}>
+                      {ALL_REFERENCE_DATES.map((d) => (
+                        <option key={d} value={d}>{REFERENCE_DATE_LABELS[d]}</option>
+                      ))}
+                    </select>
                   </Field>
                 </div>
-                <Field label="Reference Date (first instalment only)" required>
-                  <select className={inputCls} value={form.installment_spec.reference_date} onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, reference_date: e.target.value as ReferenceDateType } })}>
-                    {ALL_REFERENCE_DATES.map((d) => (
-                      <option key={d} value={d}>{REFERENCE_DATE_LABELS[d]}</option>
-                    ))}
-                  </select>
-                </Field>
-                <p className="text-[10px] text-slate-400"># of instalments is auto-calculated: (payable amount - advance) / instalment amount</p>
+
+                {/* Mode A: Manual Lines */}
+                {form.installment_spec.instalment_mode === 'MANUAL_LINES' && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={addInstalmentLine}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-sky-50 text-sky-700 text-[11px] font-semibold hover:bg-sky-100 transition-colors"
+                      >
+                        <Plus size={12} /> Add Line
+                      </button>
+                      <span className="text-[10px] text-slate-400">Define each instalment line with its own amount and due-date criteria.</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {form.installment_spec.instalment_lines.length === 0 ? (
+                        <p className="text-[11px] text-slate-400 py-2">No instalment lines defined. Click "Add Line" to start.</p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-12 gap-1.5 px-1 text-[9px] font-bold uppercase text-slate-400">
+                            <span className="col-span-1">Seq</span>
+                            <span className="col-span-3">Amount</span>
+                            <span className="col-span-5">Due Date Reference</span>
+                            <span className="col-span-2">Days Offset</span>
+                            <span className="col-span-1"></span>
+                          </div>
+                          {form.installment_spec.instalment_lines.map((line, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-1.5 items-center">
+                              <span className="col-span-1 text-[11px] font-bold text-slate-500 text-center">{line.seq}</span>
+                              <input
+                                type="number"
+                                placeholder="Amount"
+                                className={`${inputCls} col-span-3`}
+                                value={line.amount}
+                                onChange={(e) => updateInstalmentLine(idx, 'amount', Number(e.target.value))}
+                              />
+                              <select
+                                className={`${inputCls} col-span-5`}
+                                value={line.due_date_reference}
+                                onChange={(e) => updateInstalmentLine(idx, 'due_date_reference', e.target.value)}
+                              >
+                                {ALL_REFERENCE_DATES.map((d) => (
+                                  <option key={d} value={d}>{REFERENCE_DATE_LABELS[d]}</option>
+                                ))}
+                              </select>
+                              <input
+                                type="number"
+                                placeholder="Days"
+                                className={`${inputCls} col-span-2`}
+                                value={line.days_offset}
+                                onChange={(e) => updateInstalmentLine(idx, 'days_offset', Number(e.target.value))}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeInstalmentLine(idx)}
+                                className="col-span-1 flex items-center justify-center p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mode B: Auto-Calculate */}
+                {form.installment_spec.instalment_mode === 'AUTO_CALC' && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <Field label="Number of Instalments (blank = auto-calc)">
+                        <input
+                          type="number"
+                          className={inputCls}
+                          value={form.installment_spec.instalment_count ?? ''}
+                          onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, instalment_count: e.target.value === '' ? null : Number(e.target.value) } })}
+                          placeholder="Auto"
+                        />
+                      </Field>
+                      <Field label="Initial Days Offset">
+                        <input
+                          type="number"
+                          className={inputCls}
+                          value={form.installment_spec.days_offset}
+                          onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, days_offset: Number(e.target.value) } })}
+                        />
+                      </Field>
+                      <Field label="Interval Days Between Instalments">
+                        <input
+                          type="number"
+                          className={inputCls}
+                          value={form.installment_spec.interval_days}
+                          onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, interval_days: Number(e.target.value) } })}
+                        />
+                      </Field>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Instalment Count = (Default Demand Amount - Advance) / Instalment Amount, rounded up.
+                      Any remainder is added to the last instalment.
+                    </p>
+                  </div>
+                )}
+
+                {/* Live Preview Panel */}
+                {instalmentPreview.length > 0 && (
+                  <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200">
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Instalment Preview ({instalmentPreview.length} lines)</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="text-[9px] font-bold uppercase text-slate-400 border-b border-slate-100">
+                            <th className="px-2.5 py-1.5 text-left">Seq</th>
+                            <th className="px-2.5 py-1.5 text-right">Amount</th>
+                            <th className="px-2.5 py-1.5 text-left">Due Date Reference</th>
+                            <th className="px-2.5 py-1.5 text-right">Days Offset</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {instalmentPreview.map((line, idx) => {
+                            const isLast = idx === instalmentPreview.length - 1;
+                            const prevAmount = idx > 0 ? instalmentPreview[idx - 1].amount : line.amount;
+                            const hasRemainder = isLast && idx > 0 && line.amount !== prevAmount;
+                            return (
+                              <tr key={idx} className={`border-b border-slate-50 ${isLast ? 'bg-amber-50/40' : ''}`}>
+                                <td className="px-2.5 py-1.5 font-semibold text-slate-600">{line.seq}</td>
+                                <td className="px-2.5 py-1.5 text-right font-semibold text-slate-700" title={fmtINR(line.amount)}>
+                                  {fmtINR(line.amount)}
+                                  {hasRemainder && <span className="ml-1 text-[9px] text-amber-600 font-bold">(incl. remainder)</span>}
+                                </td>
+                                <td className="px-2.5 py-1.5 text-slate-600" title={line.due_date_reference}>
+                                  {REFERENCE_DATE_LABELS[line.due_date_reference as ReferenceDateType] ?? line.due_date_reference}
+                                </td>
+                                <td className="px-2.5 py-1.5 text-right text-slate-600">{line.days_offset} days</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </Section>
 
               {/* Penalty Slabs */}

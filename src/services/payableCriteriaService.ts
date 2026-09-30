@@ -10,6 +10,7 @@ import type {
   PayableIncreaseSpec,
   PayableInstalmentGridRow,
   PayableCollectionException,
+  PayableInstalmentLine,
 } from '../types/payableCriteria';
 
 const TABLE = 'payable_criteria_mt';
@@ -20,6 +21,7 @@ const PENALTY = 'payable_penalty_slabs';
 const ALERT = 'payable_alert_specs';
 const INCREASE = 'payable_increase_specs';
 const GRID = 'payable_instalment_grid';
+const LINES = 'payable_instalment_lines';
 const EXCEPTIONS = 'payable_collection_exceptions';
 
 const CHILD_SELECT = `
@@ -31,6 +33,7 @@ const CHILD_SELECT = `
   alert_spec:${ALERT}(*),
   increase_spec:${INCREASE}(*),
   instalment_grid:${GRID}(*),
+  instalment_lines:${LINES}(*),
   collection_exceptions:${EXCEPTIONS}(*)
 `;
 
@@ -213,6 +216,9 @@ export const payableCriteriaService = {
           installment_value: installment_spec.installment_value,
           reference_date: installment_spec.reference_date,
           days_offset: installment_spec.days_offset,
+          instalment_mode: installment_spec.instalment_mode,
+          instalment_count: installment_spec.instalment_count ?? null,
+          interval_days: installment_spec.interval_days,
         })
         .eq('id', installment_spec.id);
       if (error) throw error;
@@ -223,7 +229,26 @@ export const payableCriteriaService = {
         installment_value: installment_spec.installment_value,
         reference_date: installment_spec.reference_date,
         days_offset: installment_spec.days_offset,
+        instalment_mode: installment_spec.instalment_mode,
+        instalment_count: installment_spec.instalment_count ?? null,
+        interval_days: installment_spec.interval_days,
       });
+      if (error) throw error;
+    }
+
+    // Instalment lines (multiple rows per criteria) — delete and re-insert
+    const { error: linesDelErr } = await supabase.from(LINES).delete().eq('criteria_id', criteriaId);
+    if (linesDelErr) throw linesDelErr;
+    const instalmentLines = installment_spec.instalment_lines ?? [];
+    if (instalmentLines.length > 0) {
+      const rows = instalmentLines.map((l: PayableInstalmentLine) => ({
+        criteria_id: criteriaId,
+        seq: l.seq,
+        amount: l.amount,
+        due_date_reference: l.due_date_reference,
+        days_offset: l.days_offset,
+      }));
+      const { error } = await supabase.from(LINES).insert(rows);
       if (error) throw error;
     }
 

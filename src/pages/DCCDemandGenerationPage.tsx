@@ -283,19 +283,40 @@ export const DCCDemandGenerationPage: React.FC = () => {
         const matchingObjects = objects.filter(o => o.object_type === rule.object_type);
         const dtId = rule.demand_type_id!;
         const amt = autoAmount[rule.id] ?? 1000;
-        const dueDate = new Date(autoRunDate);
-        dueDate.setDate(dueDate.getDate() + (rule.full_payment_spec?.days_offset ?? 30));
+        const instalmentLines = rule.installment_spec?.instalment_lines ?? [];
 
-        for (const obj of matchingObjects) {
-          autoRows.push({
-            criteria_id: rule.id,
-            object_id: obj.id,
-            owner_id: obj.owner_id,
-            demand_type_id: dtId,
-            amount: amt,
-            due_date: dueDate.toISOString().slice(0, 10),
-            run_date: autoRunDate,
-          });
+        if (instalmentLines.length > 0) {
+          // Multi-instalment expansion: create one demand row per instalment line per object
+          for (const obj of matchingObjects) {
+            for (const line of instalmentLines) {
+              const dueDate = new Date(autoRunDate);
+              dueDate.setDate(dueDate.getDate() + line.days_offset);
+              autoRows.push({
+                criteria_id: rule.id,
+                object_id: obj.id,
+                owner_id: obj.owner_id,
+                demand_type_id: dtId,
+                amount: line.amount,
+                due_date: dueDate.toISOString().slice(0, 10),
+                run_date: autoRunDate,
+              });
+            }
+          }
+        } else {
+          // Single demand per object (original behaviour)
+          const dueDate = new Date(autoRunDate);
+          dueDate.setDate(dueDate.getDate() + (rule.full_payment_spec?.days_offset ?? 30));
+          for (const obj of matchingObjects) {
+            autoRows.push({
+              criteria_id: rule.id,
+              object_id: obj.id,
+              owner_id: obj.owner_id,
+              demand_type_id: dtId,
+              amount: amt,
+              due_date: dueDate.toISOString().slice(0, 10),
+              run_date: autoRunDate,
+            });
+          }
         }
       }
 
