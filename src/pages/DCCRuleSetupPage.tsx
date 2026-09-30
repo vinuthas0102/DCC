@@ -28,9 +28,9 @@ import type {
   PctBasis,
   DueDateReference,
   InterestBasis,
-  INTEREST_BASIS_LABELS,
 } from '../types/payableCriteria';
 import {
+  INTEREST_BASIS_LABELS,
   PAYABLE_TRANSACTION_TYPES,
   PAYABLE_TRANSACTION_TYPE_LABELS,
   ALL_PAYMENT_MODES,
@@ -142,6 +142,8 @@ const computeAutoInstalmentLines = (
       amount: Math.round(amt * 100) / 100,
       due_date_reference: refDate as ReferenceDateType,
       days_offset: initialOffset + (i - 1) * intervalDays,
+      interest_pct: 0,
+      defaulted_interest_pct: 0,
     });
   }
   return lines;
