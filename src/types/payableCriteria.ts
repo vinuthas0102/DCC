@@ -364,6 +364,7 @@ export interface PayableCollectionException {
 
 export interface PayableCriteria {
   id: string;
+  rule_number: number;
   dept: string;
   subdept: string;
   module_id: string;

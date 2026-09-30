@@ -842,7 +842,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                       className={`group flex items-center gap-3 px-4 py-2 rounded-md border-l-[3px] border border-slate-200 cursor-pointer transition-all relative ${isActive ? 'ring-2 ring-emerald-400/40 border-emerald-400' : ''} ${rowStyle} hover:shadow-sm`}
                     >
                       {/* Left: primary info */}
-                      <span className="text-[10px] font-bold text-slate-300 w-5 text-right shrink-0">{idx + 1}</span>
+                      <span className="text-[10px] font-bold text-slate-400 w-8 text-right shrink-0 tabular-nums">R{String(rec.rule_number ?? idx + 1).padStart(3, '0')}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[srcKey] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {srcKey}
                       </span>
@@ -913,7 +913,7 @@ export const DCCRuleSetupPage: React.FC = () => {
         {showForm && (
           <div className="w-[520px] shrink-0 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-800 shrink-0">
-              <span className="text-xs font-bold text-white">{editing ? 'Edit Rule' : 'New Rule'}</span>
+              <span className="text-xs font-bold text-white">{editing ? `Edit Rule R${String(editing.rule_number).padStart(3, '0')}` : 'New Rule'}</span>
               <button
                 onClick={() => { setShowNew(false); setEditing(null); setSelectedId(null); }}
                 className="ml-auto p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
