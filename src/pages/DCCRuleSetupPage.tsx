@@ -955,15 +955,6 @@ export const DCCRuleSetupPage: React.FC = () => {
                             Enable
                           </button>
                         )}
-                        {!isUsed && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(rec.id); }}
-                            className="p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
-                            title="Delete"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
