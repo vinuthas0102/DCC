@@ -219,6 +219,8 @@ export const payableCriteriaService = {
           instalment_mode: installment_spec.instalment_mode,
           instalment_count: installment_spec.instalment_count ?? null,
           interval_days: installment_spec.interval_days,
+          default_interest_pct: installment_spec.default_interest_pct ?? 0,
+          default_defaulted_interest_pct: installment_spec.default_defaulted_interest_pct ?? 0,
         })
         .eq('id', installment_spec.id);
       if (error) throw error;
@@ -232,6 +234,8 @@ export const payableCriteriaService = {
         instalment_mode: installment_spec.instalment_mode,
         instalment_count: installment_spec.instalment_count ?? null,
         interval_days: installment_spec.interval_days,
+        default_interest_pct: installment_spec.default_interest_pct ?? 0,
+        default_defaulted_interest_pct: installment_spec.default_defaulted_interest_pct ?? 0,
       });
       if (error) throw error;
     }

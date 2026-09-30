@@ -246,13 +246,6 @@ export const COLLECTION_EXCEPTION_TYPE_LABELS: Record<CollectionExceptionType, s
   Alert: 'Alert',
 };
 
-export type InterestBasis = 'demand_amount' | 'outstanding_amount';
-
-export const INTEREST_BASIS_LABELS: Record<InterestBasis, string> = {
-  demand_amount: 'On Demand Amount',
-  outstanding_amount: 'On Outstanding Amount',
-};
-
 export type PctBasis = 'Daily' | 'Monthly' | 'Yearly';
 
 export const PCT_BASIS_OPTIONS: PctBasis[] = ['Daily', 'Monthly', 'Yearly'];
@@ -307,6 +300,8 @@ export interface PayableInstallmentSpec {
   instalment_count: number | null;
   interval_days: number;
   instalment_lines: PayableInstalmentLine[];
+  default_interest_pct: number;
+  default_defaulted_interest_pct: number;
 }
 
 export interface PayablePenaltySlab {
@@ -398,7 +393,6 @@ export interface PayableCriteria {
   tpa_url_id: string | null;
   last_run_date: string | null;
   next_instalment_seq: number | null;
-  interest_basis: InterestBasis;
   // Child specs (populated when fetched with joins)
   full_payment_spec?: PayableFullPaymentSpec | null;
   advance_spec?: PayableAdvanceSpec | null;
@@ -436,7 +430,6 @@ export interface PayableCriteriaInput {
   due_date_reference: DueDateReference | null;
   grace_period_days: number;
   tpa_url_id: string | null;
-  interest_basis: InterestBasis;
   // Child specs
   full_payment_spec: PayableFullPaymentSpec;
   advance_spec: PayableAdvanceSpec;

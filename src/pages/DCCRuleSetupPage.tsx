@@ -27,10 +27,8 @@ import type {
   CollectionExceptionType,
   PctBasis,
   DueDateReference,
-  InterestBasis,
 } from '../types/payableCriteria';
 import {
-  INTEREST_BASIS_LABELS,
   PAYABLE_TRANSACTION_TYPES,
   PAYABLE_TRANSACTION_TYPE_LABELS,
   ALL_PAYMENT_MODES,
@@ -121,6 +119,8 @@ const computeAutoInstalmentLines = (
   refDate: string,
   initialOffset: number,
   intervalDays: number,
+  interestPct: number,
+  defaultedInterestPct: number,
 ): PayableInstalmentLine[] => {
   if (instalmentAmount <= 0) return [];
   let n = count;
@@ -142,8 +142,8 @@ const computeAutoInstalmentLines = (
       amount: Math.round(amt * 100) / 100,
       due_date_reference: refDate as ReferenceDateType,
       days_offset: initialOffset + (i - 1) * intervalDays,
-      interest_pct: 0,
-      defaulted_interest_pct: 0,
+      interest_pct: interestPct,
+      defaulted_interest_pct: defaultedInterestPct,
     });
   }
   return lines;
@@ -194,7 +194,6 @@ const emptyInput = (): PayableCriteriaInput => ({
   due_date_reference: null,
   grace_period_days: 0,
   tpa_url_id: null,
-  interest_basis: 'demand_amount',
   full_payment_spec: {
     reference_date: 'allotted_date',
     days_offset: 0,
@@ -215,6 +214,8 @@ const emptyInput = (): PayableCriteriaInput => ({
     instalment_count: null,
     interval_days: 30,
     instalment_lines: [] as PayableInstalmentLine[],
+    default_interest_pct: 0,
+    default_defaulted_interest_pct: 0,
   },
   penalty_slabs: [1, 2, 3, 4, 5].map((n) => emptyPenaltySlab(n)),
   alert_spec: {
@@ -373,7 +374,6 @@ export const DCCRuleSetupPage: React.FC = () => {
       due_date_reference: rec.due_date_reference ?? null,
       grace_period_days: rec.grace_period_days ?? 0,
       tpa_url_id: rec.tpa_url_id ?? null,
-      interest_basis: rec.interest_basis ?? 'demand_amount',
       full_payment_spec: {
         reference_date: rec.full_payment_spec?.reference_date ?? 'allotted_date',
         days_offset: rec.full_payment_spec?.days_offset ?? 0,
@@ -396,6 +396,8 @@ export const DCCRuleSetupPage: React.FC = () => {
         instalment_count: rec.installment_spec?.instalment_count ?? null,
         interval_days: rec.installment_spec?.interval_days ?? 30,
         instalment_lines: rec.installment_spec?.instalment_lines ?? [],
+        default_interest_pct: rec.installment_spec?.default_interest_pct ?? 0,
+        default_defaulted_interest_pct: rec.installment_spec?.default_defaulted_interest_pct ?? 0,
       },
       penalty_slabs: rec.penalty_slabs?.length
         ? [1, 2, 3, 4, 5].map((n) => rec.penalty_slabs!.find((s) => s.slab_row === n) ?? emptyPenaltySlab(n))
@@ -614,6 +616,8 @@ export const DCCRuleSetupPage: React.FC = () => {
       spec.reference_date,
       spec.days_offset,
       spec.interval_days,
+      spec.default_interest_pct ?? 0,
+      spec.default_defaulted_interest_pct ?? 0,
     );
   }, [form.installment_spec, form.advance_spec, form.default_demand_amount]);
 
@@ -1328,8 +1332,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                             <span className="col-span-2">Amount</span>
                             <span className="col-span-3">Due Date Reference</span>
                             <span className="col-span-2">Days Offset</span>
-                            <span className="col-span-2">Interest %</span>
-                            <span className="col-span-2">Def Int %</span>
+                            <span className="col-span-2">Int % (On Demand)</span>
+                            <span className="col-span-2">Def Int % (On Outstanding)</span>
                             <span className="col-span-2"></span>
                           </div>
                           {form.installment_spec.instalment_lines.map((line, idx) => (
@@ -1419,9 +1423,34 @@ export const DCCRuleSetupPage: React.FC = () => {
                         />
                       </Field>
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Default Interest % (On Demand)">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className={inputCls}
+                          value={form.installment_spec.default_interest_pct}
+                          onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, default_interest_pct: Number(e.target.value) } })}
+                          placeholder="0.00"
+                        />
+                      </Field>
+                      <Field label="Default Defaulted Interest % (On Outstanding)">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className={inputCls}
+                          value={form.installment_spec.default_defaulted_interest_pct}
+                          onChange={(e) => setForm({ ...form, installment_spec: { ...form.installment_spec, default_defaulted_interest_pct: Number(e.target.value) } })}
+                          placeholder="0.00"
+                        />
+                      </Field>
+                    </div>
                     <p className="text-[10px] text-slate-400">
                       Instalment Count = (Default Demand Amount - Advance) / Instalment Amount, rounded up.
                       Any remainder is added to the last instalment.
+                    </p>
+                    <p className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5">
+                      Standard Interest % applies to the specific Demand Amount. Defaulted Interest % applies as an additional rate on the Total Outstanding Amount if overdue.
                     </p>
                   </div>
                 )}
@@ -1440,8 +1469,8 @@ export const DCCRuleSetupPage: React.FC = () => {
                             <th className="px-2.5 py-1.5 text-right">Amount</th>
                             <th className="px-2.5 py-1.5 text-left">Due Date Reference</th>
                             <th className="px-2.5 py-1.5 text-right">Days Offset</th>
-                            <th className="px-2.5 py-1.5 text-right">Int %</th>
-                            <th className="px-2.5 py-1.5 text-right">Def Int %</th>
+                            <th className="px-2.5 py-1.5 text-right">Int % (On Demand)</th>
+                            <th className="px-2.5 py-1.5 text-right">Def Int % (On Outstanding)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1474,30 +1503,17 @@ export const DCCRuleSetupPage: React.FC = () => {
 
               {/* Penalty Slabs */}
               <Section title="Penalty Slabs Grid" icon={<Percent size={13} className="text-red-500" />}>
-                <div className="mb-3">
-                  <Field label="Interest Basis">
-                    <select
-                      className={inputCls}
-                      value={form.interest_basis}
-                      onChange={(e) => setForm({ ...form, interest_basis: e.target.value as InterestBasis })}
-                    >
-                      {Object.entries(INTEREST_BASIS_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Controls whether interest is calculated on each individual demand amount or on the total outstanding amount.
-                  </p>
-                </div>
+                <p className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 mb-3">
+                  Standard Interest % applies to the specific Demand Amount. Defaulted Interest % applies as an additional rate on the Total Outstanding Amount if overdue.
+                </p>
                 <div className="space-y-1.5">
                   <div className="grid grid-cols-6 gap-1.5 px-1 text-[9px] font-bold uppercase text-slate-400">
                     <span>Row</span>
                     <span>Penalty Type</span>
                     <span>Value</span>
                     <span>Late Days</span>
-                    <span>Interest %</span>
-                    <span>Defaulted Int %</span>
+                    <span>Interest % (On Demand)</span>
+                    <span>Defaulted Int % (On Outstanding)</span>
                   </div>
                   {form.penalty_slabs.map((slab, idx) => (
                     <div key={idx} className="grid grid-cols-6 gap-1.5 items-center">
@@ -1514,7 +1530,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2">
-                  Interest % applies to the demand amount for the penalty period. Defaulted Interest % is the additional rate applied after the due date is missed.
+                  Interest % (On Demand) applies directly to the demand amount for the active period. Defaulted Interest % (On Outstanding) applies as an additional penalty on the total outstanding balance once overdue.
                 </p>
               </Section>
 
