@@ -181,6 +181,7 @@ export interface DccTile {
   region: string | null;
   group_name: string | null;
   subgroup: string | null;
+  run_number?: number;
 }
 
 export interface DccTrackerSummary {

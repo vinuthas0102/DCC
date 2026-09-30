@@ -94,9 +94,10 @@ interface RunDemandTile {
   region: string | null;
   group_name: string | null;
   subgroup: string | null;
+  run_number: number;
 }
 
-function demandsToTiles(demands: DccDemand[]): RunDemandTile[] {
+function demandsToTiles(demands: DccDemand[], runNumber: number): RunDemandTile[] {
   const today = new Date();
   return demands.map((d) => {
     const due = Math.max(0, d.amount - d.amount_paid);
@@ -140,6 +141,7 @@ function demandsToTiles(demands: DccDemand[]): RunDemandTile[] {
       region: obj?.region ?? null,
       group_name: obj?.group_name ?? null,
       subgroup: obj?.subgroup ?? null,
+      run_number: runNumber,
     };
   });
 }
@@ -792,8 +794,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     </div>
 
                     {/* Cols 9-10: Type & Rule Badges */}
-                    <div className="col-span-2 min-w-0 flex flex-col gap-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 w-fit ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                    <div className="col-span-2 min-w-0 flex flex-wrap items-center gap-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {log.source}
                       </span>
                       <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
@@ -999,7 +1001,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
   const [filterState, setFilterState] = useState<RunDetailFilterState>(emptyRunFilter);
   const [showFilter, setShowFilter] = useState(false);
 
-  const tiles = useMemo(() => demandsToTiles(details), [details]);
+  const tiles = useMemo(() => demandsToTiles(details, log.run_number), [details, log.run_number]);
 
   const filteredTiles = useMemo(() => {
     let result = tiles;
@@ -1102,9 +1104,14 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
         className="flex flex-col justify-between h-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
       >
         <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
-          <span className="text-xs font-bold text-slate-800 tabular-nums shrink-0 truncate max-w-[60%]" title={tile.object_description || tile.object_ref}>
-            {tile.object_description || tile.object_ref}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[60%]">
+            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full shrink-0 tabular-nums">
+              RUN-{String(tile.run_number ?? 0).padStart(3, '0')}
+            </span>
+            <span className="text-xs font-bold text-slate-800 tabular-nums shrink-0 truncate" title={tile.object_description || tile.object_ref}>
+              {tile.object_description || tile.object_ref}
+            </span>
+          </div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${st.bg} ${st.text} border ${st.border}`}>
             {st.label}
           </span>
@@ -1162,6 +1169,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="py-2 px-3 text-left font-bold text-slate-600">Run #</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Object</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Owner</th>
               <th className="py-2 px-3 text-left font-bold text-slate-600">Type</th>
@@ -1182,6 +1190,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                   onClick={() => onViewDemand(tile.id)}
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
                 >
+                  <td className="py-1.5 px-3 text-[10px] font-bold text-blue-600 tabular-nums whitespace-nowrap">RUN-{String(tile.run_number ?? 0).padStart(3, '0')}</td>
                   <td className="py-1.5 px-3">
                     <div className="text-xs font-semibold text-slate-900 truncate max-w-[200px]">{tile.object_description || tile.object_ref}</div>
                     <div className="text-[9px] text-slate-400 truncate max-w-[200px]">{tile.object_ref}</div>

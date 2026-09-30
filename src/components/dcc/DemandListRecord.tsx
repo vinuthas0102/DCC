@@ -69,6 +69,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700" title={tile.owner_name}>{tile.owner_name}</div>
         </div>
 
+        <Metric label="Run #" value={tile.run_number != null ? `RUN-${String(tile.run_number).padStart(3, '0')}` : '—'} valueCls="text-[10px] font-bold text-blue-600 tabular-nums" width="w-16" />
         <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-16" />
         <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} width="w-16" />
         <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" width="w-20" />
