@@ -376,6 +376,7 @@ export interface PayableCriteria {
   next_run_date: string | null;
   available_payment_modes: PaymentMode[];
   include_gst: boolean;
+  include_arrears: boolean;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
@@ -418,6 +419,7 @@ export interface PayableCriteriaInput {
   next_run_date: string | null;
   available_payment_modes: PaymentMode[];
   include_gst: boolean;
+  include_arrears: boolean;
   is_active: boolean;
   // DCC keying (Phase 2)
   demand_type_id: string | null;
