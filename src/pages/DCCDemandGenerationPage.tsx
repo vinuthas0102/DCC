@@ -154,6 +154,21 @@ const DemandTypeBadge: React.FC<{ code: string; label: string }> = ({ code, labe
   );
 };
 
+
+const RunRuleNumberBadge: React.FC<{ ruleIds: string[]; rules: PayableCriteria[] }> = ({ ruleIds, rules }) => {
+  if (!ruleIds || ruleIds.length === 0) return null;
+  const numbers = ruleIds
+    .map(cid => rules.find(r => r.id === cid)?.rule_number)
+    .filter((n): n is number => n != null)
+    .sort((a, b) => a - b);
+  if (numbers.length === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full shrink-0">
+      {numbers.map(n => `R${String(n).padStart(3, '0')}`).join(', ')}
+    </span>
+  );
+};
+
 const RunDemandTypeBadge: React.FC<{ types: DccDemandType[] }> = ({ types }) => {
   const [showHover, setShowHover] = useState(false);
   if (types.length === 0) return null;
@@ -213,6 +228,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
   const [detailModalLog, setDetailModalLog] = useState<DccDemandRunLog | null>(null);
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
   const [runDemandTypesMap, setRunDemandTypesMap] = useState<Record<string, DccDemandType[]>>({});
+  const [runRuleIdsMap, setRunRuleIdsMap] = useState<Record<string, string[]>>({});
 
   // Filters
   const [filterState, setFilterState] = useState<RunHistoryFilterState>(emptyRunHistoryFilter);
@@ -237,6 +253,15 @@ export const DCCDemandGenerationPage: React.FC = () => {
         }
       }));
       setRunDemandTypesMap(typesMap);
+      const ruleIdsMap: Record<string, string[]> = {};
+      await Promise.all(log.map(async (l) => {
+        try {
+          ruleIdsMap[l.id] = await dccService.getRunRuleNumbers(l);
+        } catch {
+          ruleIdsMap[l.id] = [];
+        }
+      }));
+      setRunRuleIdsMap(ruleIdsMap);
     } catch {
       // ignore
     } finally {
@@ -643,6 +668,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                             {log.source}
                           </span>
                           <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                          <RunRuleNumberBadge ruleIds={runRuleIdsMap[log.id] ?? []} rules={rules} />
                         </div>
                       </div>
                       <button
@@ -697,6 +723,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                               {log.source}
                             </span>
                             <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                            <RunRuleNumberBadge ruleIds={runRuleIdsMap[log.id] ?? []} rules={rules} />
                             <button
                               onClick={() => handleOpenRunDetails(log)}
                               className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
@@ -770,6 +797,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         {log.source}
                       </span>
                       <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
+                      <RunRuleNumberBadge ruleIds={runRuleIdsMap[log.id] ?? []} rules={rules} />
                     </div>
 
                     {/* Cols 11-12: Action Button */}

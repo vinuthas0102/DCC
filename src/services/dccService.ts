@@ -390,6 +390,26 @@ export const dccService = {
     return types;
   },
 
+  async getRunRuleNumbers(runLog: DccDemandRunLog): Promise<string[]> {
+    const { data, error } = await supabase
+      .from(DEMANDS)
+      .select('criteria_id')
+      .eq('demand_run_date', runLog.run_date)
+      .eq('generation_source', runLog.source)
+      .not('criteria_id', 'is', null);
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
+    const seen = new Set<string>();
+    for (const row of (data ?? []) as Array<{ criteria_id: string | null }>) {
+      if (row.criteria_id && !seen.has(row.criteria_id)) {
+        seen.add(row.criteria_id);
+      }
+    }
+    return Array.from(seen);
+  },
+
   async getRunLogDetails(runLog: DccDemandRunLog): Promise<DccDemand[]> {
     let q = supabase
       .from(DEMANDS)
