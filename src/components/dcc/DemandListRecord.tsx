@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  MessageSquare, ChevronRight,
+  MessageSquare, ChevronRight, Pencil, Lock,
   Car, FileText, Home, Landmark, CircleDollarSign, Building2,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
@@ -36,10 +36,13 @@ export interface DemandListRecordProps {
   onViewDetails: (tile: DccTile) => void;
   onChat?: (tile: DccTile) => void;
   isChatActive?: boolean;
+  onEdit?: (tile: DccTile) => void;
+  canEdit?: boolean;
+  editTitle?: string;
 }
 
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
-  tile, idx, onViewDetails, onChat, isChatActive,
+  tile, idx, onViewDetails, onChat, isChatActive, onEdit, canEdit, editTitle,
 }) => {
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
@@ -126,6 +129,23 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           >
             <MessageSquare size={12} />
           </button>
+        )}
+        {onEdit && canEdit && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(tile); }}
+            title={editTitle ?? 'Edit Demand'}
+            className="flex shrink-0 items-center justify-center rounded border border-slate-200 p-1 text-slate-400 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
+        {onEdit && !canEdit && (
+          <div
+            title="Run is approved — click Amend Run to enable editing"
+            className="flex shrink-0 items-center justify-center rounded border border-slate-200 p-1 text-slate-300"
+          >
+            <Lock size={12} />
+          </div>
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
