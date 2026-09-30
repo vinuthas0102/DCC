@@ -56,7 +56,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
       className="group flex items-stretch rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
     >
       <div className="flex min-w-0 flex-1 items-center overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-        <div className="flex min-w-max items-center">
+        <div className="flex min-w-max items-center pr-3">
 
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-900">
           <ObjectIcon size={11} strokeWidth={1.8} />
@@ -95,7 +95,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           width="w-20"
         />
 
-        <div className="flex shrink-0 items-center gap-1.5 pl-4">
+        <div className="flex shrink-0 items-center gap-1.5 pl-4 pr-2">
           <div className="flex w-20 shrink-0 justify-start overflow-hidden">
             <span className="max-w-full truncate whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800" title={tile.object_type}>
               <span className="truncate block" title={tile.object_type}>{tile.object_type}</span>
@@ -120,7 +120,8 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 border-l border-slate-200 bg-slate-50/40 px-2.5 py-1.5">
+      {/* Action zone — solid background so badges never show through */}
+      <div className="flex shrink-0 items-center gap-1.5 border-l-2 border-slate-300 bg-white px-2.5 py-1.5 z-10 relative">
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
