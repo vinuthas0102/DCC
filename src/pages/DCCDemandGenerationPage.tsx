@@ -21,6 +21,7 @@ import { frequencyCodeLabel } from '../types/payableCriteria';
 import type { DccDemandRunLog, DccDemandType, DccObject, DccDemand, DccDemandStatus, DccRunApprovalStatus } from '../types/dcc';
 import type { PayableCriteria } from '../types/payableCriteria';
 import { DCC_STATUS, fmtINR, fmtDateDDMMYYYY, fmtDateTimeDDMMYYYY, getDemandTypeBadgeStyle } from '../constants/dccTheme';
+import { getDemandComponentConfig, computeBill } from '../constants/demandComponents';
 import { DemandListRecord } from '../components/dcc/DemandListRecord';
 import { DCCDemandDetailModal } from './DCCDemandDetailPage';
 import { RunHistoryFilterModal, emptyRunHistoryFilter, countActiveRunHistoryFilters } from '../components/dcc/RunHistoryFilterModal';
@@ -98,6 +99,8 @@ interface RunDemandTile {
   gst_pct: number;
   gst_type: 'inclusive' | 'exclusive';
   gst_amount: number;
+  interest_pct: number;
+  defaulted_interest_pct: number;
   region: string | null;
   group_name: string | null;
   subgroup: string | null;
@@ -146,6 +149,8 @@ function demandsToTiles(demands: DccDemand[], runNumber: number): RunDemandTile[
       gst_pct: d.gst_pct ?? 0,
       gst_type: d.gst_type ?? 'exclusive',
       gst_amount: d.gst_amount ?? 0,
+      interest_pct: d.interest_pct ?? 0,
+      defaulted_interest_pct: d.defaulted_interest_pct ?? 0,
       region: obj?.region ?? null,
       group_name: obj?.group_name ?? null,
       subgroup: obj?.subgroup ?? null,
@@ -1039,6 +1044,10 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
   const [showFilter, setShowFilter] = useState(false);
   const [editTile, setEditTile] = useState<RunDemandTile | null>(null);
   const [editAmount, setEditAmount] = useState('');
+  const [editGstPct, setEditGstPct] = useState('');
+  const [editGstAmount, setEditGstAmount] = useState('');
+  const [editInterestPct, setEditInterestPct] = useState('');
+  const [editDefaultInterestPct, setEditDefaultInterestPct] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
   const [editStatus, setEditStatus] = useState<DccDemandStatus>('DUE');
   const [savingEdit, setSavingEdit] = useState(false);
@@ -1088,6 +1097,10 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
   const handleOpenEdit = (tile: RunDemandTile) => {
     setEditTile(tile);
     setEditAmount(String(tile.total_amount));
+    setEditGstPct(String(tile.gst_pct ?? 0));
+    setEditGstAmount(String(tile.gst_amount ?? 0));
+    setEditInterestPct(String(tile.interest_pct ?? 0));
+    setEditDefaultInterestPct(String(tile.defaulted_interest_pct ?? 0));
     setEditDueDate(tile.due_date);
     setEditStatus(tile.status);
   };
@@ -1098,7 +1111,15 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
     try {
       await dccService.updateDemand(
         editTile.id,
-        { amount: Number(editAmount), due_date: editDueDate, status: editStatus },
+        {
+          amount: Number(editAmount),
+          due_date: editDueDate,
+          status: editStatus,
+          gst_pct: Number(editGstPct) || 0,
+          gst_amount: Number(editGstAmount) || 0,
+          interest_pct: Number(editInterestPct) || 0,
+          defaulted_interest_pct: Number(editDefaultInterestPct) || 0,
+        },
         isAmending,
       );
       setToastMsg(isAmending ? 'Demand amended successfully' : 'Demand updated successfully');
@@ -1685,7 +1706,19 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
 
       {/* Edit / Amend Demand Modal */}
       <AnimatePresence>
-        {editTile && (
+        {editTile && (() => {
+          const baseAmt = Number(editAmount) || 0;
+          const gstAmt = Number(editGstAmount) || 0;
+          const interestPct = Number(editInterestPct) || 0;
+          const interestAmt = Math.round(baseAmt * interestPct / 100);
+          const penaltyAmt = editTile.overdue_amount > 0 ? Math.round(editTile.overdue_amount * 0.02) : 0;
+          const grossDemand = baseAmt + gstAmt + interestAmt + penaltyAmt;
+          const netPayable = Math.max(0, grossDemand - editTile.amount_paid);
+          const config = getDemandComponentConfig(editTile.demand_type_code, editTile.object_type);
+          const isOverdue = editStatus === 'OVERDUE';
+          const bill = computeBill(baseAmt, editTile.amount_paid, Math.max(0, baseAmt - editTile.amount_paid), isOverdue, 0, config);
+
+          return (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -1700,7 +1733,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="pointer-events-auto w-full max-w-[420px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
+                className="pointer-events-auto w-full max-w-[480px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
               >
                 {/* Header */}
                 <div className={`flex items-center gap-2.5 px-5 py-4 ${isAmending ? 'bg-blue-700' : 'bg-slate-800'}`}>
@@ -1717,54 +1750,164 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
                   {/* Context card */}
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Demand</div>
-                    <div className="text-xs font-bold text-slate-900 truncate" title={editTile.object_description || editTile.object_ref}>
-                      {editTile.object_description || editTile.object_ref}
-                    </div>
-                    <div className="text-[10px] font-semibold text-slate-500 mt-0.5">{editTile.demand_type_label}</div>
-                  </div>
-
-                  {/* Amount */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1.5">Amount (₹)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
-                      <input
-                        type="number"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                        className="w-full pl-7 pr-3 py-2.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                      />
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Demand</div>
+                        <div className="text-xs font-bold text-slate-900 truncate" title={editTile.object_description || editTile.object_ref}>
+                          {editTile.object_description || editTile.object_ref}
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-500 ml-2 shrink-0">{editTile.demand_type_label}</span>
                     </div>
                   </div>
 
-                  {/* Due Date */}
+                  {/* Section: Editable Amounts */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1.5">Due Date</label>
-                    <input
-                      type="date"
-                      value={editDueDate}
-                      onChange={(e) => setEditDueDate(e.target.value)}
-                      className="w-full px-3 py-2.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                    />
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Editable Components</div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Base Amount */}
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Base Amount (₹)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                          <input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            className="w-full pl-7 pr-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* GST % */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">GST %</label>
+                        <input
+                          type="number"
+                          value={editGstPct}
+                          onChange={(e) => {
+                            setEditGstPct(e.target.value);
+                            const pct = Number(e.target.value) || 0;
+                            const base = Number(editAmount) || 0;
+                            setEditGstAmount(String(Math.round(base * pct / 100)));
+                          }}
+                          className="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+
+                      {/* GST Amount */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">GST Amount (₹)</label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">₹</span>
+                          <input
+                            type="number"
+                            value={editGstAmount}
+                            onChange={(e) => setEditGstAmount(e.target.value)}
+                            className="w-full pl-6 pr-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Interest % */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Interest % p.a.</label>
+                        <input
+                          type="number"
+                          value={editInterestPct}
+                          onChange={(e) => setEditInterestPct(e.target.value)}
+                          className="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+
+                      {/* Defaulted Interest % */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Default Interest %</label>
+                        <input
+                          type="number"
+                          value={editDefaultInterestPct}
+                          onChange={(e) => setEditDefaultInterestPct(e.target.value)}
+                          className="w-full px-2.5 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+
+                      {/* Due Date */}
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Due Date</label>
+                        <input
+                          type="date"
+                          value={editDueDate}
+                          onChange={(e) => setEditDueDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+
+                      {/* Status */}
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Status</label>
+                        <select
+                          value={editStatus}
+                          onChange={(e) => setEditStatus(e.target.value as DccDemandStatus)}
+                          className="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
+                        >
+                          <option value="DUE">Due</option>
+                          <option value="OVERDUE">Overdue</option>
+                          <option value="PAID">Paid</option>
+                          <option value="EXEMPTED">Exempted</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Status */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1.5">Status</label>
-                    <select
-                      value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value as DccDemandStatus)}
-                      className="w-full px-3 py-2.5 text-xs font-semibold border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                    >
-                      <option value="DUE">Due</option>
-                      <option value="OVERDUE">Overdue</option>
-                      <option value="PAID">Paid</option>
-                      <option value="EXEMPTED">Exempted</option>
-                    </select>
+                  {/* Line-item breakdown */}
+                  {config.components.length > 1 && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Component Breakdown</div>
+                      {bill.lineItems.map((li) => (
+                        <div key={li.key} className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600 font-medium truncate pr-2">{li.label}</span>
+                          <span className="text-slate-800 font-bold tabular-nums shrink-0">{fmtINR(li.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Summary - computed totals */}
+                  <div className="rounded-lg border border-slate-200 bg-blue-50/40 px-3 py-2.5 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Computed Summary</div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-600 font-medium">Base Amount</span>
+                      <span className="text-slate-800 font-bold tabular-nums">{fmtINR(baseAmt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-600 font-medium">GST ({editGstPct || 0}%)</span>
+                      <span className="text-slate-700 font-bold tabular-nums">+ {fmtINR(gstAmt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-600 font-medium">Interest ({editInterestPct || 0}%)</span>
+                      <span className="text-slate-700 font-bold tabular-nums">+ {fmtINR(interestAmt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-600 font-medium">Penalty / Late Fee</span>
+                      <span className="text-red-600 font-bold tabular-nums">+ {fmtINR(penaltyAmt)}</span>
+                    </div>
+                    <div className="border-t border-slate-200 my-1" />
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-700 font-bold">Gross Demand</span>
+                      <span className="text-slate-900 font-extrabold tabular-nums">{fmtINR(grossDemand)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-emerald-700 font-medium">Already Paid</span>
+                      <span className="text-emerald-700 font-bold tabular-nums">- {fmtINR(editTile.amount_paid)}</span>
+                    </div>
+                    <div className="border-t border-slate-200 my-1" />
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-800 font-extrabold">Net Payable</span>
+                      <span className="text-red-600 font-extrabold tabular-nums">{fmtINR(netPayable)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1788,7 +1931,8 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
               </motion.div>
             </div>
           </>
-        )}
+          );
+        })()}
       </AnimatePresence>
 
       {/* Toast */}

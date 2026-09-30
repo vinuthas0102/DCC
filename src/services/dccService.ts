@@ -937,13 +937,25 @@ export const dccService = {
 
   async updateDemand(
     demandId: string,
-    patch: { amount?: number; due_date?: string; status?: DccDemandStatus },
+    patch: {
+      amount?: number;
+      due_date?: string;
+      status?: DccDemandStatus;
+      gst_amount?: number;
+      gst_pct?: number;
+      interest_pct?: number;
+      defaulted_interest_pct?: number;
+    },
     markAmended?: boolean,
   ): Promise<void> {
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (patch.amount !== undefined) update.amount = patch.amount;
     if (patch.due_date !== undefined) update.due_date = patch.due_date;
     if (patch.status !== undefined) update.status = patch.status;
+    if (patch.gst_amount !== undefined) update.gst_amount = patch.gst_amount;
+    if (patch.gst_pct !== undefined) update.gst_pct = patch.gst_pct;
+    if (patch.interest_pct !== undefined) update.interest_pct = patch.interest_pct;
+    if (patch.defaulted_interest_pct !== undefined) update.defaulted_interest_pct = patch.defaulted_interest_pct;
     if (markAmended) update.is_amended = true;
     const { error } = await supabase.from(DEMANDS).update(update).eq('id', demandId);
     if (error) throw error;
