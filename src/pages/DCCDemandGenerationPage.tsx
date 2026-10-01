@@ -506,7 +506,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {/* ── Auto-Generate Panel ── */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible relative z-30">
           <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-gradient-to-r from-amber-50/50 to-transparent">
@@ -573,7 +573,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
         {/* ── Run History ── */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative z-10">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100">
             <History size={16} className="text-slate-500" />
             {hasActiveFilters ? (
               <button
@@ -614,17 +614,17 @@ export const DCCDemandGenerationPage: React.FC = () => {
           </div>
 
           {loadingHistory ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-6">
               <Loader2 size={20} className="animate-spin text-emerald-500" />
             </div>
           ) : filteredRunLog.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-6 text-slate-400">
               <History size={28} className="mx-auto mb-2 opacity-30" />
               <p className="text-xs">{hasActiveFilters ? 'No runs match your filters' : 'No generation runs yet'}</p>
             </div>
           ) : historyViewMode === 'card' ? (
             /* ── Card View ── */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
               {filteredRunLog.map((log, logIdx) => {
                 const processedCount = log.records_created + log.records_failed;
                 const objCount = log.run_summary?.object_count as number ?? null;
@@ -767,7 +767,7 @@ export const DCCDemandGenerationPage: React.FC = () => {
             </div>
           ) : (
             /* ── List View (default, original row layout) ── */
-            <div className="space-y-1.5">
+            <div className="space-y-1 px-1 py-1">
               {filteredRunLog.map((log, logIdx) => {
                 const accentBorder = log.source === 'AUTO' ? 'border-l-amber-400'
                   : log.source === 'MANUAL' ? 'border-l-slate-400'

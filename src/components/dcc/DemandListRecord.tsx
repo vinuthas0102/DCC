@@ -127,7 +127,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(tile); }}
             title={editTitle ?? 'Edit Demand'}
-            className="flex shrink-0 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+            className="flex shrink-0 items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-blue-700"
           >
             <Pencil size={12} />
             {editTitle ?? 'Edit'}
