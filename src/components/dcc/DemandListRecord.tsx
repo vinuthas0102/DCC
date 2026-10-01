@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  MessageSquare, MoreVertical, Eye, Pencil, Lock,
+  MessageSquare, Eye, Pencil, Lock,
   Car, FileText, Home, Landmark, CircleDollarSign, Building2,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
@@ -44,31 +44,10 @@ export interface DemandListRecordProps {
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
   tile, idx, onViewDetails, onChat, isChatActive, onEdit, canEdit, editTitle,
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
   const odText = tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '';
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [menuOpen]);
-
-  const handleView = () => {
-    setMenuOpen(false);
-    onViewDetails(tile);
-  };
-
-  const handleEdit = () => {
-    if (!onEdit || !canEdit) return;
-    setMenuOpen(false);
-    onEdit(tile);
-  };
 
   return (
     <motion.div
@@ -134,7 +113,7 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
         </div>
       </div>
 
-      <div className="relative z-10 flex shrink-0 items-center gap-1 border-l-2 border-slate-300 bg-white px-1.5 py-1.5" ref={menuRef}>
+      <div className="flex shrink-0 items-center gap-1 px-1.5 py-1.5">
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
@@ -144,32 +123,29 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <MessageSquare size={12} />
           </button>
         )}
-        <button
-          onClick={(e) => { e.stopPropagation(); setMenuOpen(open => !open); }}
-          title="Actions"
-          aria-expanded={menuOpen}
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors ${menuOpen ? 'border-blue-300 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'}`}
-        >
-          <MoreVertical size={14} />
-        </button>
-        {menuOpen && (
-          <div className="absolute right-1 top-full mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
-            <button onClick={handleView} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700">
-              <Eye size={13} /> View Demand
-            </button>
-            {onEdit && (
-              <button
-                onClick={handleEdit}
-                disabled={!canEdit}
-                title={!canEdit ? 'Run is approved — click Amend Run to enable editing' : editTitle ?? 'Edit Demand'}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300"
-              >
-                {canEdit ? <Pencil size={13} /> : <Lock size={13} />}
-                {canEdit ? (editTitle ?? 'Edit Demand') : 'Edit unavailable'}
-              </button>
-            )}
+        {onEdit && (canEdit ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(tile); }}
+            title={editTitle ?? 'Edit Demand'}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-400 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+          >
+            <Pencil size={13} />
+          </button>
+        ) : (
+          <div
+            title="Run is approved — click Amend Run to enable editing"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-300"
+          >
+            <Lock size={13} />
           </div>
-        )}
+        ))}
+        <button
+          onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
+          className="flex shrink-0 items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-blue-700"
+        >
+          <Eye size={12} />
+          View Demand
+        </button>
       </div>
     </motion.div>
   );
