@@ -17,6 +17,7 @@ import type {
   DccOwnerReportRow,
   DccDemandChat,
   DccDemandDispute,
+  DccDemandAuditEntry,
   DccReportSchedule,
   DccReportScheduleInput,
 } from '../types/dcc';
@@ -31,6 +32,7 @@ const IPLANS = 'dcc_installment_plans';
 const IROWS = 'dcc_installment_rows';
 const CHATS = 'dcc_demand_chats';
 const DISPUTES = 'dcc_demand_disputes';
+const AUDIT_LOG = 'dcc_demand_audit_log';
 const SCHEDULES = 'dcc_report_schedules';
 
 // ── Demo data (used when database tables don't exist) ─────────────────────────
@@ -278,6 +280,19 @@ export const dccService = {
       throw error;
     }
     return (data ?? []) as DccPayment[];
+  },
+
+  async getDemandAuditLog(demandId: string): Promise<DccDemandAuditEntry[]> {
+    const { data, error } = await supabase
+      .from(AUDIT_LOG)
+      .select('*')
+      .eq('demand_id', demandId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      if (isTableMissingError(error)) return [];
+      throw error;
+    }
+    return (data ?? []) as DccDemandAuditEntry[];
   },
 
   async submitPayment(

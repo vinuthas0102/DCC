@@ -247,7 +247,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
             onClick={() => setDetailDemandId(tile.id)}
             className="w-full py-1.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
           >
-            <Eye size={13} /> View Details
+            <Eye size={13} /> View Demand
           </button>
         </div>
       </motion.div>
@@ -312,7 +312,7 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
               {st.label}
             </span>
             <span className="flex items-center gap-0.5 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap shrink-0">
-              View <ChevronRight size={10} />
+              View Demand <ChevronRight size={10} />
             </span>
           </div>
         </button>
@@ -375,10 +375,10 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
                   <td className="py-1.5 px-3 text-center">
                     <button
                       onClick={(e) => { e.stopPropagation(); setDetailDemandId(tile.id); }}
-                      title="View Details"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-all"
+                      title="View Demand"
+                      className="inline-flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[9px] font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-all whitespace-nowrap"
                     >
-                      <Eye size={13} />
+                      <Eye size={13} /> View Demand
                     </button>
                   </td>
                 </tr>

@@ -90,6 +90,20 @@ export interface DccPayment {
   created_at: string;
 }
 
+export type DccDemandAuditEventType = 'CREATED' | 'AMENDED';
+
+export interface DccDemandAuditEntry {
+  id: string;
+  demand_id: string;
+  event_type: DccDemandAuditEventType;
+  changed_fields: string[];
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown>;
+  actor_id: string | null;
+  actor_label: string;
+  created_at: string;
+}
+
 export type DccInstallmentRowStatus = 'PAID' | 'DUE' | 'PENDING' | 'OVERDUE' | 'EXEMPTED';
 
 export interface DccInstallmentPlan {

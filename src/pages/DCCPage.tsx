@@ -328,7 +328,7 @@ export const DCCPage: React.FC = () => {
   // Chat state
   const [chatTileId, setChatTileId] = useState<string | null>(null);
   const [detailDemandId, setDetailDemandId] = useState<string | null>(null);
-  const [detailInitialTab, setDetailInitialTab] = useState<'demand_due' | 'installments' | 'paid_history' | 'dispute' | undefined>(undefined);
+  const [detailInitialTab, setDetailInitialTab] = useState<'demand_due' | 'installments' | 'paid_history' | 'audit_log' | 'dispute' | undefined>(undefined);
   const [chatMessages, setChatMessages] = useState<DccDemandChat[]>([]);
   const [chatMsg, setChatMsg] = useState('');
   const [chatSending, setChatSending] = useState(false);

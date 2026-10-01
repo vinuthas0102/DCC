@@ -7,11 +7,11 @@ import {
   Loader2, X, Layers, AlertCircle, History,
   MessageSquareWarning, MessageCircle, Send, Receipt,
   Plus, Save, FileSpreadsheet, Filter, CalendarDays,
-  CreditCard, Smartphone, Building, Banknote, Lock,
+  CreditCard, Smartphone, Building, Banknote, Lock, ClipboardList,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { ROUTES } from '../constants/routes';
-import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow, DccDemandDispute } from '../types/dcc';
+import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow, DccDemandDispute, DccDemandAuditEntry } from '../types/dcc';
 import type { PaymentMode } from '../types/payableCriteria';
 import { ALL_PAYMENT_MODES, PAYMENT_MODE_LABELS } from '../types/payableCriteria';
 import { supabase } from '../lib/supabase';
@@ -29,6 +29,35 @@ type StatusKey = DccTile['status'];
 // All other codes (RENT, PROPERTY_TAX, MAINTENANCE, INSURANCE, SD, ADVANCE) use the Demand Due view.
 const INSTALLMENT_DEMAND_CODES = new Set(['LOAN']);
 const isInstalmentType = (code: string): boolean => INSTALLMENT_DEMAND_CODES.has(code);
+
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+  amount: 'Demand amount',
+  amount_paid: 'Amount paid',
+  due_date: 'Due date',
+  status: 'Status',
+  dispute_date: 'Dispute date',
+  dispute_reason: 'Dispute reason',
+  dispute_remarks: 'Dispute remarks',
+  include_gst: 'GST included',
+  gst_pct: 'GST rate',
+  gst_type: 'GST type',
+  gst_amount: 'GST amount',
+  interest_pct: 'Interest rate',
+  defaulted_interest_pct: 'Defaulted interest rate',
+  is_amended: 'Amendment flag',
+  criteria_id: 'Demand rule',
+  demand_run_date: 'Run date',
+  generation_source: 'Generation source',
+  updated_at: 'Updated at',
+};
+
+const formatAuditField = (field: string): string => AUDIT_FIELD_LABELS[field] ?? field.replace(/_/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+const formatAuditValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
 
 // Early-payment discount matrix: >=15 days early = 5%, >=7 days early = 2.5%
 const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmount: number): { pct: number; discount: number; adjusted: number; daysEarly: number } => {
@@ -48,7 +77,7 @@ const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmou
 };
 
 // Context-driven tabs: Demand Due OR Instalment (mutually exclusive), plus Paid History
-type Tab = 'demand_due' | 'installments' | 'paid_history' | 'dispute';
+type Tab = 'demand_due' | 'installments' | 'paid_history' | 'audit_log' | 'dispute';
 
 interface DCCDemandDetailModalProps {
   demandId: string;
@@ -69,6 +98,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const [demand, setDemand] = useState<DccDemand | null>(null);
   const [tile, setTile] = useState<DccTile | null>(null);
   const [payments, setPayments] = useState<DccPayment[]>([]);
+  const [auditLog, setAuditLog] = useState<DccDemandAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -234,11 +264,12 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     setLoading(true);
     setError(null);
     try {
-      const [allTiles, pays, instData, dispData] = await Promise.all([
+      const [allTiles, pays, instData, dispData, auditData] = await Promise.all([
         dccService.getTiles({ object_id: undefined }),
         dccService.getPayments(demandId),
         dccService.getInstallmentPlan(demandId),
         dccService.getDisputes(demandId),
+        dccService.getDemandAuditLog(demandId),
       ]);
       const foundTile = allTiles.find(t => t.id === demandId);
       setTile(foundTile ?? null);
@@ -254,6 +285,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
       setInstPlan(instData.plan);
       setInstRows(instData.rows);
       setDisputes(dispData);
+      setAuditLog(auditData);
       if (foundTile) {
         setPayAmount(foundTile.amount_due);
         // Set default tab based on demand status and type code (only if no explicit initialTab was passed)
@@ -562,8 +594,9 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
 
   const TABS: { key: Tab; label: string; icon: typeof History }[] = [
     ...(showDemandDueTab && !isPaidOrExempted ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
-    ...(showInstalmentTab && !isPaidOrExempted ? [{ key: 'installments' as Tab, label: 'Due Demand', icon: Layers }] : []),
+    ...(showInstalmentTab && !isPaidOrExempted ? [{ key: 'installments' as Tab, label: 'Installment Plan', icon: Layers }] : []),
     { key: 'paid_history', label: `Demand History (${payments.length})`, icon: History },
+    { key: 'audit_log', label: `Audit Log (${auditLog.length})`, icon: ClipboardList },
   ];
 
   // Ensure active tab is valid
@@ -1077,7 +1110,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             {/* Header */}
             <div className="flex items-center gap-2">
               <Layers size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900">Instalment Plan</h3>
+              <h3 className="text-xs font-bold text-slate-900">Installment Plan</h3>
               {isPaidOrExempted && instRows.length > 0 && (
                 <span className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide">
                   <History size={11} /> Read-Only
@@ -1595,6 +1628,61 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             </div>
           );
         })()}
+
+        {effectiveTab === 'audit_log' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Demand Audit Log</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">Creation and every recorded amendment are shown in chronological history.</p>
+              </div>
+              <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-1">{auditLog.length} entries</span>
+            </div>
+            {auditLog.length === 0 ? (
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm py-12 text-center text-slate-400">
+                <ClipboardList size={28} className="mx-auto mb-2 opacity-40" />
+                <p className="text-xs font-medium">No audit history recorded yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {auditLog.map((entry) => {
+                  const fields = entry.event_type === 'CREATED'
+                    ? ['amount', 'demand_run_date', 'due_date', 'generation_source', 'status']
+                    : entry.changed_fields.filter((field) => field !== 'updated_at');
+                  return (
+                    <div key={entry.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${entry.event_type === 'CREATED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                          <ClipboardList size={11} /> {entry.event_type === 'CREATED' ? 'Created' : 'Amended'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 tabular-nums">{fmtDate(entry.created_at)}</span>
+                        <span className="text-[10px] text-slate-400">· {entry.actor_label}</span>
+                      </div>
+                      <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {fields.length === 0 ? (
+                          <span className="text-[11px] text-slate-500">General demand details updated.</span>
+                        ) : fields.map((field) => (
+                          <div key={field} className="rounded-md border border-slate-100 bg-slate-50/70 px-2.5 py-2">
+                            <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{formatAuditField(field)}</div>
+                            {entry.event_type === 'AMENDED' ? (
+                              <div className="mt-1 flex items-center gap-1.5 text-[10px]">
+                                <span className="text-slate-400 line-through truncate" title={formatAuditValue(entry.old_values?.[field])}>{formatAuditValue(entry.old_values?.[field])}</span>
+                                <span className="text-slate-300">→</span>
+                                <span className="font-bold text-slate-700 truncate" title={formatAuditValue(entry.new_values[field])}>{formatAuditValue(entry.new_values[field])}</span>
+                              </div>
+                            ) : (
+                              <div className="mt-1 text-[10px] font-bold text-slate-700 truncate" title={formatAuditValue(entry.new_values[field])}>{formatAuditValue(entry.new_values[field])}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -1749,7 +1837,7 @@ const DCCDemandDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = searchParams.get('tab');
-  const validTabs: Tab[] = ['demand_due', 'installments', 'paid_history', 'dispute'];
+  const validTabs: Tab[] = ['demand_due', 'installments', 'paid_history', 'audit_log', 'dispute'];
   const initialTab: Tab | undefined = tab && validTabs.includes(tab as Tab) ? (tab as Tab) : undefined;
 
   if (!demandId) return null;
