@@ -1610,7 +1610,7 @@ const RunDetailsOverlay: React.FC<RunDetailsOverlayProps> = ({ log, details, isL
                   tile={tile}
                   idx={idx}
                   onViewDetails={(t) => onViewDemand(t.id)}
-                  onEdit={(t) => handleOpenEdit(t)}
+                  onEdit={(t) => handleOpenEdit(t as RunDemandTile)}
                   canEdit={canEdit}
                   editTitle={isAmending ? 'Amend Demand' : 'Edit Demand'}
                 />

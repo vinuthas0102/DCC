@@ -48,7 +48,7 @@ const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmou
 };
 
 // Context-driven tabs: Demand Due OR Instalment (mutually exclusive), plus Paid History
-type Tab = 'demand_due' | 'installments' | 'paid_history';
+type Tab = 'demand_due' | 'installments' | 'paid_history' | 'dispute';
 
 interface DCCDemandDetailModalProps {
   demandId: string;
@@ -490,7 +490,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
     setDisputing(true);
     setActionError(null);
     try {
-      const author = user?.name ?? user?.email ?? undefined;
+      const author = user?.fullName ?? user?.email ?? undefined;
       await dccService.createDispute(demandId, disputePanelRow, disputeDate, disputeReason, disputeRemarks, author);
       setDisputeReason('');
       setDisputeRemarks('');

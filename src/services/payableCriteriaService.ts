@@ -114,10 +114,9 @@ export const payableCriteriaService = {
       ...masterFields
     } = input;
 
-    const { rule_number: _rn, ...updateFields } = masterFields;
     const { error: masterErr } = await supabase
       .from(TABLE)
-      .update({ ...updateFields, updated_at: new Date().toISOString() })
+      .update({ ...masterFields, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (masterErr) throw masterErr;
 

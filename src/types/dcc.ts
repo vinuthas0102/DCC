@@ -62,6 +62,7 @@ export interface DccDemand {
   dispute_reason: string | null;
   dispute_remarks: string | null;
   generation_source: DccGenerationSource;
+  run_log_id?: string | null;
   include_gst: boolean;
   gst_pct: number;
   gst_type: 'inclusive' | 'exclusive';

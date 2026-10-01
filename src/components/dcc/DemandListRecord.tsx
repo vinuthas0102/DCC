@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  MessageSquare, ChevronRight, Pencil, Lock,
+  MessageSquare, MoreVertical, Eye, Pencil, Lock,
   Car, FileText, Home, Landmark, CircleDollarSign, Building2,
 } from 'lucide-react';
 import type { DccTile } from '../../types/dcc';
@@ -24,7 +24,7 @@ const VALUE_CLS = 'text-[10px] font-bold text-slate-800 tabular-nums leading-tig
 const Metric: React.FC<{ label: string; value: React.ReactNode; valueCls?: string; width?: string }> = ({
   label, value, valueCls = VALUE_CLS, width = 'w-16',
 }) => (
-  <div className={`flex ${width} shrink-0 flex-col justify-center border-r border-slate-100 pr-2 overflow-hidden`}>
+  <div className={`flex ${width} shrink-0 flex-col justify-center border-r border-slate-100 pr-1.5 overflow-hidden`}>
     <div className={LABEL_CLS}>{label}</div>
     <div title={typeof value === 'string' ? value : undefined} className={`mt-0.5 whitespace-nowrap truncate ${valueCls}`}>{value || '—'}</div>
   </div>
@@ -44,84 +44,97 @@ export interface DemandListRecordProps {
 export const DemandListRecord: React.FC<DemandListRecordProps> = ({
   tile, idx, onViewDetails, onChat, isChatActive, onEdit, canEdit, editTitle,
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const st = DCC_STATUS[tile.status];
   const ObjectIcon = getObjectIcon(tile.object_type);
   const odText = tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days}d` : '';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [menuOpen]);
+
+  const handleView = () => {
+    setMenuOpen(false);
+    onViewDetails(tile);
+  };
+
+  const handleEdit = () => {
+    if (!onEdit || !canEdit) return;
+    setMenuOpen(false);
+    onEdit(tile);
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 2 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, delay: Math.min(idx * 0.01, 0.06) }}
-      className="group flex items-stretch rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+      className="group flex min-w-0 items-stretch rounded-lg border border-slate-200 bg-white transition-colors hover:border-blue-300 hover:bg-blue-50/30"
     >
-      <div className="flex min-w-0 flex-1 items-center overflow-x-auto px-2.5 py-1.5 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-        <div className="flex min-w-max items-center pr-3">
-
-        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-900">
-          <ObjectIcon size={11} strokeWidth={1.8} />
-        </div>
-
-        <div className="flex w-40 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden">
-          <div className={LABEL_CLS}>Object</div>
-          <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-slate-900" title={tile.object_description || tile.object_ref}>{tile.object_description || tile.object_ref}</div>
-        </div>
-
-        <div className="flex w-28 shrink-0 flex-col justify-center border-r border-slate-100 pl-2 pr-3 overflow-hidden">
-          <div className={LABEL_CLS}>Client</div>
-          <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700" title={tile.owner_name}>{tile.owner_name}</div>
-        </div>
-
-        <Metric label="Run #" value={tile.run_number != null ? `RUN-${String(tile.run_number).padStart(3, '0')}` : '—'} valueCls="text-[10px] font-bold text-blue-600 tabular-nums" width="w-16" />
-        <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-16" />
-        <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} width="w-16" />
-        <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" width="w-20" />
-        <Metric
-          label="GST"
-          value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
-          valueCls={`text-[10px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
-          width="w-16"
-        />
-        <Metric
-          label="Late Fee"
-          value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
-          valueCls={`text-[10px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
-          width="w-16"
-        />
-        <Metric
-          label="Payable"
-          value={fmtINR(tile.amount_due)}
-          valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
-          width="w-20"
-        />
-
-        <div className="flex shrink-0 items-center gap-1.5 pl-4 pr-2">
-          <div className="flex w-20 shrink-0 justify-start overflow-hidden">
-            <span className="max-w-full truncate whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800" title={tile.object_type}>
-              <span className="truncate block" title={tile.object_type}>{tile.object_type}</span>
-            </span>
+      <div className="flex min-w-0 flex-1 items-center overflow-hidden px-2 py-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-0.5">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-900">
+            <ObjectIcon size={11} strokeWidth={1.8} />
           </div>
-          <div className="flex w-24 shrink-0 justify-start overflow-hidden">
-            <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
+
+          <div className="flex w-32 shrink-0 flex-col justify-center border-r border-slate-100 pl-1.5 pr-2 overflow-hidden xl:w-40">
+            <div className={LABEL_CLS}>Object</div>
+            <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-slate-900" title={tile.object_description || tile.object_ref}>{tile.object_description || tile.object_ref}</div>
+          </div>
+
+          <div className="flex w-24 shrink-0 flex-col justify-center border-r border-slate-100 pl-1.5 pr-2 overflow-hidden xl:w-28">
+            <div className={LABEL_CLS}>Client</div>
+            <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-slate-700" title={tile.owner_name}>{tile.owner_name}</div>
+          </div>
+
+          <Metric label="Run #" value={tile.run_number != null ? `RUN-${String(tile.run_number).padStart(3, '0')}` : '—'} valueCls="text-[10px] font-bold text-blue-600 tabular-nums" width="w-14" />
+          <Metric label="Run Date" value={fmtDateShort(tile.demand_run_date)} valueCls="text-[10px] font-bold text-slate-600 tabular-nums" width="w-14" />
+          <Metric label="Due Date" value={fmtDateShort(tile.due_date)} valueCls={`text-[10px] font-bold tabular-nums ${tile.status === 'OVERDUE' ? 'text-red-600' : 'text-slate-600'}`} width="w-14" />
+          <Metric label="Base Amt" value={fmtINR(tile.total_amount)} valueCls="text-[10px] font-bold text-slate-700 tabular-nums" width="w-18" />
+          <Metric
+            label="GST"
+            value={tile.include_gst && tile.gst_amount > 0 ? fmtINR(tile.gst_amount) : '—'}
+            valueCls={`text-[10px] font-bold tabular-nums ${tile.include_gst && tile.gst_amount > 0 ? 'text-slate-600' : 'text-slate-300'}`}
+            width="w-14"
+          />
+          <Metric
+            label="Late Fee"
+            value={tile.overdue_amount > 0 ? fmtINR(tile.overdue_amount) : '—'}
+            valueCls={`text-[10px] font-bold tabular-nums ${tile.overdue_amount > 0 ? 'text-red-600' : 'text-slate-300'}`}
+            width="w-14"
+          />
+          <Metric
+            label="Payable"
+            value={fmtINR(tile.amount_due)}
+            valueCls={`text-[10px] font-bold tabular-nums ${tile.amount_due > 0 ? 'text-red-600' : 'text-emerald-600'}`}
+            width="w-18"
+          />
+
+          <div className="flex min-w-0 flex-1 items-center gap-1 pl-1.5 pr-1">
+            <span className="max-w-16 shrink-0 truncate whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-[8px] font-semibold text-blue-800" title={tile.object_type}>
+              {tile.object_type}
+            </span>
+            <span className={`inline-flex max-w-20 shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap ${st.bg} ${st.text} ${st.border}`}>
               <span className={`h-1 w-1 shrink-0 rounded-full ${st.dot}`} />
               <span className="truncate">{st.label}{odText && <span className="opacity-75"> ·{odText}</span>}</span>
             </span>
-          </div>
-          <div className="flex w-28 shrink-0 justify-start overflow-hidden">
             {(() => { const db = getDemandTypeBadgeStyle(tile.demand_type_code); return (
-              <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
+              <span className={`inline-flex min-w-0 max-w-28 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${db.bg} ${db.text} ${db.border}`} title={tile.demand_type_label}>
                 <span className={`h-1 w-1 shrink-0 rounded-full ${db.dot}`} />
                 <span className="truncate">{tile.demand_type_label}</span>
               </span>
             ); })()}
           </div>
         </div>
-
-        </div>
       </div>
 
-      {/* Action zone — solid background so badges never show through */}
-      <div className="flex shrink-0 items-center gap-1.5 border-l-2 border-slate-300 bg-white px-2.5 py-1.5 z-10 relative">
+      <div className="relative z-10 flex shrink-0 items-center gap-1 border-l-2 border-slate-300 bg-white px-1.5 py-1.5" ref={menuRef}>
         {onChat && (
           <button
             onClick={(e) => { e.stopPropagation(); onChat(tile); }}
@@ -131,29 +144,32 @@ export const DemandListRecord: React.FC<DemandListRecordProps> = ({
             <MessageSquare size={12} />
           </button>
         )}
-        {onEdit && canEdit && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(tile); }}
-            title={editTitle ?? 'Edit Demand'}
-            className="flex shrink-0 items-center justify-center rounded border border-slate-200 p-1 text-slate-400 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-          >
-            <Pencil size={12} />
-          </button>
-        )}
-        {onEdit && !canEdit && (
-          <div
-            title="Run is approved — click Amend Run to enable editing"
-            className="flex shrink-0 items-center justify-center rounded border border-slate-200 p-1 text-slate-300"
-          >
-            <Lock size={12} />
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(open => !open); }}
+          title="Actions"
+          aria-expanded={menuOpen}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors ${menuOpen ? 'border-blue-300 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-400 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'}`}
+        >
+          <MoreVertical size={14} />
+        </button>
+        {menuOpen && (
+          <div className="absolute right-1 top-full mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+            <button onClick={handleView} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700">
+              <Eye size={13} /> View Demand
+            </button>
+            {onEdit && (
+              <button
+                onClick={handleEdit}
+                disabled={!canEdit}
+                title={!canEdit ? 'Run is approved — click Amend Run to enable editing' : editTitle ?? 'Edit Demand'}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300"
+              >
+                {canEdit ? <Pencil size={13} /> : <Lock size={13} />}
+                {canEdit ? (editTitle ?? 'Edit Demand') : 'Edit unavailable'}
+              </button>
+            )}
           </div>
         )}
-        <button
-          onClick={(e) => { e.stopPropagation(); onViewDetails(tile); }}
-          className="flex shrink-0 items-center gap-0.5 rounded bg-blue-600 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
-        >
-          View Demand <ChevronRight size={10} />
-        </button>
       </div>
     </motion.div>
   );

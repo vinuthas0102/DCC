@@ -373,15 +373,14 @@ export const dccService = {
     const { data, error } = await supabase
       .from(DEMANDS)
       .select('demand_type:demand_type_id(id, code, label, description, is_active, created_at)')
-      .eq('demand_run_date', runLog.run_date)
-      .eq('generation_source', runLog.source);
+      .eq('run_log_id', runLog.id);
     if (error) {
       if (isTableMissingError(error)) return [];
       throw error;
     }
     const seen = new Set<string>();
     const types: DccDemandType[] = [];
-    for (const row of (data ?? []) as Array<{ demand_type: DccDemandType | null }>) {
+    for (const row of (data ?? []) as unknown as Array<{ demand_type: DccDemandType | null }>) {
       const dt = row.demand_type;
       if (dt && !seen.has(dt.id)) {
         seen.add(dt.id);
@@ -395,8 +394,7 @@ export const dccService = {
     const { data, error } = await supabase
       .from(DEMANDS)
       .select('criteria_id')
-      .eq('demand_run_date', runLog.run_date)
-      .eq('generation_source', runLog.source)
+      .eq('run_log_id', runLog.id)
       .not('criteria_id', 'is', null);
     if (error) {
       if (isTableMissingError(error)) return [];
@@ -415,8 +413,7 @@ export const dccService = {
     let q = supabase
       .from(DEMANDS)
       .select('*, object:object_id(*, owner:owner_id(*)), owner:owner_id(*), demand_type:demand_type_id(*)')
-      .eq('demand_run_date', runLog.run_date)
-      .eq('generation_source', runLog.source)
+      .eq('run_log_id', runLog.id)
       .order('due_date', { ascending: true });
     if (runLog.demand_type_id) q = q.eq('demand_type_id', runLog.demand_type_id);
     const { data, error } = await q;
@@ -484,8 +481,9 @@ export const dccService = {
       .select('id, amount');
     if (insErr) throw insErr;
 
-    const created = (inserted ?? []).length;
-    const totalAmount = (inserted ?? []).reduce((s, r: { amount: number }) => s + r.amount, 0);
+    const insertedRows = (inserted ?? []) as Array<{ id: string; amount: number }>;
+    const created = insertedRows.length;
+    const totalAmount = insertedRows.reduce((s, r) => s + r.amount, 0);
     const demandTypeId = rows[0]?.demand_type_id ?? null;
     const endedAt = new Date().toISOString();
     const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime();
@@ -515,7 +513,14 @@ export const dccService = {
       .single();
     if (logErr) throw logErr;
 
-    return { created, totalAmount, runLogId: (logRow as { id: string }).id };
+    const runLogId = (logRow as { id: string }).id;
+    const { error: linkErr } = await supabase
+      .from(DEMANDS)
+      .update({ run_log_id: runLogId })
+      .in('id', insertedRows.map((row) => row.id));
+    if (linkErr) throw linkErr;
+
+    return { created, totalAmount, runLogId };
   },
 
   async generateFromExcel(
@@ -678,6 +683,7 @@ export const dccService = {
       row_number: number; label: string; percentage: number;
       amount: number; due_date: string; late_fee: number;
       due_date_with_late_fee: string | null; gst_amount: number;
+      interest_pct?: number; defaulted_interest_pct?: number;
     }>;
 
     if (customRows && customRows.length > 0) {
