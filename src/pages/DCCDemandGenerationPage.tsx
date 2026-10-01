@@ -641,9 +641,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <span className="text-xs font-bold text-blue-600 tabular-nums shrink-0" title={`RUN-${String(log.run_number).padStart(3, '0')}`}>
                           RUN-{String(log.run_number).padStart(3, '0')}
                         </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
-                          {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
-                        </span>
                       </div>
                       <span className="text-[11px] font-medium text-slate-500 shrink-0 tabular-nums" title={fmtDateDDMMYYYY(log.run_date)}>
                         {fmtDateDDMMYYYY(log.run_date)}
@@ -685,6 +682,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
                           {fmtINR(log.total_amount)}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                            {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                          </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                             {log.source}
                           </span>
@@ -710,7 +710,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run #</th>
-                    <th className="py-2 px-3 text-left font-bold text-slate-600">Approval</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Date</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run Start Date &amp; Time</th>
                     <th className="py-2 px-3 text-left font-bold text-slate-600">Run End Date &amp; Time</th>
@@ -731,11 +730,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         <td className="py-1.5 px-3 text-[10px] font-bold text-slate-500 tabular-nums">RUN-{String(log.run_number).padStart(3, '0')}</td>
-                        <td className="py-1.5 px-3">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
-                            {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
-                          </span>
-                        </td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateDDMMYYYY(log.run_date)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.started_at)}</td>
                         <td className="py-1.5 px-3 text-slate-500">{fmtDateTimeDDMMYYYY(log.ended_at)}</td>
@@ -746,6 +740,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <td className="py-1.5 px-3 text-right font-bold text-slate-900 tabular-nums">{fmtINR(log.total_amount)}</td>
                         <td className="py-1.5 px-3 text-center">
                           <div className="flex items-center gap-2 justify-end">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                              {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                            </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                               {log.source}
                             </span>
@@ -784,11 +781,6 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
                       <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">RUN-{String(log.run_number).padStart(3, '0')}</div>
                       <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDateDDMMYYYY(log.run_date)}</div>
-                      <div className="mt-0.5">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
-                          {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Cols 3-4: Demands Processed */}
@@ -825,6 +817,9 @@ export const DCCDemandGenerationPage: React.FC = () => {
 
                     {/* Cols 9-10: Type & Rule Badges */}
                     <div className="col-span-2 min-w-0 flex flex-wrap items-center gap-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                        {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
+                      </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {log.source}
                       </span>

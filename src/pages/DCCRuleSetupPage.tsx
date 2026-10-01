@@ -867,20 +867,9 @@ export const DCCRuleSetupPage: React.FC = () => {
                       onClick={() => handleSelect(rec)}
                       className={`grid grid-cols-12 items-center gap-2 px-3.5 py-2.5 min-h-[56px] w-full border border-slate-200 border-l-[3px] ${accentBorder} rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isActive ? 'ring-2 ring-emerald-400/40 border-emerald-400' : ''} ${isUsed ? 'opacity-75' : ''}`}
                     >
-                      {/* Cols 1-2: Rule # & Status Badge */}
+                      {/* Cols 1-2: Rule Number */}
                       <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
                         <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">R{String(rec.rule_number ?? idx + 1).padStart(3, '0')}</div>
-                        <div className="mt-1">
-                          {isUsed ? (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full">
-                              <CheckCircle2 size={8} /> Used
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-px rounded-full">
-                              Unused
-                            </span>
-                          )}
-                        </div>
                       </div>
 
                       {/* Cols 3-4: Demand Type & Object/Owner */}
@@ -922,7 +911,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                       </div>
 
                       {/* Cols 9-10: Source Badge & Active Toggle */}
-                      <div className="col-span-2 min-w-0 flex flex-col gap-1">
+                      <div className="col-span-2 min-w-0 flex items-center gap-1 flex-wrap">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 w-fit ${SOURCE_BADGE[srcKey] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                           {srcKey}
                         </span>
@@ -931,8 +920,17 @@ export const DCCRuleSetupPage: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Cols 11-12: Action Buttons */}
+                      {/* Cols 11-12: Status & Action Buttons */}
                       <div className="col-span-2 flex items-center justify-end gap-1.5 whitespace-nowrap">
+                        {isUsed ? (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full shrink-0">
+                            <CheckCircle2 size={8} /> Used
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-px rounded-full shrink-0">
+                            Unused
+                          </span>
+                        )}
                         {isUsed && (
                           <span className="flex items-center gap-0.5 text-[9px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-px rounded shrink-0" title="Rule is locked because demands have been generated using it">
                             <Lock size={9} /> Locked
