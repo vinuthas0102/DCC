@@ -177,10 +177,10 @@ export const DemandSummaryModal: React.FC<DemandSummaryModalProps> = ({
     return result;
   }, [tiles, activeKpi, filterState]);
 
-  const totalDemand = tiles.reduce((s, t) => s + t.total_amount, 0);
-  const totalPaid = tiles.reduce((s, t) => s + t.amount_paid, 0);
-  const totalOutstanding = tiles.reduce((s, t) => s + t.amount_due, 0);
-  const overdueAmount = tiles.reduce((s, t) => s + t.overdue_amount, 0);
+  const totalDemand = filteredTiles.reduce((s, t) => s + t.total_amount, 0);
+  const totalPaid = filteredTiles.reduce((s, t) => s + t.amount_paid, 0);
+  const totalOutstanding = filteredTiles.reduce((s, t) => s + t.amount_due, 0);
+  const overdueAmount = filteredTiles.reduce((s, t) => s + t.overdue_amount, 0);
   const collectionRate = totalDemand > 0 ? Math.round((totalPaid / totalDemand) * 100) : 0;
 
   const activeFilterCount = countActiveFilters(filterState);

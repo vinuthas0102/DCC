@@ -19,7 +19,7 @@ import { useAuthStore } from '../stores/authStore';
 import { generatePaymentReceipt, receiptNumber } from '../utils/dccReceipt';
 import {
   DCC_STATUS, DCC_INPUT_CLS, DCC_LABEL_CLS,
-  fmtINR, fmtDate, fmtDateShort, computeGst,
+  fmtINR, fmtDate, fmtDateShort, fmtDateTimeDDMMYYYY, computeGst,
 } from '../constants/dccTheme';
 import { getDemandComponentConfig } from '../constants/demandComponents';
 
@@ -1662,7 +1662,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           {act.kind === 'payment' && p && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 shrink-0">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
-                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                               <span className="text-slate-400 shrink-0">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
                               <span className="text-slate-400 shrink-0">Amount: <span className="text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span></span>
                               <span className="text-slate-400 shrink-0">Balance: <span className="font-bold tabular-nums text-slate-500">{fmtINR(balanceAfterPay[p.id] ?? 0)}</span></span>
@@ -1682,7 +1682,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             const createdFields = ['amount', 'demand_run_date', 'due_date', 'generation_source', 'status'];
                             return (
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                                 {createdFields.map(f => (
                                   <span key={f} className="text-slate-400 shrink-0">{formatAuditField(f)}: <span className="text-slate-700 font-bold">{formatAuditValue(a.new_values[f])}</span></span>
                                 ))}
@@ -1694,7 +1694,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             const amendFields = a.changed_fields.filter(f => f !== 'updated_at');
                             return (
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                                 {amendFields.length === 0 ? (
                                   <span className="text-slate-500">General details updated</span>
                                 ) : amendFields.map(f => (
@@ -1706,7 +1706,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           })()}
                           {act.kind === 'dispute' && d && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                               <span className="text-slate-400 shrink-0">Reason: <span className="text-orange-700 font-bold">{d.reason}</span></span>
                               {d.remarks && <span className="text-slate-400 max-w-[260px] truncate">Remarks: <span className="text-slate-600 font-medium" title={d.remarks}>{d.remarks}</span></span>}
                               <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{d.author_name || '—'}</span></span>
@@ -1714,7 +1714,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           )}
                           {act.kind === 'approved' && runLog && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                               <span className="text-slate-400 shrink-0">Status: <span className="text-teal-700 font-bold">{runLog.approval_status}</span></span>
                               <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
                               <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.approved_by || '—'}</span></span>
@@ -1722,7 +1722,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           )}
                           {act.kind === 'amended' && runLog && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDateTimeDDMMYYYY(act.timestamp)}</span></span>
                               <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
                               <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.amended_by || '—'}</span></span>
                             </div>

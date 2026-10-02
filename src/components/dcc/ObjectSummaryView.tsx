@@ -269,11 +269,11 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
     return groups;
   }, [objectGroups, activeKpi, filterState]);
 
-  const totalDemand = tiles.reduce((s, t) => s + t.total_amount, 0);
-  const totalPaid = tiles.reduce((s, t) => s + t.amount_paid, 0);
-  const totalOutstanding = tiles.reduce((s, t) => s + t.amount_due, 0);
-  const overdueAmount = tiles.reduce((s, t) => s + t.overdue_amount, 0);
-  const objectCount = new Set(tiles.map((t) => t.object_id)).size;
+  const totalDemand = filteredGroups.reduce((s, g) => s + g.totalDemand, 0);
+  const totalPaid = filteredGroups.reduce((s, g) => s + g.totalPaid, 0);
+  const totalOutstanding = filteredGroups.reduce((s, g) => s + g.totalOutstanding, 0);
+  const overdueAmount = filteredGroups.reduce((s, g) => s + g.overdueAmount, 0);
+  const objectCount = filteredGroups.length;
   const collectionRate = totalDemand > 0 ? Math.round((totalPaid / totalDemand) * 100) : 0;
 
   const activeFilterCount = countActiveFilters(filterState);
