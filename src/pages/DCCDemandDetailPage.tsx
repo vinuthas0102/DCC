@@ -7,11 +7,11 @@ import {
   Loader2, X, Layers, AlertCircle, History,
   MessageSquareWarning, MessageCircle, Send, Receipt,
   Plus, Save, FileSpreadsheet, Filter, CalendarDays,
-  CreditCard, Smartphone, Building, Banknote, Lock, ClipboardList,
+  CreditCard, Smartphone, Building, Banknote, Lock,
 } from 'lucide-react';
 import { dccService } from '../services/dccService';
 import { ROUTES } from '../constants/routes';
-import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow, DccDemandDispute, DccDemandAuditEntry } from '../types/dcc';
+import type { DccTile, DccPayment, DccDemand, DccInstallmentPlan, DccInstallmentRow, DccDemandDispute, DccDemandAuditEntry, DccDemandRunLog } from '../types/dcc';
 import type { PaymentMode } from '../types/payableCriteria';
 import { ALL_PAYMENT_MODES, PAYMENT_MODE_LABELS } from '../types/payableCriteria';
 import { supabase } from '../lib/supabase';
@@ -77,7 +77,7 @@ const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmou
 };
 
 // Context-driven tabs: Demand Due OR Instalment (mutually exclusive), plus Paid History
-type Tab = 'demand_due' | 'installments' | 'paid_history' | 'audit_log' | 'dispute';
+type Tab = 'demand_due' | 'installments' | 'paid_history' | 'dispute';
 
 interface DCCDemandDetailModalProps {
   demandId: string;
@@ -99,6 +99,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const [tile, setTile] = useState<DccTile | null>(null);
   const [payments, setPayments] = useState<DccPayment[]>([]);
   const [auditLog, setAuditLog] = useState<DccDemandAuditEntry[]>([]);
+  const [runLog, setRunLog] = useState<DccDemandRunLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -286,6 +287,19 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
       setInstRows(instData.rows);
       setDisputes(dispData);
       setAuditLog(auditData);
+
+      // Fetch run log for approval/amendment activity entries
+      const runLogId = (demandData as DccDemand | null)?.run_log_id;
+      if (runLogId) {
+        const { data: rlog } = await supabase
+          .from('dcc_demand_run_log')
+          .select('*')
+          .eq('id', runLogId)
+          .maybeSingle();
+        setRunLog((rlog as DccDemandRunLog | null) ?? null);
+      } else {
+        setRunLog(null);
+      }
       if (foundTile) {
         setPayAmount(foundTile.amount_due);
         // Set default tab based on demand status and type code (only if no explicit initialTab was passed)
@@ -595,8 +609,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const TABS: { key: Tab; label: string; icon: typeof History }[] = [
     ...(showDemandDueTab && !isPaidOrExempted ? [{ key: 'demand_due' as Tab, label: 'Demand Due', icon: CalendarDays }] : []),
     ...(showInstalmentTab && !isPaidOrExempted ? [{ key: 'installments' as Tab, label: 'Installment Plan', icon: Layers }] : []),
-    { key: 'paid_history', label: `Demand History (${payments.length})`, icon: History },
-    { key: 'audit_log', label: `Audit Log (${auditLog.length})`, icon: ClipboardList },
+    { key: 'paid_history', label: `Demand History (${payments.length + auditLog.length + disputes.length + (runLog ? (runLog.approved_at ? 1 : 0) + (runLog.amended_at ? 1 : 0) : 0)})`, icon: History },
   ];
 
   // Ensure active tab is valid
@@ -1550,6 +1563,37 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const totalCollected = payments.reduce((s, p) => s + p.amount, 0);
           const isFullyPaid = tile.amount_due <= 0;
 
+          // ── Build unified activity timeline ──
+          type ActivityKind = 'payment' | 'created' | 'amended' | 'dispute' | 'approved' | 'run_amended';
+          interface ActivityEntry { id: string; kind: ActivityKind; timestamp: string; }
+          const activities: ActivityEntry[] = [];
+          payments.forEach(p => activities.push({ id: `pay-${p.id}`, kind: 'payment', timestamp: p.payment_date }));
+          auditLog.forEach(e => activities.push({ id: `audit-${e.id}`, kind: e.event_type === 'CREATED' ? 'created' : 'amended', timestamp: e.created_at }));
+          disputes.forEach(d => activities.push({ id: `disp-${d.id}`, kind: 'dispute', timestamp: d.dispute_date }));
+          if (runLog) {
+            if (runLog.approved_at) activities.push({ id: `appr-${runLog.id}`, kind: 'approved', timestamp: runLog.approved_at });
+            if (runLog.amended_at) activities.push({ id: `ramend-${runLog.id}`, kind: 'run_amended', timestamp: runLog.amended_at });
+          }
+          activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+          const chronologicalPay = [...payments].sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
+          let cumPaid = 0;
+          const balanceAfterPay: Record<string, number> = {};
+          chronologicalPay.forEach(p => { cumPaid += p.amount; balanceAfterPay[p.id] = Math.max(0, tile.total_amount - cumPaid); });
+
+          const badgeCls: Record<ActivityKind, string> = {
+            payment: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+            created: 'bg-blue-50 text-blue-700 border border-blue-200',
+            amended: 'bg-amber-50 text-amber-700 border border-amber-200',
+            dispute: 'bg-orange-50 text-orange-700 border border-orange-200',
+            approved: 'bg-teal-50 text-teal-700 border border-teal-200',
+            run_amended: 'bg-violet-50 text-violet-700 border border-violet-200',
+          };
+          const badgeText: Record<ActivityKind, string> = {
+            payment: 'Payment', created: 'Created', amended: 'Amended',
+            dispute: 'Dispute', approved: 'Approved', run_amended: 'Run Amended',
+          };
+
           return (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className={`h-1 ${isFullyPaid ? 'bg-emerald-500' : st.dot} shrink-0`} />
@@ -1579,110 +1623,101 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-bold">GST {tile.gst_pct}% {fmtINR(gst.gstAmount)}</span>
                 )}
               </div>
-              {/* Payment lines inside the same card */}
-              {payments.length === 0 ? (
+              {/* Unified activity timeline */}
+              {activities.length === 0 ? (
                 <div className="border-t border-slate-100 text-center py-8 text-slate-400">
-                  <Receipt size={24} className="mx-auto mb-1.5 opacity-30" />
-                  <p className="text-xs">No payments recorded yet</p>
+                  <History size={24} className="mx-auto mb-1.5 opacity-30" />
+                  <p className="text-xs">No activity recorded yet</p>
                 </div>
               ) : (
                 <div className="border-t border-slate-100 divide-y divide-slate-100">
-                  {(() => {
-                    const chronological = [...payments].reverse();
-                    let runningPaid = 0;
-                    return chronological.map((p, idx) => {
-                      runningPaid += p.amount;
-                      const balanceAfter = Math.max(0, tile.total_amount - runningPaid);
-                      const isLast = idx === chronological.length - 1;
-                      return (
-                        <div key={p.id} className="px-4 py-2 hover:bg-emerald-50/30 transition-colors overflow-x-auto">
-                          <div className="flex min-w-max items-center text-[10px]">
-                            <div className="flex min-w-0 items-center gap-x-3 whitespace-nowrap">
+                  {activities.map(act => {
+                    const p = act.kind === 'payment' ? payments.find(pay => pay.id === act.id.slice(4)) : null;
+                    const a = act.kind === 'created' || act.kind === 'amended' ? auditLog.find(e => e.id === act.id.slice(6)) : null;
+                    const d = act.kind === 'dispute' ? disputes.find(disp => disp.id === act.id.slice(5)) : null;
+                    return (
+                      <div key={act.id} className="px-4 py-2 hover:bg-slate-50/50 transition-colors overflow-x-auto">
+                        <div className="flex min-w-max items-center gap-x-2.5 text-[10px]">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${badgeCls[act.kind]}`}>
+                            {badgeText[act.kind]}
+                          </span>
+                          {act.kind === 'payment' && p && (
+                            <div className="flex items-center gap-x-3 whitespace-nowrap">
                               <span className="text-slate-400 shrink-0">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(p.payment_date)}</span></span>
                               <span className="text-slate-400 shrink-0">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
                               <span className="text-slate-400 shrink-0">Amount: <span className="text-sm font-extrabold text-emerald-700 tabular-nums">{fmtINR(p.amount)}</span></span>
-                              <span className="text-slate-400 shrink-0">Balance: <span className={`font-bold tabular-nums ${isLast && balanceAfter === 0 ? 'text-emerald-600' : 'text-slate-500'}`}>{fmtINR(balanceAfter)}</span></span>
+                              <span className="text-slate-400 shrink-0">Balance: <span className="font-bold tabular-nums text-slate-500">{fmtINR(balanceAfterPay[p.id] ?? 0)}</span></span>
                               <span className="text-slate-400 shrink-0">Reference: <span className="text-slate-600 font-medium">{p.reference_number || '—'}</span></span>
                               {p.remarks && <span className="text-slate-400 max-w-[260px] truncate">Remarks: <span className="text-slate-600 font-medium" title={p.remarks}>{p.remarks}</span></span>}
+                              <button
+                                onClick={() => { if (!tile) return; setDownloadingReceiptId(p.id); try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); } }}
+                                disabled={downloadingReceiptId === p.id}
+                                className="ml-1 inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                              >
+                                {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                                {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
+                              </button>
                             </div>
-                            <button
-                              onClick={() => {
-                                if (!tile) return;
-                                setDownloadingReceiptId(p.id);
-                                try { generatePaymentReceipt({ payment: p, tile, demand }); } catch { setActionError('Failed to generate receipt'); } finally { setDownloadingReceiptId(null); }
-                              }}
-                              disabled={downloadingReceiptId === p.id}
-                              className="ml-3 inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-semibold hover:bg-emerald-100 disabled:opacity-40 transition-colors"
-                            >
-                              {downloadingReceiptId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                              {downloadingReceiptId === p.id ? 'Gen…' : 'Receipt'}
-                            </button>
-                          </div>
+                          )}
+                          {act.kind === 'created' && a && (() => {
+                            const createdFields = ['amount', 'demand_run_date', 'due_date', 'generation_source', 'status'];
+                            return (
+                              <div className="flex items-center gap-x-3 whitespace-nowrap">
+                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(a.created_at)}</span></span>
+                                {createdFields.map(f => (
+                                  <span key={f} className="text-slate-400 shrink-0">{formatAuditField(f)}: <span className="text-slate-700 font-bold">{formatAuditValue(a.new_values[f])}</span></span>
+                                ))}
+                                <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{a.actor_label}</span></span>
+                              </div>
+                            );
+                          })()}
+                          {act.kind === 'amended' && a && (() => {
+                            const amendFields = a.changed_fields.filter(f => f !== 'updated_at');
+                            return (
+                              <div className="flex items-center gap-x-3 whitespace-nowrap">
+                                <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(a.created_at)}</span></span>
+                                {amendFields.length === 0 ? (
+                                  <span className="text-slate-500">General details updated</span>
+                                ) : amendFields.map(f => (
+                                  <span key={f} className="text-slate-400 shrink-0">{formatAuditField(f)}: <span className="text-slate-400 line-through">{formatAuditValue(a.old_values?.[f])}</span> <span className="text-slate-300">→</span> <span className="text-slate-700 font-bold">{formatAuditValue(a.new_values[f])}</span></span>
+                                ))}
+                                <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{a.actor_label}</span></span>
+                              </div>
+                            );
+                          })()}
+                          {act.kind === 'dispute' && d && (
+                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(d.dispute_date)}</span></span>
+                              <span className="text-slate-400 shrink-0">Reason: <span className="text-orange-700 font-bold">{d.reason}</span></span>
+                              {d.remarks && <span className="text-slate-400 max-w-[260px] truncate">Remarks: <span className="text-slate-600 font-medium" title={d.remarks}>{d.remarks}</span></span>}
+                              <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{d.author_name || '—'}</span></span>
+                            </div>
+                          )}
+                          {act.kind === 'approved' && runLog && (
+                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(runLog.approved_at!)}</span></span>
+                              <span className="text-slate-400 shrink-0">Status: <span className="text-teal-700 font-bold">{runLog.approval_status}</span></span>
+                              <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
+                              <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.approved_by || '—'}</span></span>
+                            </div>
+                          )}
+                          {act.kind === 'run_amended' && runLog && (
+                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                              <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(runLog.amended_at!)}</span></span>
+                              <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
+                              <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.amended_by || '—'}</span></span>
+                            </div>
+                          )}
                         </div>
-                      );
-                    });
-                  })()}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           );
         })()}
-
-        {effectiveTab === 'audit_log' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Demand Audit Log</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">Creation and every recorded amendment are shown in chronological history.</p>
-              </div>
-              <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-1">{auditLog.length} entries</span>
-            </div>
-            {auditLog.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 shadow-sm py-12 text-center text-slate-400">
-                <ClipboardList size={28} className="mx-auto mb-2 opacity-40" />
-                <p className="text-xs font-medium">No audit history recorded yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {auditLog.map((entry) => {
-                  const fields = entry.event_type === 'CREATED'
-                    ? ['amount', 'demand_run_date', 'due_date', 'generation_source', 'status']
-                    : entry.changed_fields.filter((field) => field !== 'updated_at');
-                  return (
-                    <div key={entry.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${entry.event_type === 'CREATED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                          <ClipboardList size={11} /> {entry.event_type === 'CREATED' ? 'Created' : 'Amended'}
-                        </span>
-                        <span className="text-[10px] text-slate-500 tabular-nums">{fmtDate(entry.created_at)}</span>
-                        <span className="text-[10px] text-slate-400">· {entry.actor_label}</span>
-                      </div>
-                      <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {fields.length === 0 ? (
-                          <span className="text-[11px] text-slate-500">General demand details updated.</span>
-                        ) : fields.map((field) => (
-                          <div key={field} className="rounded-md border border-slate-100 bg-slate-50/70 px-2.5 py-2">
-                            <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{formatAuditField(field)}</div>
-                            {entry.event_type === 'AMENDED' ? (
-                              <div className="mt-1 flex items-center gap-1.5 text-[10px]">
-                                <span className="text-slate-400 line-through truncate" title={formatAuditValue(entry.old_values?.[field])}>{formatAuditValue(entry.old_values?.[field])}</span>
-                                <span className="text-slate-300">→</span>
-                                <span className="font-bold text-slate-700 truncate" title={formatAuditValue(entry.new_values[field])}>{formatAuditValue(entry.new_values[field])}</span>
-                              </div>
-                            ) : (
-                              <div className="mt-1 text-[10px] font-bold text-slate-700 truncate" title={formatAuditValue(entry.new_values[field])}>{formatAuditValue(entry.new_values[field])}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -1837,7 +1872,7 @@ const DCCDemandDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = searchParams.get('tab');
-  const validTabs: Tab[] = ['demand_due', 'installments', 'paid_history', 'audit_log', 'dispute'];
+  const validTabs: Tab[] = ['demand_due', 'installments', 'paid_history', 'dispute'];
   const initialTab: Tab | undefined = tab && validTabs.includes(tab as Tab) ? (tab as Tab) : undefined;
 
   if (!demandId) return null;
