@@ -183,7 +183,6 @@ const emptyInput = (): PayableCriteriaInput => ({
   next_run_date: null,
   available_payment_modes: ['EPAY'],
   include_gst: false,
-  include_arrears: false,
   is_active: true,
   demand_type_id: null,
   object_type: null,
@@ -372,7 +371,6 @@ export const DCCRuleSetupPage: React.FC = () => {
       next_run_date: rec.next_run_date,
       available_payment_modes: rec.available_payment_modes ?? [],
       include_gst: rec.include_gst,
-      include_arrears: rec.include_arrears ?? false,
       is_active: rec.is_active,
       demand_type_id: rec.demand_type_id ?? null,
       object_type: rec.object_type ?? null,
@@ -858,8 +856,6 @@ export const DCCRuleSetupPage: React.FC = () => {
                     specChips.push({ label: `Grid ${grid.length}`, cls: 'bg-indigo-50 text-indigo-700' });
                   if (excs.length > 0)
                     specChips.push({ label: `Exc ${excs.length}`, cls: 'bg-slate-100 text-slate-600' });
-                  if (rec.include_arrears)
-                    specChips.push({ label: 'Arrears', cls: 'bg-amber-100 text-amber-700 border border-amber-300' });
 
                   return (
                     <div
@@ -1279,16 +1275,7 @@ export const DCCRuleSetupPage: React.FC = () => {
                     <input type="checkbox" checked={form.include_gst} onChange={(e) => setForm({ ...form, include_gst: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
                     <span className="text-xs font-semibold text-slate-700">Include GST</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.include_arrears} onChange={(e) => setForm({ ...form, include_arrears: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
-                    <span className="text-xs font-semibold text-slate-700">Include Previous Arrears</span>
-                  </label>
                 </div>
-                {form.include_arrears && (
-                  <p className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                    When enabled, any unpaid demands from previous runs will be carried forward and added to the current run's total.
-                  </p>
-                )}
               </Section>
 
               {/* Full Payment Specs */}
