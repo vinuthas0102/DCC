@@ -1560,34 +1560,38 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const hasPenalty = penaltyAmount > 0;
           const hasDiscount = earlyDisc.discount > 0;
           const hasGst = tile.include_gst && tile.gst_pct > 0;
-          const totalCollected = payments.reduce((s, p) => s + p.amount, 0);
           const isFullyPaid = tile.amount_due <= 0;
 
           // ── Build unified activity timeline ──
-          type ActivityKind = 'payment' | 'created' | 'amended' | 'dispute' | 'approved' | 'run_amended';
+          // Business workflow order (top = most recent business event):
+          //   Paid:   Payment → Amended(run) → Approved → Modified(audit) → Dispute → Created
+          //   Pending: Amended(run) → Approved → Modified(audit) → Dispute → Created
+          type ActivityKind = 'payment' | 'created' | 'modified' | 'dispute' | 'approved' | 'amended';
           interface ActivityEntry { id: string; kind: ActivityKind; timestamp: string; orderTimestamp: string; rank: number; }
           const activities: ActivityEntry[] = [];
-          payments.forEach(p => activities.push({ id: `pay-${p.id}`, kind: 'payment', timestamp: p.payment_date, orderTimestamp: p.created_at || p.payment_date, rank: 4 }));
+          payments.forEach(p => activities.push({ id: `pay-${p.id}`, kind: 'payment', timestamp: p.payment_date, orderTimestamp: p.created_at || p.payment_date, rank: 60 }));
           auditLog.forEach(e => {
             const createdAt = typeof e.new_values.created_at === 'string' ? e.new_values.created_at : e.created_at;
             activities.push({
               id: `audit-${e.id}`,
-              kind: e.event_type === 'CREATED' ? 'created' : 'amended',
+              kind: e.event_type === 'CREATED' ? 'created' : 'modified',
               timestamp: e.event_type === 'CREATED' ? createdAt : e.created_at,
               orderTimestamp: e.created_at,
-              rank: e.event_type === 'CREATED' ? 1 : 5,
+              rank: e.event_type === 'CREATED' ? 10 : 40,
             });
           });
-          disputes.forEach(d => activities.push({ id: `disp-${d.id}`, kind: 'dispute', timestamp: d.dispute_date, orderTimestamp: d.created_at || d.dispute_date, rank: 3 }));
+          disputes.forEach(d => activities.push({ id: `disp-${d.id}`, kind: 'dispute', timestamp: d.dispute_date, orderTimestamp: d.created_at || d.dispute_date, rank: 30 }));
           if (runLog) {
-            if (runLog.approved_at) activities.push({ id: `appr-${runLog.id}`, kind: 'approved', timestamp: runLog.approved_at, orderTimestamp: runLog.approved_at, rank: 2 });
-            if (runLog.amended_at) activities.push({ id: `ramend-${runLog.id}`, kind: 'run_amended', timestamp: runLog.amended_at, orderTimestamp: runLog.amended_at, rank: 5 });
+            if (runLog.approved_at) activities.push({ id: `appr-${runLog.id}`, kind: 'approved', timestamp: runLog.approved_at, orderTimestamp: runLog.approved_at, rank: 50 });
+            if (runLog.amended_at) activities.push({ id: `ramend-${runLog.id}`, kind: 'amended', timestamp: runLog.amended_at, orderTimestamp: runLog.amended_at, rank: 55 });
           }
           activities.sort((a, b) => {
+            const rankDiff = b.rank - a.rank;
+            if (rankDiff !== 0) return rankDiff;
             const dateDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
             if (dateDiff !== 0) return dateDiff;
             const timeDiff = new Date(b.orderTimestamp).getTime() - new Date(a.orderTimestamp).getTime();
-            return timeDiff !== 0 ? timeDiff : b.rank - a.rank || b.id.localeCompare(a.id);
+            return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
           });
 
           const chronologicalPay = [...payments].sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
@@ -1598,14 +1602,14 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const badgeCls: Record<ActivityKind, string> = {
             payment: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
             created: 'bg-blue-50 text-blue-700 border border-blue-200',
-            amended: 'bg-amber-50 text-amber-700 border border-amber-200',
+            modified: 'bg-amber-50 text-amber-700 border border-amber-200',
             dispute: 'bg-orange-50 text-orange-700 border border-orange-200',
             approved: 'bg-teal-50 text-teal-700 border border-teal-200',
-            run_amended: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
+            amended: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
           };
           const badgeText: Record<ActivityKind, string> = {
-            payment: 'Payment', created: 'Created', amended: 'Amended',
-            dispute: 'Dispute', approved: 'Approved', run_amended: 'Run Amended',
+            payment: 'Payment', created: 'Created', modified: 'Modified',
+            dispute: 'Dispute', approved: 'Approved', amended: 'Amended',
           };
 
           return (
@@ -1620,7 +1624,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                 <div className="w-px h-4 bg-slate-200" />
                 <div className="flex items-center gap-1">
                   <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Collected ({payments.length}):</span>
-                  <span className="text-sm font-extrabold text-emerald-600 tabular-nums">{fmtINR(totalCollected)}</span>
+                  <span className="text-sm font-extrabold text-emerald-600 tabular-nums">{fmtINR(tile.amount_paid)}</span>
                 </div>
                 <div className="w-px h-4 bg-slate-200" />
                 <div className="flex items-center gap-1">
@@ -1647,7 +1651,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                 <div className="border-t border-slate-100 bg-slate-50/50 p-3 space-y-2">
                   {activities.map(act => {
                     const p = act.kind === 'payment' ? payments.find(pay => pay.id === act.id.slice(4)) : null;
-                    const a = act.kind === 'created' || act.kind === 'amended' ? auditLog.find(e => e.id === act.id.slice(6)) : null;
+                    const a = act.kind === 'created' || act.kind === 'modified' ? auditLog.find(e => e.id === act.id.slice(6)) : null;
                     const d = act.kind === 'dispute' ? disputes.find(disp => disp.id === act.id.slice(5)) : null;
                     return (
                       <div key={act.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md transition-all">
@@ -1686,7 +1690,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                               </div>
                             );
                           })()}
-                          {act.kind === 'amended' && a && (() => {
+                          {act.kind === 'modified' && a && (() => {
                             const amendFields = a.changed_fields.filter(f => f !== 'updated_at');
                             return (
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
@@ -1716,7 +1720,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                               <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.approved_by || '—'}</span></span>
                             </div>
                           )}
-                          {act.kind === 'run_amended' && runLog && (
+                          {act.kind === 'amended' && runLog && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(act.timestamp)}</span></span>
                               <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
