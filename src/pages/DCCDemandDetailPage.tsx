@@ -1567,14 +1567,17 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           type ActivityKind = 'payment' | 'created' | 'amended' | 'dispute' | 'approved' | 'run_amended';
           interface ActivityEntry { id: string; kind: ActivityKind; timestamp: string; }
           const activities: ActivityEntry[] = [];
-          payments.forEach(p => activities.push({ id: `pay-${p.id}`, kind: 'payment', timestamp: p.payment_date }));
+          payments.forEach(p => activities.push({ id: `pay-${p.id}`, kind: 'payment', timestamp: p.created_at || `${p.payment_date}T00:00:00` }));
           auditLog.forEach(e => activities.push({ id: `audit-${e.id}`, kind: e.event_type === 'CREATED' ? 'created' : 'amended', timestamp: e.created_at }));
-          disputes.forEach(d => activities.push({ id: `disp-${d.id}`, kind: 'dispute', timestamp: d.dispute_date }));
+          disputes.forEach(d => activities.push({ id: `disp-${d.id}`, kind: 'dispute', timestamp: d.created_at || `${d.dispute_date}T00:00:00` }));
           if (runLog) {
             if (runLog.approved_at) activities.push({ id: `appr-${runLog.id}`, kind: 'approved', timestamp: runLog.approved_at });
             if (runLog.amended_at) activities.push({ id: `ramend-${runLog.id}`, kind: 'run_amended', timestamp: runLog.amended_at });
           }
-          activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          activities.sort((a, b) => {
+            const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
+          });
 
           const chronologicalPay = [...payments].sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
           let cumPaid = 0;
@@ -1587,7 +1590,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             amended: 'bg-amber-50 text-amber-700 border border-amber-200',
             dispute: 'bg-orange-50 text-orange-700 border border-orange-200',
             approved: 'bg-teal-50 text-teal-700 border border-teal-200',
-            run_amended: 'bg-violet-50 text-violet-700 border border-violet-200',
+            run_amended: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
           };
           const badgeText: Record<ActivityKind, string> = {
             payment: 'Payment', created: 'Created', amended: 'Amended',
@@ -1630,19 +1633,19 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                   <p className="text-xs">No activity recorded yet</p>
                 </div>
               ) : (
-                <div className="border-t border-slate-100 divide-y divide-slate-100">
+                <div className="border-t border-slate-100 bg-slate-50/50 p-3 space-y-2">
                   {activities.map(act => {
                     const p = act.kind === 'payment' ? payments.find(pay => pay.id === act.id.slice(4)) : null;
                     const a = act.kind === 'created' || act.kind === 'amended' ? auditLog.find(e => e.id === act.id.slice(6)) : null;
                     const d = act.kind === 'dispute' ? disputes.find(disp => disp.id === act.id.slice(5)) : null;
                     return (
-                      <div key={act.id} className="px-4 py-2 hover:bg-slate-50/50 transition-colors overflow-x-auto">
-                        <div className="flex min-w-max items-center gap-x-2.5 text-[10px]">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${badgeCls[act.kind]}`}>
+                      <div key={act.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md transition-all">
+                        <div className="flex flex-col gap-2 text-[10px]">
+                          <span className={`self-start inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold ${badgeCls[act.kind]}`}>
                             {badgeText[act.kind]}
                           </span>
                           {act.kind === 'payment' && p && (
-                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 shrink-0">Receipt: <span className="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold">{receiptNumber(p.id)}</span></span>
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(p.payment_date)}</span></span>
                               <span className="text-slate-400 shrink-0">Mode: <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{PAYMENT_MODE_LABELS[p.payment_mode as PaymentMode] ?? p.payment_mode}</span></span>
@@ -1663,7 +1666,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           {act.kind === 'created' && a && (() => {
                             const createdFields = ['amount', 'demand_run_date', 'due_date', 'generation_source', 'status'];
                             return (
-                              <div className="flex items-center gap-x-3 whitespace-nowrap">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                                 <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(a.created_at)}</span></span>
                                 {createdFields.map(f => (
                                   <span key={f} className="text-slate-400 shrink-0">{formatAuditField(f)}: <span className="text-slate-700 font-bold">{formatAuditValue(a.new_values[f])}</span></span>
@@ -1675,7 +1678,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                           {act.kind === 'amended' && a && (() => {
                             const amendFields = a.changed_fields.filter(f => f !== 'updated_at');
                             return (
-                              <div className="flex items-center gap-x-3 whitespace-nowrap">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                                 <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(a.created_at)}</span></span>
                                 {amendFields.length === 0 ? (
                                   <span className="text-slate-500">General details updated</span>
@@ -1687,7 +1690,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             );
                           })()}
                           {act.kind === 'dispute' && d && (
-                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(d.dispute_date)}</span></span>
                               <span className="text-slate-400 shrink-0">Reason: <span className="text-orange-700 font-bold">{d.reason}</span></span>
                               {d.remarks && <span className="text-slate-400 max-w-[260px] truncate">Remarks: <span className="text-slate-600 font-medium" title={d.remarks}>{d.remarks}</span></span>}
@@ -1695,7 +1698,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             </div>
                           )}
                           {act.kind === 'approved' && runLog && (
-                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(runLog.approved_at!)}</span></span>
                               <span className="text-slate-400 shrink-0">Status: <span className="text-teal-700 font-bold">{runLog.approval_status}</span></span>
                               <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
@@ -1703,7 +1706,7 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                             </div>
                           )}
                           {act.kind === 'run_amended' && runLog && (
-                            <div className="flex items-center gap-x-3 whitespace-nowrap">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                               <span className="text-slate-400 inline-flex items-center gap-1 shrink-0"><Calendar size={9} className="opacity-50" />Date: <span className="text-slate-600 font-medium">{fmtDate(runLog.amended_at!)}</span></span>
                               <span className="text-slate-400 shrink-0">Run: <span className="text-slate-600 font-medium">#{runLog.run_number}</span></span>
                               <span className="text-slate-400 shrink-0">By: <span className="text-slate-600 font-medium">{runLog.amended_by || '—'}</span></span>
