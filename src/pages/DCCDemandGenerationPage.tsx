@@ -820,11 +820,11 @@ export const DCCDemandGenerationPage: React.FC = () => {
                     </div>
 
                     {/* Cols 9-10: Type & Rule Badges */}
-                    <div className="col-span-2 min-w-0 flex flex-wrap items-center gap-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
+                    <div className="col-span-2 min-w-0 flex flex-nowrap items-center gap-1 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
                         {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${SOURCE_BADGE[log.source] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                         {log.source}
                       </span>
                       <RunDemandTypeBadge types={runDemandTypesMap[log.id] ?? []} />
