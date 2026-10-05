@@ -247,7 +247,7 @@ export const ObjectSummaryModal: React.FC<ObjectSummaryModalProps> = ({
   const filteredGroups = useMemo(() => {
     let groups = objectGroups;
 
-    if (activeKpi === 'PAID') groups = groups.filter(g => g.overallStatus === 'PAID');
+    if (activeKpi === 'PAID') groups = groups.filter(g => g.tiles.some(t => t.amount_paid > 0));
     else if (activeKpi === 'OUTSTANDING') groups = groups.filter(g => g.overallStatus === 'DUE' || g.overallStatus === 'OVERDUE');
     else if (activeKpi === 'OVERDUE') groups = groups.filter(g => g.overallStatus === 'OVERDUE');
 
