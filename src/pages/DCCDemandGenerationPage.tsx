@@ -779,22 +779,22 @@ export const DCCDemandGenerationPage: React.FC = () => {
                 return (
                   <div
                     key={log.id}
-                    className={`grid grid-cols-12 items-center gap-2 px-3.5 py-2 min-h-[50px] w-full border border-slate-200 border-l-[3px] ${accentBorder} rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow`}
+                    className={`grid grid-cols-[1.2fr_1.2fr_1.7fr_1.2fr_2.8fr_auto] items-center gap-2 px-3.5 py-2 min-h-[50px] w-full border border-slate-200 border-l-[3px] ${accentBorder} rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow`}
                   >
-                    {/* Cols 1-2: RUN ID & Date */}
-                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                    {/* Run ID & Date */}
+                    <div className="border-r border-slate-100 pr-2 min-w-0">
                       <div className="text-xs font-bold text-blue-700 tabular-nums leading-tight">RUN-{String(log.run_number).padStart(3, '0')}</div>
                       <div className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{fmtDateDDMMYYYY(log.run_date)}</div>
                     </div>
 
-                    {/* Cols 3-4: Demands Processed */}
-                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                    {/* Demands Processed */}
+                    <div className="border-r border-slate-100 pr-2 min-w-0">
                       <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Demands Processed</div>
                       <div className="text-xs font-bold text-slate-800 tabular-nums leading-tight mt-0.5">{processedCount}</div>
                     </div>
 
-                    {/* Cols 5-6: Run Timestamps */}
-                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                    {/* Run Timestamps */}
+                    <div className="border-r border-slate-100 pr-2 min-w-0">
                       <div className="flex flex-col gap-0.5">
                         <div className="min-w-0">
                           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">Run Start </span>
@@ -807,8 +807,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Cols 7-8: Counts & Total Amount */}
-                    <div className="col-span-2 border-r border-slate-100 pr-2 min-w-0">
+                    {/* Counts & Total Amount */}
+                    <div className="border-r border-slate-100 pr-2 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] text-slate-500 leading-tight">
                         <span className="flex items-center gap-0.5"><Users size={10} /> {log.run_summary?.object_count as number ?? '—'}</span>
                         <span className="flex items-center gap-0.5"><FileText size={10} /> {log.records_created}</span>
@@ -819,8 +819,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{fmtINR(log.total_amount)}</div>
                     </div>
 
-                    {/* Cols 9-10: Type & Rule Badges */}
-                    <div className="col-span-2 min-w-0 flex flex-nowrap items-center gap-1 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {/* Status & Rule Badges */}
+                    <div className="min-w-0 flex flex-nowrap items-center justify-start gap-1.5 overflow-visible px-1">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${APPROVAL_BADGE[log.approval_status ?? 'PENDING'].cls}`}>
                         {APPROVAL_BADGE[log.approval_status ?? 'PENDING'].label}
                       </span>
@@ -831,8 +831,8 @@ export const DCCDemandGenerationPage: React.FC = () => {
                       <RunRuleNumberBadge ruleIds={runRuleIdsMap[log.id] ?? []} rules={rules} />
                     </div>
 
-                    {/* Cols 11-12: Action Button */}
-                    <div className="col-span-2 flex items-center justify-end whitespace-nowrap">
+                    {/* Action Button */}
+                    <div className="min-w-[128px] flex items-center justify-end whitespace-nowrap">
                       <button
                         onClick={() => handleOpenRunDetails(log)}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[9px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
