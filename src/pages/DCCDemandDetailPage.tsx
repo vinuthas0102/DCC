@@ -464,26 +464,9 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
   const handleBulkPay = async () => {
     if (!demandId || !tile || selectedDueRows.size === 0) return;
     const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
-    const isMonthly = config.cadence === 'monthly';
     const penaltyPct = 0.02;
 
-    const allRows = isMonthly ? (() => {
-      const runDate = new Date(tile.demand_run_date);
-      const monthlyAmount = Math.round(tile.total_amount / 12);
-      const out: Array<{ sno: number; total: number; status: typeof tile.status }> = [];
-      for (let i = 0; i < 12; i++) {
-        const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
-        const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
-        const status = isPaid ? 'PAID' : isOverdue ? 'OVERDUE' : 'DUE';
-        const charges: Record<string, number> = {};
-        for (const comp of config.components) {
-          charges[comp.key] = Math.round(monthlyAmount * comp.ratio);
-        }
-        charges['penalty'] = status === 'OVERDUE' ? Math.round(monthlyAmount * penaltyPct) : 0;
-        out.push({ sno: i + 1, total: Object.values(charges).reduce((s, v) => s + v, 0), status });
-      }
-      return out;
-    })() : [{ sno: 1, total: tile.amount_due, status: tile.status }];
+    const allRows = [{ sno: 1, total: tile.amount_due, status: tile.status }];
 
     const selectedTotal = allRows.filter(r => selectedDueRows.has(r.sno) && r.status !== 'PAID').reduce((s, r) => s + r.total, 0);
     if (selectedTotal <= 0) return;
@@ -710,19 +693,8 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
               const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
               const finalWithGst = tile.include_gst && tile.gst_type === 'exclusive' ? netPayable + gst.gstAmount : netPayable;
               const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
-              const isMonthly = config.cadence === 'monthly';
               const penaltyPct = 0.02;
-              const penaltyAmount = isMonthly ? (() => {
-                const monthlyAmount = Math.round(tile.total_amount / 12);
-                const runDate = new Date(tile.demand_run_date);
-                let total = 0;
-                for (let i = 0; i < 12; i++) {
-                  const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
-                  const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
-                  if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
-                }
-                return total;
-              })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
+              const penaltyAmount = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
               const appliedPenaltyPct = penaltyAmount > 0 ? penaltyPct * 100 : 0;
               return (
                 <div className="flex items-center gap-3 flex-wrap">
@@ -901,39 +873,21 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const isMonthly = config.cadence === 'monthly';
           const penaltyPct = 0.02;
 
-          const rows = isMonthly ? (() => {
+          const periodLabel = (() => {
             const runDate = new Date(tile.demand_run_date);
-            const monthlyAmount = Math.round(tile.total_amount / 12);
-            const out: Array<{ sno: number; label: string; charges: Record<string, number>; total: number; status: typeof tile.status }> = [];
-            for (let i = 0; i < 12; i++) {
-              const d = new Date(runDate.getFullYear(), runDate.getMonth() + i, 1);
-              const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
-              const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
-              const status = isPaid ? 'PAID' : isOverdue ? 'OVERDUE' : 'DUE';
-              const charges: Record<string, number> = {};
-              for (const comp of config.components) {
-                charges[comp.key] = Math.round(monthlyAmount * comp.ratio);
-              }
-              charges['penalty'] = status === 'OVERDUE' ? Math.round(monthlyAmount * penaltyPct) : 0;
-              const total = Object.values(charges).reduce((s, v) => s + v, 0);
-              out.push({ sno: i + 1, label: d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), charges, total, status });
-            }
-            return out;
-          })() : (() => {
-            const charges: Record<string, number> = {};
-            const baseAmount = tile.status === 'OVERDUE' ? tile.amount_due : tile.total_amount;
-            for (const comp of config.components) {
-              charges[comp.key] = Math.round(baseAmount * comp.ratio);
-            }
-            charges['penalty'] = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
-            const total = tile.amount_due;
-            const periodLabel = (() => {
-              const runDate = new Date(tile.demand_run_date);
-              if (isNaN(runDate.getTime())) return 'One-Time / Initial Deposit';
-              return runDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            })();
-            return [{ sno: 1, label: periodLabel, charges, total, status: tile.status }];
+            if (isNaN(runDate.getTime())) return 'One-Time / Initial Deposit';
+            if (isMonthly) return runDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            return runDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
           })();
+
+          const charges: Record<string, number> = {};
+          const baseAmount = tile.status === 'OVERDUE' ? tile.amount_due : tile.total_amount;
+          for (const comp of config.components) {
+            charges[comp.key] = Math.round(baseAmount * comp.ratio);
+          }
+          charges['penalty'] = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
+          const total = tile.amount_due;
+          const rows = [{ sno: 1, label: periodLabel, charges, total, status: tile.status }];
 
           const openRows = rows.filter(r => r.status !== 'PAID');
           const disputeCountForRow = (sno: number) => disputes.filter(d => d.row_number === sno).length;
@@ -1545,18 +1499,8 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
           const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.total_amount);
           const gst = computeGst(tile.total_amount, tile.gst_pct, tile.gst_type, tile.include_gst);
           const config = getDemandComponentConfig(tile.demand_type_code, tile.object_type);
-          const isMonthly = config.cadence === 'monthly';
           const penaltyPct = 0.02;
-          const penaltyAmount = isMonthly ? (() => {
-            const monthlyAmount = Math.round(tile.total_amount / 12);
-            let total = 0;
-            for (let i = 0; i < 12; i++) {
-              const isPaid = i < Math.floor((tile.amount_paid / tile.total_amount) * 12);
-              const isOverdue = !isPaid && new Date(tile.due_date) < new Date();
-              if (isOverdue) total += Math.round(monthlyAmount * penaltyPct);
-            }
-            return total;
-          })() : (tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0);
+          const penaltyAmount = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
           const hasPenalty = penaltyAmount > 0;
           const hasDiscount = earlyDisc.discount > 0;
           const hasGst = tile.include_gst && tile.gst_pct > 0;
