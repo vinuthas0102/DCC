@@ -156,9 +156,9 @@ export interface DccDemandRunLog {
   total_amount: number;
   created_at: string;
   demand_type?: DccDemandType;
-  started_at: string | null;
-  ended_at: string | null;
-  duration_ms: number | null;
+  started_at: string;
+  ended_at: string;
+  duration_ms: number;
   records_failed: number;
   run_summary: Record<string, unknown> | null;
   approval_status: DccRunApprovalStatus;

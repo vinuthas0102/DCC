@@ -673,6 +673,10 @@ export const DCCDemandGenerationPage: React.FC = () => {
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Run End Date &amp; Time</span>
                         <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate" title={fmtDateTimeDDMMYYYY(log.ended_at)}>{fmtDateTimeDDMMYYYY(log.ended_at)}</span>
                       </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Duration</span>
+                        <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">{fmtDuration(log.duration_ms)}</span>
+                      </div>
                     </div>
 
                     {/* ── Footer: Financials & Action ── */}
