@@ -855,6 +855,14 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
             </button>
           );
         })}
+        {showInstalmentTab && canManagePlan && !isPaidOrExempted && !showInstForm && (
+          <button
+            onClick={() => setShowInstForm(true)}
+            className="ml-auto mr-1 flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors whitespace-nowrap"
+          >
+            <Plus size={12} /> {instPlan ? 'Recreate Plan' : 'Create Plan'}
+          </button>
+        )}
       </div>
 
       {/* ── Tab Content ────────────────────────────────────────────────────────── */}
@@ -1074,25 +1082,6 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
         {effectiveTab === 'installments' && (
           <div className="space-y-3">
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 space-y-3">
-            {/* Header */}
-            <div className="flex items-center gap-2">
-              <Layers size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900">Installment Plan</h3>
-              {isPaidOrExempted && instRows.length > 0 && (
-                <span className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide">
-                  <History size={11} /> Read-Only
-                </span>
-              )}
-              {canManagePlan && !isPaidOrExempted && !showInstForm && (
-                <button
-                  onClick={() => setShowInstForm(true)}
-                  className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors"
-                >
-                  <Plus size={12} /> {instPlan ? 'Recreate Plan' : 'Create Plan'}
-                </button>
-              )}
-            </div>
-
             {instSuccess && (
               <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md text-[11px] text-emerald-700">
                 <CheckCircle2 size={13} className="shrink-0" /> {instSuccess}
@@ -1263,6 +1252,11 @@ export const DCCDemandDetailModal: React.FC<DCCDemandDetailModalProps> = ({ dema
                       Pending Only
                     </button>
                   </div>
+                  {isPaidOrExempted && instRows.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide">
+                      <History size={11} /> Read-Only
+                    </span>
+                  )}
                   <button
                     onClick={() => {
                       const csv = ['Action,Instalment,Total Amount,Discount,Penalty,GST Amount,Due Date,Due w/ Late Fee,Paid Date,Paid Amount,Remaining,Status'];
