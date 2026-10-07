@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ObjectSummaryModal } from './ObjectSummaryView';
-import { DemandSummaryModal } from './DemandSummaryView';
+import { ObjectDemandDueScreen } from './ObjectDemandDueScreen';
 import {
   Users, ChevronRight, Phone, MapPin, Eye,
   LayoutGrid, List, Table2,
@@ -459,7 +459,7 @@ export const ClientWiseView: React.FC<ClientWiseViewProps> = ({ tiles, viewMode 
 
       <AnimatePresence>
         {selectedClient && demandObjectId && (
-          <DemandSummaryModal
+          <ObjectDemandDueScreen
             ownerId={selectedClient.ownerId}
             ownerName={selectedClient.ownerName}
             ownerContact={selectedClient.ownerContact}
