@@ -382,16 +382,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
     });
   };
 
-  const toggleAll = () => {
-    if (selectedDemandIds.size === pendingTiles.length) {
-      setSelectedDemandIds(new Set());
-    } else {
-      setSelectedDemandIds(new Set(pendingTiles.map(t => t.id)));
-    }
-  };
-
-  const allSelected = pendingTiles.length > 0 && selectedDemandIds.size === pendingTiles.length;
-
   // ── Expand/collapse demand detail ─────────────────────────────────────────────
   const toggleExpand = (id: string) => {
     setExpandedDemandIds(prev => {
@@ -791,16 +781,9 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                 return (
                   <div className="flex gap-3">
                     <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex items-center justify-between px-1">
-                        <button
-                          onClick={toggleAll}
-                          className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors"
-                        >
-                          {allSelected ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
-                          {allSelected ? 'Deselect All' : 'Select All'}
-                        </button>
+                      <div className="flex items-center justify-end px-1">
                         <span className="text-[11px] text-slate-400">
-                          {selectedDemandIds.size} of {pendingTiles.length} selected · {fmtINR(selectedFinancials.totalOutstanding)}
+                          {selectedDemandIds.size} selected · {fmtINR(selectedFinancials.totalOutstanding)}
                         </span>
                       </div>
 
@@ -809,16 +792,15 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                           <table className="w-full text-xs">
                             <thead>
                               <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200 w-8">
-                                  <button onClick={toggleAll} className="flex items-center justify-center">
-                                    {allSelected ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-slate-300" />}
-                                  </button>
-                                </th>
+                                <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200 w-8" aria-label="Select demand" />
                                 <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Sl No</th>
                                 <th className="py-2 px-3 text-left font-bold text-slate-600 border-b border-slate-200">Period / Run Date</th>
                                 {config.components.map(comp => (
                                   <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
                                 ))}
+                                <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Penalty</th>
+                                <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">GST</th>
+                                <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Discount</th>
                                 <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Due</th>
                                 <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute Date</th>
                                 <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute</th>
@@ -842,6 +824,8 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                   charges[comp.key] = Math.round(baseAmount * comp.ratio);
                                 }
                                 const penalty = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
+                                const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
+                                const earlyDiscount = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
 
                                 const periodLabel = (() => {
                                   const runDate = new Date(tile.demand_run_date);
@@ -881,11 +865,17 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                           {(charges[comp.key] ?? 0) > 0 ? fmtINR(charges[comp.key]) : '—'}
                                         </td>
                                       ))}
-                                      <td className="py-1.5 px-3 text-right">
-                                        <div className="flex flex-col">
-                                          <span className="font-mono font-bold text-slate-900">{fmtINR(tile.amount_due)}</span>
-                                          {penalty > 0 && <span className="text-[9px] text-red-500 font-semibold">+{fmtINR(penalty)} penalty</span>}
-                                        </div>
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-red-600">
+                                        {penalty > 0 ? fmtINR(penalty) : '—'}
+                                      </td>
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-700">
+                                        {gst.gstAmount > 0 ? fmtINR(gst.gstAmount) : '—'}
+                                      </td>
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-emerald-700">
+                                        {earlyDiscount.discount > 0 ? `−${fmtINR(earlyDiscount.discount)}` : '—'}
+                                      </td>
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
+                                        {fmtINR(tile.amount_due)}
                                       </td>
                                       <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                                         {latestDispute ? (
@@ -925,7 +915,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                     {/* ── Expanded demand detail ───────────────────────────── */}
                                     {isExpanded && (
                                       <tr className="bg-slate-50/60">
-                                        <td colSpan={config.components.length + 5} className="py-2.5 px-6">
+                                        <td colSpan={config.components.length + 9} className="py-2.5 px-6">
                                           <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[10px]">
                                             <div className="flex flex-col">
                                               <span className="text-slate-400 font-bold uppercase">Demand ID</span>
@@ -981,7 +971,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                             </tbody>
                             <tfoot>
                               <tr className="bg-slate-50 border-t-2 border-slate-200">
-                                <td colSpan={config.components.length + 3} className="py-1.5 px-3 text-right font-bold text-slate-700">
+                                <td colSpan={config.components.length + 6} className="py-1.5 px-3 text-right font-bold text-slate-700">
                                   Selected Outstanding ({selectedTiles.length}):
                                 </td>
                                 <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(selectedFinancials.totalOutstanding)}</td>
