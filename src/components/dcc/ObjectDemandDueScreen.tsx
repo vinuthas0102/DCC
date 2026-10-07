@@ -39,6 +39,31 @@ const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmou
   return { pct: 0, discount: 0, adjusted: grossAmount, daysEarly };
 };
 
+interface DemandFinancialBreakdown {
+  baseAmount: number;
+  penalty: number;
+  gstAmount: number;
+  discount: number;
+  totalDue: number;
+}
+
+const calculateDemandFinancials = (tile: DccTile, paymentDate: string): DemandFinancialBreakdown => {
+  const baseAmount = Math.max(tile.amount_due, 0);
+  const penalty = tile.status === 'OVERDUE' ? Math.round(baseAmount * 0.02) : 0;
+  const earlyDiscount = computeEarlyPayDiscount(tile.due_date, paymentDate, baseAmount);
+  const gst = computeGst(baseAmount, tile.gst_pct, tile.gst_type, tile.include_gst);
+  const discountedAmount = earlyDiscount.adjusted;
+  const totalDue = discountedAmount + penalty + (tile.include_gst && tile.gst_type === 'exclusive' ? gst.gstAmount : 0);
+
+  return {
+    baseAmount,
+    penalty,
+    gstAmount: gst.gstAmount,
+    discount: earlyDiscount.discount,
+    totalDue,
+  };
+};
+
 const INSTALLMENT_DEMAND_CODES = new Set(['LOAN']);
 const isInstalmentType = (code: string): boolean => INSTALLMENT_DEMAND_CODES.has(code);
 
@@ -304,24 +329,17 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   const allPaidOrExempted = activeGroup ? activeGroup.pendingTiles.length === 0 : false;
 
   const selectedFinancials = useMemo(() => {
-    let totalOutstanding = 0;
-    let totalPenalty = 0;
-    let totalDiscount = 0;
-    let totalGst = 0;
-    let totalFinalPayable = 0;
-    for (const tile of selectedTiles) {
-      totalOutstanding += tile.amount_due;
-      const penaltyPct = 0.02;
-      totalPenalty += tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
-      const earlyDisc = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
-      totalDiscount += earlyDisc.discount;
-      const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
-      totalGst += gst.gstAmount;
-      const netPayable = earlyDisc.pct > 0 ? earlyDisc.adjusted : tile.amount_due;
-      const finalWithGst = tile.include_gst && tile.gst_type === 'exclusive' ? netPayable + gst.gstAmount : netPayable;
-      totalFinalPayable += finalWithGst;
-    }
-    return { totalOutstanding, totalPenalty, totalDiscount, totalGst, totalFinalPayable };
+    const paymentDate = new Date().toISOString().slice(0, 10);
+    return selectedTiles.reduce((totals, tile) => {
+      const breakdown = calculateDemandFinancials(tile, paymentDate);
+      return {
+        totalOutstanding: totals.totalOutstanding + breakdown.baseAmount,
+        totalPenalty: totals.totalPenalty + breakdown.penalty,
+        totalDiscount: totals.totalDiscount + breakdown.discount,
+        totalGst: totals.totalGst + breakdown.gstAmount,
+        totalFinalPayable: totals.totalFinalPayable + breakdown.totalDue,
+      };
+    }, { totalOutstanding: 0, totalPenalty: 0, totalDiscount: 0, totalGst: 0, totalFinalPayable: 0 });
   }, [selectedTiles]);
 
   // ── Installment selection ─────────────────────────────────────────────────────
@@ -429,7 +447,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
             await dccService.submitPayment(
               tile.id,
               tile.object_id,
-              tile.amount_due,
+              calculateDemandFinancials(tile, payModalDate).totalDue,
               payModalMode,
               payModalDate,
               payModalRef || undefined,
@@ -776,8 +794,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
               {effectiveTab === 'demand_due' && !allPaidOrExempted && (() => {
                 const config = { components: mergedComponents, cadence: getDemandComponentConfig(activeGroup.code, headerTile.object_type).cadence } as const;
                 const isMonthly = config.cadence === 'monthly';
-                const penaltyPct = 0.02;
-
                 return (
                   <div className="flex gap-3">
                     <div className="flex-1 min-w-0 space-y-3">
@@ -798,6 +814,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                 {config.components.map(comp => (
                                   <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
                                 ))}
+                                <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Amount</th>
                                 <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Penalty</th>
                                 <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">GST</th>
                                 <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Discount</th>
@@ -823,9 +840,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                 for (const comp of tileConfig.components) {
                                   charges[comp.key] = Math.round(baseAmount * comp.ratio);
                                 }
-                                const penalty = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
-                                const gst = computeGst(tile.amount_due, tile.gst_pct, tile.gst_type, tile.include_gst);
-                                const earlyDiscount = computeEarlyPayDiscount(tile.due_date, new Date().toISOString().slice(0, 10), tile.amount_due);
+                                const breakdown = calculateDemandFinancials(tile, new Date().toISOString().slice(0, 10));
 
                                 const periodLabel = (() => {
                                   const runDate = new Date(tile.demand_run_date);
@@ -865,17 +880,20 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                           {(charges[comp.key] ?? 0) > 0 ? fmtINR(charges[comp.key]) : '—'}
                                         </td>
                                       ))}
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
+                                        {fmtINR(tile.total_amount)}
+                                      </td>
                                       <td className="py-1.5 px-3 text-right font-mono font-bold text-red-600">
-                                        {penalty > 0 ? fmtINR(penalty) : '—'}
+                                        {breakdown.penalty > 0 ? fmtINR(breakdown.penalty) : '—'}
                                       </td>
                                       <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-700">
-                                        {gst.gstAmount > 0 ? fmtINR(gst.gstAmount) : '—'}
+                                        {breakdown.gstAmount > 0 ? fmtINR(breakdown.gstAmount) : '—'}
                                       </td>
                                       <td className="py-1.5 px-3 text-right font-mono font-bold text-emerald-700">
-                                        {earlyDiscount.discount > 0 ? `−${fmtINR(earlyDiscount.discount)}` : '—'}
+                                        {breakdown.discount > 0 ? `−${fmtINR(breakdown.discount)}` : '—'}
                                       </td>
                                       <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
-                                        {fmtINR(tile.amount_due)}
+                                        {fmtINR(breakdown.totalDue)}
                                       </td>
                                       <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                                         {latestDispute ? (
@@ -915,7 +933,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                     {/* ── Expanded demand detail ───────────────────────────── */}
                                     {isExpanded && (
                                       <tr className="bg-slate-50/60">
-                                        <td colSpan={config.components.length + 9} className="py-2.5 px-6">
+                                        <td colSpan={config.components.length + 10} className="py-2.5 px-6">
                                           <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[10px]">
                                             <div className="flex flex-col">
                                               <span className="text-slate-400 font-bold uppercase">Demand ID</span>
@@ -971,10 +989,10 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                             </tbody>
                             <tfoot>
                               <tr className="bg-slate-50 border-t-2 border-slate-200">
-                                <td colSpan={config.components.length + 6} className="py-1.5 px-3 text-right font-bold text-slate-700">
-                                  Selected Outstanding ({selectedTiles.length}):
+                                <td colSpan={config.components.length + 7} className="py-1.5 px-3 text-right font-bold text-slate-700">
+                                  Selected Total Due ({selectedTiles.length}):
                                 </td>
-                                <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(selectedFinancials.totalOutstanding)}</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(selectedFinancials.totalFinalPayable)}</td>
                                 <td colSpan={2} />
                               </tr>
                             </tfoot>
