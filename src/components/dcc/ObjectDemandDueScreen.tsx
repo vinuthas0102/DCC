@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Phone, MapPin, Users, Building2,
-  Calendar, Clock, AlertTriangle, CheckCircle2, Wallet, Download,
+  ArrowLeft, Phone, Users, Calendar, AlertTriangle, CheckCircle2, Wallet, Download,
   Loader2, X, Layers, AlertCircle, History,
   MessageSquareWarning, MessageCircle, Send,
   CreditCard, Smartphone, Building, Banknote, Lock,
-  CheckSquare, Square,
+  CheckSquare, Square, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { dccService } from '../../services/dccService';
 import { supabase } from '../../lib/supabase';
@@ -14,13 +13,14 @@ import { useAuthStore } from '../../stores/authStore';
 import { generatePaymentReceipt, receiptNumber } from '../../utils/dccReceipt';
 import type { DccTile, DccPayment, DccDemand, DccDemandDispute, DccDemandAuditEntry, DccDemandRunLog, DccInstallmentPlan, DccInstallmentRow } from '../../types/dcc';
 import type { PaymentMode } from '../../types/payableCriteria';
-import { ALL_PAYMENT_MODES, PAYMENT_MODE_LABELS } from '../../types/payableCriteria';
+import { PAYMENT_MODE_LABELS } from '../../types/payableCriteria';
 import {
   DCC_STATUS, DCC_INPUT_CLS, DCC_LABEL_CLS,
   fmtINR, fmtDateShort, fmtDateTimeDDMMYYYY, computeGst,
   getDemandTypeBadgeStyle,
 } from '../../constants/dccTheme';
 import { getDemandComponentConfig } from '../../constants/demandComponents';
+import type { DemandComponent } from '../../constants/demandComponents';
 
 // Early-payment discount matrix: >=15 days early = 5%, >=7 days early = 2.5%
 const computeEarlyPayDiscount = (dueDate: string, paymentDate: string, grossAmount: number): { pct: number; discount: number; adjusted: number; daysEarly: number } => {
@@ -75,6 +75,18 @@ function groupByTxnType(tiles: DccTile[]): TxnTypeGroup[] {
   return groups;
 }
 
+// Merge component configs from multiple tiles of the same transaction type so all charge columns appear
+function mergeComponents(tiles: DccTile[], txnCode: string): DemandComponent[] {
+  const seen = new Map<string, DemandComponent>();
+  for (const tile of tiles) {
+    const cfg = getDemandComponentConfig(txnCode, tile.object_type);
+    for (const comp of cfg.components) {
+      if (!seen.has(comp.key)) seen.set(comp.key, comp);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 const PAY_MODAL_METHODS = [
   { key: 'UPI', label: 'UPI', icon: Smartphone, desc: 'Pay via UPI ID or QR' },
   { key: 'NETBANKING', label: 'Net Banking', icon: Building, desc: 'Bank transfer' },
@@ -84,6 +96,14 @@ const PAY_MODAL_METHODS = [
 ] as const;
 
 type Tab = 'demand_due' | 'installments' | 'paid_history';
+
+interface SelectedInstallment {
+  demandId: string;
+  rowId: string;
+  amount: number;
+  label: string;
+  tile: DccTile;
+}
 
 interface ObjectDemandDueScreenProps {
   ownerId: string;
@@ -116,17 +136,20 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Transaction type selection
   const [activeTxnCode, setActiveTxnCode] = useState<string | null>(null);
 
-  // Per-demand loaded data (for history tab)
   const [demandDataMap, setDemandDataMap] = useState<Record<string, { demand: DccDemand | null; payments: DccPayment[]; auditLog: DccDemandAuditEntry[]; disputes: DccDemandDispute[]; runLog: DccDemandRunLog | null; instPlan: DccInstallmentPlan | null; instRows: DccInstallmentRow[] }>>({});
 
-  // Active tab
   const [activeTab, setActiveTab] = useState<Tab>('demand_due');
 
-  // Multi-select for payment
+  // Multi-select for demand due
   const [selectedDemandIds, setSelectedDemandIds] = useState<Set<string>>(new Set());
+
+  // Multi-select for installments
+  const [selectedInstRows, setSelectedInstRows] = useState<Set<string>>(new Set());
+
+  // Expanded demand detail rows
+  const [expandedDemandIds, setExpandedDemandIds] = useState<Set<string>>(new Set());
 
   // Payment modal
   const [showPayModal, setShowPayModal] = useState(false);
@@ -136,6 +159,8 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   const [payModalRemarks, setPayModalRemarks] = useState('');
   const [payModalDate, setPayModalDate] = useState(new Date().toISOString().slice(0, 10));
   const [payModalRecording, setPayModalRecording] = useState(false);
+  // What the payment modal is paying: 'demands' or 'installments'
+  const [payModalContext, setPayModalContext] = useState<'demands' | 'installments'>('demands');
 
   // Dispute panel
   const [disputePanelOpen, setDisputePanelOpen] = useState(false);
@@ -147,7 +172,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   const [disputeRemarks, setDisputeRemarks] = useState('');
   const [disputing, setDisputing] = useState(false);
 
-  // Receipt
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
 
   // ── Data loading ──────────────────────────────────────────────────────────────
@@ -170,7 +194,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
 
   const txnGroups = useMemo(() => groupByTxnType(allTiles), [allTiles]);
 
-  // Auto-select first transaction type with pending demands
   useEffect(() => {
     if (!activeTxnCode && txnGroups.length > 0) {
       const firstPending = txnGroups.find(g => g.pendingTiles.length > 0);
@@ -186,7 +209,12 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   const showInstalmentTab = activeGroup ? isInstalmentType(activeGroup.code) : false;
   const showDemandDueTab = !showInstalmentTab;
 
-  // Pending demands for active transaction type, sorted: overdue first, then by due date
+  // Merged components across all tiles in the active group — ensures all charge columns show
+  const mergedComponents = useMemo(() => {
+    if (!activeGroup) return [];
+    return mergeComponents(activeGroup.tiles, activeGroup.code);
+  }, [activeGroup]);
+
   const pendingTiles = useMemo(() => {
     if (!activeGroup) return [];
     return [...activeGroup.pendingTiles].sort((a, b) => {
@@ -196,23 +224,26 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
     });
   }, [activeGroup]);
 
-  // Default select all pending demands when transaction type changes
   useEffect(() => {
     setSelectedDemandIds(new Set(pendingTiles.map(t => t.id)));
   }, [activeTxnCode, pendingTiles]);
+
+  // Reset installment selection when txn type changes
+  useEffect(() => {
+    setSelectedInstRows(new Set());
+  }, [activeTxnCode]);
 
   const selectedTiles = useMemo(
     () => pendingTiles.filter(t => selectedDemandIds.has(t.id)),
     [pendingTiles, selectedDemandIds],
   );
 
-  const selectedTotal = useMemo(
-    () => selectedTiles.reduce((s, t) => s + t.amount_due, 0),
-    [selectedTiles],
-  );
-
-  // ── Load per-demand detail data (payments, audit, disputes, run log, installments) ──
+  // ── Load per-demand detail ────────────────────────────────────────────────────
   const loadDemandDetail = useCallback(async (demandId: string) => {
+    setDemandDataMap(prev => {
+      if (prev[demandId]) return prev;
+      return prev;
+    });
     if (demandDataMap[demandId]) return;
     try {
       const [pays, dispData, auditData] = await Promise.all([
@@ -257,23 +288,21 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
           instRows,
         },
       }));
-    } catch { /* silent — detail loaded lazily */ }
+    } catch { /* silent */ }
   }, [demandDataMap]);
 
-  // Load detail for all pending demands when transaction type changes
   useEffect(() => {
     if (activeGroup) {
       activeGroup.tiles.forEach(t => loadDemandDetail(t.id));
     }
   }, [activeTxnCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Aggregate financials for active group ─────────────────────────────────────
+  // ── Aggregate financials ──────────────────────────────────────────────────────
   const aggregateOutstanding = activeGroup?.totalPending ?? 0;
   const aggregateCollected = activeGroup?.totalCollected ?? 0;
   const aggregateDemand = activeGroup?.totalDemand ?? 0;
   const allPaidOrExempted = activeGroup ? activeGroup.pendingTiles.length === 0 : false;
 
-  // Aggregate early discount, penalty, GST for selected demands
   const selectedFinancials = useMemo(() => {
     let totalOutstanding = 0;
     let totalPenalty = 0;
@@ -295,7 +324,56 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
     return { totalOutstanding, totalPenalty, totalDiscount, totalGst, totalFinalPayable };
   }, [selectedTiles]);
 
-  // ── Multi-select handlers ─────────────────────────────────────────────────────
+  // ── Installment selection ─────────────────────────────────────────────────────
+  const allInstRows = useMemo(() => {
+    if (!activeGroup) return [];
+    const rows: { row: DccInstallmentRow; demandId: string; tile: DccTile }[] = [];
+    for (const tile of activeGroup.pendingTiles) {
+      const dd = demandDataMap[tile.id];
+      if (!dd?.instRows) continue;
+      for (const row of dd.instRows) {
+        if (row.status === 'PAID' || row.status === 'EXEMPTED') continue;
+        rows.push({ row, demandId: tile.id, tile });
+      }
+    }
+    return rows;
+  }, [activeGroup, demandDataMap]);
+
+  const selectedInstallments = useMemo(() => {
+    return allInstRows
+      .filter(({ row }) => selectedInstRows.has(row.id))
+      .map(({ row, demandId, tile }) => ({
+        demandId,
+        rowId: row.id,
+        amount: row.remaining_amount,
+        label: row.label,
+        tile,
+      }));
+  }, [allInstRows, selectedInstRows]);
+
+  const selectedInstTotal = useMemo(
+    () => selectedInstallments.reduce((s, si) => s + si.amount, 0),
+    [selectedInstallments],
+  );
+
+  const toggleInstRow = (rowId: string) => {
+    setSelectedInstRows(prev => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId); else next.add(rowId);
+      return next;
+    });
+  };
+
+  const toggleAllInst = () => {
+    const pendingIds = allInstRows.map(({ row }) => row.id);
+    if (selectedInstRows.size === pendingIds.length && pendingIds.length > 0) {
+      setSelectedInstRows(new Set());
+    } else {
+      setSelectedInstRows(new Set(pendingIds));
+    }
+  };
+
+  // ── Demand due multi-select ───────────────────────────────────────────────────
   const toggleDemand = (id: string) => {
     setSelectedDemandIds(prev => {
       const next = new Set(prev);
@@ -314,11 +392,29 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
 
   const allSelected = pendingTiles.length > 0 && selectedDemandIds.size === pendingTiles.length;
 
-  // ── Payment handler ───────────────────────────────────────────────────────────
+  // ── Expand/collapse demand detail ─────────────────────────────────────────────
+  const toggleExpand = (id: string) => {
+    setExpandedDemandIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // ── Payment handlers ──────────────────────────────────────────────────────────
   const handlePayNow = () => {
-    if (selectedTiles.length === 0 || selectedFinancials.totalFinalPayable <= 0) {
-      setActionError('Select at least one demand to pay.');
-      return;
+    if (effectiveTab === 'installments') {
+      if (selectedInstallments.length === 0 || selectedInstTotal <= 0) {
+        setActionError('Select at least one installment to pay.');
+        return;
+      }
+      setPayModalContext('installments');
+    } else {
+      if (selectedTiles.length === 0 || selectedFinancials.totalFinalPayable <= 0) {
+        setActionError('Select at least one demand to pay.');
+        return;
+      }
+      setPayModalContext('demands');
     }
     setActionError(null);
     setPayModalStep('select');
@@ -330,29 +426,38 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
   };
 
   const handleConfirmPayModal = async () => {
-    if (selectedTiles.length === 0) return;
     if (canRecordPayment) {
       setPayModalRecording(true);
       setActionError(null);
       try {
-        for (const tile of selectedTiles) {
-          await dccService.submitPayment(
-            tile.id,
-            tile.object_id,
-            tile.amount_due,
-            payModalMode,
-            payModalDate,
-            payModalRef || undefined,
-            payModalRemarks || `Bulk payment for ${selectedTiles.length} demand(s) — ${activeGroup?.label ?? ''}`,
-          );
+        if (payModalContext === 'installments') {
+          for (const si of selectedInstallments) {
+            await dccService.payInstallmentRow(si.rowId, si.amount, payModalDate);
+          }
+        } else {
+          for (const tile of selectedTiles) {
+            await dccService.submitPayment(
+              tile.id,
+              tile.object_id,
+              tile.amount_due,
+              payModalMode,
+              payModalDate,
+              payModalRef || undefined,
+              payModalRemarks || `Bulk payment for ${selectedTiles.length} demand(s) — ${activeGroup?.label ?? ''}`,
+            );
+          }
         }
         setShowPayModal(false);
         setPayModalStep('select');
         setSelectedDemandIds(new Set());
-        // Invalidate detail cache for paid demands
+        setSelectedInstRows(new Set());
         setDemandDataMap(prev => {
           const next = { ...prev };
-          selectedTiles.forEach(t => { delete next[t.id]; });
+          if (payModalContext === 'demands') {
+            selectedTiles.forEach(t => { delete next[t.id]; });
+          } else {
+            selectedInstallments.forEach(si => { delete next[si.demandId]; });
+          }
           return next;
         });
         await load();
@@ -377,7 +482,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
       await dccService.createDispute(disputePanelDemandId, disputePanelRow, disputeDate, disputeReason, disputeRemarks, author);
       setDisputeReason('');
       setDisputeRemarks('');
-      // Invalidate cache to reload
       setDemandDataMap(prev => { const next = { ...prev }; delete next[disputePanelDemandId]; return next; });
       await loadDemandDetail(disputePanelDemandId);
     } catch (e: unknown) {
@@ -415,6 +519,11 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
     { key: 'paid_history' as Tab, label: 'Demand History', icon: History },
   ];
   const effectiveTab = TABS.some(t => t.key === activeTab) ? activeTab : TABS[0]?.key ?? 'paid_history';
+
+  // Active payable amount for header summary — depends on which tab is active
+  const headerPayableAmount = effectiveTab === 'installments' ? selectedInstTotal : selectedFinancials.totalFinalPayable;
+  const headerSelectedCount = effectiveTab === 'installments' ? selectedInstallments.length : selectedTiles.length;
+  const headerOutstanding = effectiveTab === 'installments' ? selectedInstTotal : selectedFinancials.totalOutstanding;
 
   // Aggregate activity timeline for history tab
   const allActivities = useMemo(() => {
@@ -483,13 +592,11 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
     );
   }
 
-  // Representative tile for header (first pending, or first tile)
   const headerTile = pendingTiles[0] ?? activeGroup.tiles[0];
   const headerStatus = allPaidOrExempted ? 'PAID' : (pendingTiles[0]?.status ?? 'PAID');
   const st = DCC_STATUS[headerStatus as keyof typeof DCC_STATUS] ?? DCC_STATUS.PAID;
   const txnBadge = getDemandTypeBadgeStyle(activeGroup.code);
 
-  // Update TABS label with count
   const historyTabLabel = `Demand History (${totalPaymentsCount + allActivities.filter(a => a.kind !== 'payment').length})`;
   const tabsWithCount = TABS.map(t => t.key === 'paid_history' ? { ...t, label: historyTabLabel } : t);
 
@@ -503,7 +610,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
       >
         {/* ── Header ─────────────────────────────────────────────────────────────── */}
         <div className="px-4 py-2.5 bg-blue-800 border-b border-blue-900 shrink-0">
-          {/* Line 1: Title block */}
           <div className="flex items-center gap-2 mb-1.5">
             <button onClick={onBack} className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0" title="Back to Object Summary">
               <ArrowLeft size={16} />
@@ -512,7 +618,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
               {allPaidOrExempted ? 'Fully Paid' : st.label}
             </span>
             <h1 className="text-sm font-bold text-white truncate">{objectRef}</h1>
-            <span className="text-[10px] text-slate-400 shrink-0">· {objectRef}</span>
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${txnBadge.bg} ${txnBadge.text} border ${txnBadge.border} shrink-0`}>
               <span className={`h-1.5 w-1.5 rounded-full ${txnBadge.dot}`} />
               {activeGroup.label}
@@ -533,9 +638,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
               </button>
             </div>
           </div>
-          {/* Line 2: Owner info + Financial summary + Pay Now */}
           <div className="flex items-end justify-between gap-4 pl-7 flex-wrap">
-            {/* Owner info */}
             <div className="flex items-end gap-4 flex-wrap">
               <div className="flex flex-col">
                 <span className="text-slate-400 text-[10px] uppercase font-bold">Owner</span>
@@ -550,7 +653,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                 <span className="text-white text-xs font-semibold tabular-nums leading-tight">{activeGroup.tiles.length} total · {pendingTiles.length} pending</span>
               </div>
             </div>
-            {/* Financial summary + Pay Now */}
             <div className="flex items-center gap-3">
               {allPaidOrExempted ? (
                 <div className="flex items-center gap-3 flex-wrap">
@@ -571,7 +673,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex flex-col">
                     <span className="text-slate-400 text-[9px] uppercase font-bold">Outstanding</span>
-                    <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(selectedFinancials.totalOutstanding)}</span>
+                    <span className="text-amber-400 text-xs font-semibold tabular-nums leading-tight">{fmtINR(headerOutstanding)}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-slate-400 text-[9px] uppercase font-bold">Penalty</span>
@@ -589,15 +691,15 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                   )}
                   <div className="flex flex-col">
                     <span className="text-slate-400 text-[9px] uppercase font-bold">Final Payable</span>
-                    <span className="text-white text-sm font-black tabular-nums leading-tight">{fmtINR(selectedFinancials.totalFinalPayable)}</span>
+                    <span className="text-white text-sm font-black tabular-nums leading-tight">{fmtINR(headerPayableAmount)}</span>
                   </div>
                   {(canRecordPayment || isGovtOfficial) && (
                     <button
                       onClick={handlePayNow}
-                      disabled={selectedTiles.length === 0}
+                      disabled={headerSelectedCount === 0}
                       className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-md shadow-sm transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      <Wallet size={13} /> Pay Now {selectedTiles.length > 0 && `(${selectedTiles.length})`}
+                      <Wallet size={13} /> Pay Now {headerSelectedCount > 0 && `(${headerSelectedCount})`}
                     </button>
                   )}
                 </div>
@@ -682,15 +784,13 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
             >
               {/* ═══ Tab 1: Demand Due ════════════════════════════════════════════════ */}
               {effectiveTab === 'demand_due' && !allPaidOrExempted && (() => {
-                const config = getDemandComponentConfig(activeGroup.code, headerTile.object_type);
+                const config = { components: mergedComponents, cadence: getDemandComponentConfig(activeGroup.code, headerTile.object_type).cadence } as const;
                 const isMonthly = config.cadence === 'monthly';
                 const penaltyPct = 0.02;
 
                 return (
                   <div className="flex gap-3">
-                    {/* ── Line-Item Table ────────────────────────────────────────── */}
                     <div className="flex-1 min-w-0 space-y-3">
-                      {/* Select All bar */}
                       <div className="flex items-center justify-between px-1">
                         <button
                           onClick={toggleAll}
@@ -720,20 +820,25 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                   <th key={comp.key} className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">{comp.label}</th>
                                 ))}
                                 <th className="py-2 px-3 text-right font-bold text-slate-600 border-b border-slate-200">Total Due</th>
+                                <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute Date</th>
                                 <th className="py-2 px-3 text-center font-bold text-slate-600 border-b border-slate-200">Dispute</th>
                               </tr>
                             </thead>
                             <tbody>
                               {pendingTiles.map((tile, idx) => {
                                 const isSelected = selectedDemandIds.has(tile.id);
+                                const isExpanded = expandedDemandIds.has(tile.id);
                                 const dd = demandDataMap[tile.id];
                                 const disputes = dd?.disputes ?? [];
                                 const dCount = disputes.filter(d => d.row_number === 1).length;
                                 const isActive = disputePanelOpen && disputePanelDemandId === tile.id && disputePanelRow === 1;
+                                const rowDisputes = disputes.filter(d => d.row_number === 1);
+                                const latestDispute = rowDisputes.length > 0 ? rowDisputes.reduce((a, b) => a.dispute_date > b.dispute_date ? a : b) : null;
 
+                                const tileConfig = getDemandComponentConfig(activeGroup.code, tile.object_type);
                                 const baseAmount = tile.status === 'OVERDUE' ? tile.amount_due : tile.total_amount;
                                 const charges: Record<string, number> = {};
-                                for (const comp of config.components) {
+                                for (const comp of tileConfig.components) {
                                   charges[comp.key] = Math.round(baseAmount * comp.ratio);
                                 }
                                 const penalty = tile.status === 'OVERDUE' ? Math.round(tile.amount_due * penaltyPct) : 0;
@@ -746,59 +851,131 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                 })();
 
                                 return (
-                                  <tr
-                                    key={tile.id}
-                                    className={`border-b border-slate-100 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50/40' : ''} ${tile.status === 'OVERDUE' ? 'bg-red-50/20' : ''} ${isActive ? 'bg-orange-50/40' : ''} hover:bg-slate-50`}
-                                    onClick={() => toggleDemand(tile.id)}
-                                  >
-                                    <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
-                                      <button onClick={() => toggleDemand(tile.id)} className="flex items-center justify-center">
-                                        {isSelected ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-slate-300" />}
-                                      </button>
-                                    </td>
-                                    <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">{idx + 1}</td>
-                                    <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">
-                                      <div className="flex flex-col">
-                                        <span>{periodLabel}</span>
-                                        <span className="text-[9px] text-slate-400">Due: {fmtDateShort(tile.due_date)}</span>
-                                      </div>
-                                    </td>
-                                    {config.components.map(comp => (
-                                      <td key={comp.key} className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
-                                        {(charges[comp.key] ?? 0) > 0 ? fmtINR(charges[comp.key]) : '—'}
+                                  <React.Fragment key={tile.id}>
+                                    <tr
+                                      className={`border-b border-slate-100 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50/40' : ''} ${tile.status === 'OVERDUE' ? 'bg-red-50/20' : ''} ${isActive ? 'bg-orange-50/40' : ''} hover:bg-slate-50`}
+                                      onClick={() => toggleDemand(tile.id)}
+                                    >
+                                      <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
+                                        <button onClick={() => toggleDemand(tile.id)} className="flex items-center justify-center">
+                                          {isSelected ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-slate-300" />}
+                                        </button>
                                       </td>
-                                    ))}
-                                    <td className="py-1.5 px-3 text-right">
-                                      <div className="flex flex-col">
-                                        <span className="font-mono font-bold text-slate-900">{fmtINR(tile.amount_due)}</span>
-                                        {penalty > 0 && <span className="text-[9px] text-red-500 font-semibold">+{fmtINR(penalty)} penalty</span>}
-                                      </div>
-                                    </td>
-                                    <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
-                                      <button
-                                        onClick={() => {
-                                          if (isActive) {
-                                            setDisputePanelOpen(false);
-                                            setDisputePanelDemandId(null);
-                                            setDisputePanelRow(null);
-                                          } else {
-                                            setDisputePanelOpen(true);
-                                            setDisputePanelDemandId(tile.id);
-                                            setDisputePanelRow(1);
-                                            setDisputePanelLabel(periodLabel);
-                                            setDisputeDate(new Date().toISOString().slice(0, 10));
-                                            setDisputeReason('');
-                                            setDisputeRemarks('');
-                                          }
-                                        }}
-                                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${isActive ? 'bg-orange-600 text-white' : dCount > 0 ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
-                                        title={dCount > 0 ? `${dCount} dispute(s) — click to view` : 'Raise a dispute'}
-                                      >
-                                        <MessageCircle size={12} />
-                                        {dCount > 0 ? dCount : ''}
-                                      </button>
-                                    </td>
-                                  </tr>
+                                      <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">
+                                        <button onClick={(e) => { e.stopPropagation(); toggleExpand(tile.id); }} className="flex items-center gap-1 hover:text-blue-700 transition-colors">
+                                          {isExpanded ? <ChevronDown size={12} className="text-slate-400" /> : <ChevronRight size={12} className="text-slate-400" />}
+                                          {idx + 1}
+                                        </button>
+                                      </td>
+                                      <td className="py-1.5 px-3 font-semibold text-slate-800 text-left">
+                                        <div className="flex flex-col">
+                                          <span>{periodLabel}</span>
+                                          <span className="text-[9px] text-slate-400">
+                                            Run: {fmtDateShort(tile.demand_run_date)} · Due: {fmtDateShort(tile.due_date)}
+                                            {tile.run_number != null && ` · Run #${tile.run_number}`}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      {config.components.map(comp => (
+                                        <td key={comp.key} className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">
+                                          {(charges[comp.key] ?? 0) > 0 ? fmtINR(charges[comp.key]) : '—'}
+                                        </td>
+                                      ))}
+                                      <td className="py-1.5 px-3 text-right">
+                                        <div className="flex flex-col">
+                                          <span className="font-mono font-bold text-slate-900">{fmtINR(tile.amount_due)}</span>
+                                          {penalty > 0 && <span className="text-[9px] text-red-500 font-semibold">+{fmtINR(penalty)} penalty</span>}
+                                        </div>
+                                      </td>
+                                      <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
+                                        {latestDispute ? (
+                                          <span className="inline-flex flex-col items-center gap-0.5">
+                                            <span className="text-[10px] font-semibold text-orange-700 tabular-nums">{fmtDateShort(latestDispute.dispute_date)}</span>
+                                            {rowDisputes.length > 1 && <span className="text-[8px] text-orange-400">({rowDisputes.length})</span>}
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400 text-[10px]">--</span>
+                                        )}
+                                      </td>
+                                      <td className="py-1.5 px-3 text-center" onClick={e => e.stopPropagation()}>
+                                        <button
+                                          onClick={() => {
+                                            if (isActive) {
+                                              setDisputePanelOpen(false);
+                                              setDisputePanelDemandId(null);
+                                              setDisputePanelRow(null);
+                                            } else {
+                                              setDisputePanelOpen(true);
+                                              setDisputePanelDemandId(tile.id);
+                                              setDisputePanelRow(1);
+                                              setDisputePanelLabel(periodLabel);
+                                              setDisputeDate(new Date().toISOString().slice(0, 10));
+                                              setDisputeReason('');
+                                              setDisputeRemarks('');
+                                            }
+                                          }}
+                                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${isActive ? 'bg-orange-600 text-white' : dCount > 0 ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                                          title={dCount > 0 ? `${dCount} dispute(s) — click to view` : 'Raise a dispute'}
+                                        >
+                                          <MessageCircle size={12} />
+                                          {dCount > 0 ? dCount : ''}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                    {/* ── Expanded demand detail ───────────────────────────── */}
+                                    {isExpanded && (
+                                      <tr className="bg-slate-50/60">
+                                        <td colSpan={config.components.length + 5} className="py-2.5 px-6">
+                                          <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[10px]">
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Demand ID</span>
+                                              <span className="text-slate-600 font-mono">{tile.id.slice(0, 8).toUpperCase()}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Run Date</span>
+                                              <span className="text-slate-600">{fmtDateShort(tile.demand_run_date)}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Due Date</span>
+                                              <span className="text-slate-600">{fmtDateShort(tile.due_date)}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Status</span>
+                                              <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${st.bg} ${st.text}`}>{tile.status}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Object Type</span>
+                                              <span className="text-slate-600">{tile.object_type}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Total Amount</span>
+                                              <span className="text-slate-700 font-bold tabular-nums">{fmtINR(tile.total_amount)}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Paid</span>
+                                              <span className="text-emerald-600 font-semibold tabular-nums">{fmtINR(tile.amount_paid)}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Outstanding</span>
+                                              <span className="text-red-600 font-bold tabular-nums">{fmtINR(tile.amount_due)}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">GST</span>
+                                              <span className="text-slate-600">{tile.include_gst ? `${tile.gst_pct}% (${tile.gst_type})` : 'Not applicable'}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Overdue Days</span>
+                                              <span className="text-slate-600">{tile.avg_overdue_days > 0 ? `${tile.avg_overdue_days} days` : '—'}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span className="text-slate-400 font-bold uppercase">Last Paid</span>
+                                              <span className="text-slate-600">{tile.last_paid_date ? `${fmtDateShort(tile.last_paid_date)} (${fmtINR(tile.last_paid_amount ?? 0)})` : '—'}</span>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
                                 );
                               })}
                             </tbody>
@@ -808,7 +985,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                   Selected Outstanding ({selectedTiles.length}):
                                 </td>
                                 <td className="py-1.5 px-3 text-right font-mono font-extrabold text-red-600">{fmtINR(selectedFinancials.totalOutstanding)}</td>
-                                <td />
+                                <td colSpan={2} />
                               </tr>
                             </tfoot>
                           </table>
@@ -907,17 +1084,37 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
               {/* ═══ Tab 2: Installments ═══════════════════════════════════════════════ */}
               {effectiveTab === 'installments' && !allPaidOrExempted && (
                 <div className="space-y-3">
+                  {/* Selection bar */}
+                  <div className="flex items-center justify-between px-1">
+                    <button
+                      onClick={toggleAllInst}
+                      className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors"
+                    >
+                      {allInstRows.length > 0 && selectedInstRows.size === allInstRows.length ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
+                      Select All Pending
+                    </button>
+                    <span className="text-[11px] text-slate-400">
+                      {selectedInstRows.size} of {allInstRows.length} selected · {fmtINR(selectedInstTotal)}
+                    </span>
+                  </div>
+
                   {pendingTiles.map(tile => {
                     const dd = demandDataMap[tile.id];
                     const instRows = dd?.instRows ?? [];
                     const instPlan = dd?.instPlan;
                     if (instRows.length === 0) return null;
+                    const pendingInstRows = instRows.filter(r => r.status !== 'PAID' && r.status !== 'EXEMPTED');
+
                     return (
                       <div key={tile.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 space-y-2">
-                        <div className="flex items-center gap-2">
+                        {/* Demand details header for this grid */}
+                        <div className="flex items-center gap-2 flex-wrap pb-1.5 border-b border-slate-100">
                           <span className="text-xs font-bold text-slate-800">{fmtDateShort(tile.demand_run_date)}</span>
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600">{tile.status}</span>
                           <span className="text-[10px] text-slate-400">Due: {fmtDateShort(tile.due_date)}</span>
                           <span className="text-[10px] font-semibold text-amber-600">Outstanding: {fmtINR(tile.amount_due)}</span>
+                          <span className="text-[10px] text-slate-400">Demand: {tile.id.slice(0, 8).toUpperCase()}</span>
+                          {tile.run_number != null && <span className="text-[10px] text-slate-400">Run #{tile.run_number}</span>}
                           {instPlan && (
                             <span className="ml-auto text-[10px] text-slate-400">{instPlan.no_of_installments} installments · Balance: {fmtINR(instPlan.balance_payment)}</span>
                           )}
@@ -926,6 +1123,21 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                           <table className="w-full text-[10px]">
                             <thead>
                               <tr className="bg-slate-100 text-slate-600">
+                                <th className="px-1.5 py-1 text-center font-bold w-8">
+                                  {pendingInstRows.length > 0 && (
+                                    <button onClick={() => {
+                                      const ids = pendingInstRows.map(r => r.id);
+                                      const allSel = ids.every(id => selectedInstRows.has(id));
+                                      setSelectedInstRows(prev => {
+                                        const next = new Set(prev);
+                                        if (allSel) { ids.forEach(id => next.delete(id)); } else { ids.forEach(id => next.add(id)); }
+                                        return next;
+                                      });
+                                    }} className="flex items-center justify-center">
+                                      {pendingInstRows.length > 0 && pendingInstRows.every(r => selectedInstRows.has(r.id)) ? <CheckSquare size={12} className="text-blue-600" /> : <Square size={12} className="text-slate-300" />}
+                                    </button>
+                                  )}
+                                </th>
                                 <th className="px-1.5 py-1 text-left font-bold">Seq</th>
                                 <th className="px-1.5 py-1 text-right font-bold">Total Amt</th>
                                 <th className="px-1.5 py-1 text-right font-bold">Discount</th>
@@ -936,29 +1148,82 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                                 <th className="px-1.5 py-1 text-right font-bold">Paid</th>
                                 <th className="px-1.5 py-1 text-right font-bold">Remaining</th>
                                 <th className="px-1.5 py-1 text-center font-bold">Status</th>
+                                <th className="px-1.5 py-1 text-center font-bold">Dispute Date</th>
+                                <th className="px-1.5 py-1 text-center font-bold">Dispute</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {instRows.map(row => (
-                                <tr key={row.id} className={row.status === 'PAID' ? 'bg-emerald-50/40' : row.status === 'OVERDUE' ? 'bg-red-50/30' : ''}>
-                                  <td className="px-1.5 py-1 font-semibold text-slate-700">{row.label}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums font-bold">{fmtINR(row.amount)}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.row_number === 0 && row.late_fee > 0 ? fmtINR(0) : '—'}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.late_fee > 0 && row.row_number > 0 ? fmtINR(row.late_fee) : '—'}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.gst_amount > 0 ? fmtINR(row.gst_amount) : '—'}</td>
-                                  <td className="px-1.5 py-1 text-left text-slate-500">{fmtDateShort(row.due_date)}</td>
-                                  <td className="px-1.5 py-1 text-left text-slate-500">{fmtDateShort(row.paid_date)}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums text-emerald-600 font-semibold">{row.paid_amt > 0 ? fmtINR(row.paid_amt) : '—'}</td>
-                                  <td className="px-1.5 py-1 text-right tabular-nums font-semibold text-slate-700">{row.remaining_amount > 0 ? fmtINR(row.remaining_amount) : '—'}</td>
-                                  <td className="px-1.5 py-1 text-center">
-                                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                      row.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
-                                      row.status === 'OVERDUE' ? 'bg-red-100 text-red-700' :
-                                      'bg-amber-100 text-amber-700'
-                                    }`}>{row.status}</span>
-                                  </td>
-                                </tr>
-                              ))}
+                              {instRows.map(row => {
+                                const isSelectable = row.status !== 'PAID' && row.status !== 'EXEMPTED' && row.remaining_amount > 0;
+                                const isSel = selectedInstRows.has(row.id);
+                                const dd2 = demandDataMap[tile.id];
+                                const rowDisputes = (dd2?.disputes ?? []).filter(d => d.row_number === row.row_number);
+                                const dCount = rowDisputes.length;
+                                const latestDispute = rowDisputes.length > 0 ? rowDisputes.reduce((a, b) => a.dispute_date > b.dispute_date ? a : b) : null;
+                                const isActiveRow = disputePanelOpen && disputePanelDemandId === tile.id && disputePanelRow === row.row_number;
+
+                                return (
+                                  <tr key={row.id} className={`${row.status === 'PAID' ? 'bg-emerald-50/40' : row.status === 'OVERDUE' ? 'bg-red-50/30' : ''} ${isSel ? 'bg-blue-50/40' : ''} ${isActiveRow ? 'bg-orange-50/40' : ''}`}>
+                                    <td className="px-1.5 py-1 text-center">
+                                      {isSelectable && (
+                                        <button onClick={() => toggleInstRow(row.id)} className="flex items-center justify-center">
+                                          {isSel ? <CheckSquare size={12} className="text-blue-600" /> : <Square size={12} className="text-slate-300" />}
+                                        </button>
+                                      )}
+                                    </td>
+                                    <td className="px-1.5 py-1 font-semibold text-slate-700">{row.label}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums font-bold">{fmtINR(row.amount)}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.row_number === 0 && row.late_fee > 0 ? fmtINR(0) : '—'}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.late_fee > 0 && row.row_number > 0 ? fmtINR(row.late_fee) : '—'}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums text-slate-400">{row.gst_amount > 0 ? fmtINR(row.gst_amount) : '—'}</td>
+                                    <td className="px-1.5 py-1 text-left text-slate-500">{fmtDateShort(row.due_date)}</td>
+                                    <td className="px-1.5 py-1 text-left text-slate-500">{fmtDateShort(row.paid_date)}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums text-emerald-600 font-semibold">{row.paid_amt > 0 ? fmtINR(row.paid_amt) : '—'}</td>
+                                    <td className="px-1.5 py-1 text-right tabular-nums font-semibold text-slate-700">{row.remaining_amount > 0 ? fmtINR(row.remaining_amount) : '—'}</td>
+                                    <td className="px-1.5 py-1 text-center">
+                                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                        row.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                                        row.status === 'OVERDUE' ? 'bg-red-100 text-red-700' :
+                                        'bg-amber-100 text-amber-700'
+                                      }`}>{row.status}</span>
+                                    </td>
+                                    <td className="px-1.5 py-1 text-center">
+                                      {latestDispute ? (
+                                        <span className="inline-flex flex-col items-center gap-0.5">
+                                          <span className="text-[9px] font-semibold text-orange-700 tabular-nums">{fmtDateShort(latestDispute.dispute_date)}</span>
+                                          {rowDisputes.length > 1 && <span className="text-[8px] text-orange-400">({rowDisputes.length})</span>}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 text-[9px]">--</span>
+                                      )}
+                                    </td>
+                                    <td className="px-1.5 py-1 text-center">
+                                      <button
+                                        onClick={() => {
+                                          if (isActiveRow) {
+                                            setDisputePanelOpen(false);
+                                            setDisputePanelDemandId(null);
+                                            setDisputePanelRow(null);
+                                          } else {
+                                            setDisputePanelOpen(true);
+                                            setDisputePanelDemandId(tile.id);
+                                            setDisputePanelRow(row.row_number);
+                                            setDisputePanelLabel(row.label);
+                                            setDisputeDate(new Date().toISOString().slice(0, 10));
+                                            setDisputeReason('');
+                                            setDisputeRemarks('');
+                                          }
+                                        }}
+                                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${isActiveRow ? 'bg-orange-600 text-white' : dCount > 0 ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                                        title={dCount > 0 ? `${dCount} dispute(s) — click to view` : 'Raise a dispute'}
+                                      >
+                                        <MessageCircle size={12} />
+                                        {dCount > 0 ? dCount : ''}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -993,7 +1258,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                 return (
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className={`h-1 ${isFullyPaid ? 'bg-emerald-500' : st.dot} shrink-0`} />
-                    {/* Summary row */}
                     <div className="flex items-center gap-x-2 gap-y-1 flex-wrap px-4 py-2">
                       <div className="flex items-center gap-1">
                         <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total Demand:</span>
@@ -1011,7 +1275,6 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                       </div>
                       <span className="text-[10px] text-slate-400 ml-2">· {activeGroup.label}</span>
                     </div>
-                    {/* Activity timeline */}
                     {allActivities.length === 0 ? (
                       <div className="border-t border-slate-100 text-center py-8 text-slate-400">
                         <History size={24} className="mx-auto mb-1.5 opacity-30" />
@@ -1146,11 +1409,17 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         {canRecordPayment ? 'Record Amount' : 'Outstanding'}
                       </span>
-                      <span className="text-lg font-black text-slate-900 tabular-nums leading-tight">{fmtINR(selectedFinancials.totalFinalPayable)}</span>
+                      <span className="text-lg font-black text-slate-900 tabular-nums leading-tight">
+                        {fmtINR(payModalContext === 'installments' ? selectedInstTotal : selectedFinancials.totalFinalPayable)}
+                      </span>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">For</span>
-                      <span className="text-xs font-bold text-emerald-700">{selectedTiles.length} demand{selectedTiles.length !== 1 ? 's' : ''} · {activeGroup.label}</span>
+                      <span className="text-xs font-bold text-emerald-700">
+                        {payModalContext === 'installments'
+                          ? `${selectedInstallments.length} installment${selectedInstallments.length !== 1 ? 's' : ''}`
+                          : `${selectedTiles.length} demand${selectedTiles.length !== 1 ? 's' : ''} · ${activeGroup.label}`}
+                      </span>
                     </div>
                   </div>
                   <div>
@@ -1206,8 +1475,8 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                       <Wallet size={16} />
                     )}
                     {canRecordPayment
-                      ? (payModalRecording ? 'Recording…' : `Record ${fmtINR(selectedFinancials.totalFinalPayable)} via ${PAY_MODAL_METHODS.find(m => m.key === payModalMode)?.label}`)
-                      : `Pay ${fmtINR(selectedFinancials.totalFinalPayable)} via ${PAY_MODAL_METHODS.find(m => m.key === payModalMode)?.label}`
+                      ? (payModalRecording ? 'Recording…' : `Record ${fmtINR(payModalContext === 'installments' ? selectedInstTotal : selectedFinancials.totalFinalPayable)} via ${PAY_MODAL_METHODS.find(m => m.key === payModalMode)?.label}`)
+                      : `Pay ${fmtINR(payModalContext === 'installments' ? selectedInstTotal : selectedFinancials.totalFinalPayable)} via ${PAY_MODAL_METHODS.find(m => m.key === payModalMode)?.label}`
                     }
                   </button>
                 </div>
@@ -1225,7 +1494,7 @@ export const ObjectDemandDueScreen: React.FC<ObjectDemandDueScreenProps> = ({
                   </div>
                   <h3 className="text-sm font-bold text-slate-900">Demo Payment Successful</h3>
                   <p className="text-xs text-slate-500 text-center max-w-xs">
-                    This was a simulated payment of {fmtINR(selectedFinancials.totalFinalPayable)} via {payModalMode}. No actual payment was recorded — demand balances remain unchanged.
+                    This was a simulated payment of {fmtINR(payModalContext === 'installments' ? selectedInstTotal : selectedFinancials.totalFinalPayable)} via {payModalMode}. No actual payment was recorded — demand balances remain unchanged.
                   </p>
                   <button onClick={() => { setShowPayModal(false); setPayModalStep('select'); }} className="mt-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors">
                     Close
