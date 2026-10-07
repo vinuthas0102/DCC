@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Landmark, LogOut, Pencil } from 'lucide-react';
+import { Landmark, LogOut, Pencil, ArrowLeftRight } from 'lucide-react';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -54,7 +54,7 @@ function isTabActive(tab: ModuleTab, pathname: string): boolean {
 
 const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { user, logout } = useAuthStore();
-  const { openProfileDrawer } = useUIStore();
+  const { openProfileDrawer, openTxnTypesDrawer } = useUIStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -108,6 +108,22 @@ const RailContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
           />
         ))}
       </nav>
+
+      {/* Transaction Types (demo drawer) */}
+      <div className="flex flex-col pt-1 flex-shrink-0">
+        <button
+          onClick={() => { openTxnTypesDrawer(); onNavigate?.(); }}
+          title="Transaction Types — Demo"
+          className="relative w-full flex flex-col items-center justify-center gap-1.5 py-3.5 px-1 transition-all duration-150 group focus:outline-none text-gray-400 hover:text-gray-700"
+        >
+          <span className="flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-150 group-hover:bg-gray-100 group-hover:text-gray-700">
+            <ArrowLeftRight size={22} strokeWidth={1.75} />
+          </span>
+          <span className="text-[10px] font-semibold leading-tight text-center px-0.5 text-gray-400 group-hover:text-gray-600" style={{ maxWidth: '112px' }}>
+            Txn Types
+          </span>
+        </button>
+      </div>
 
       {/* Spacer */}
       <div className="flex-1" />

@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { ProfileDrawer } from '../profile/ProfileDrawer';
+import { TransactionTypesDrawer } from './TransactionTypesDrawer';
 import { ROUTES } from '../../constants/routes';
 
 interface AppLayoutProps {
@@ -20,6 +21,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {children}
       </main>
       <ProfileDrawer />
+      <TransactionTypesDrawer />
     </div>
   );
 };

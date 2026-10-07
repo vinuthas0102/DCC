@@ -13,6 +13,7 @@ interface UIStore {
   viewMode: 'cards' | 'table' | 'list';
   sidebarOpen: boolean;
   profileDrawerOpen: boolean;
+  txnTypesDrawerOpen: boolean;
   addToast: (message: string, type: Toast['type'], duration?: number) => void;
   removeToast: (id: string) => void;
   openModal: (id: string) => void;
@@ -21,6 +22,8 @@ interface UIStore {
   toggleSidebar: () => void;
   openProfileDrawer: () => void;
   closeProfileDrawer: () => void;
+  openTxnTypesDrawer: () => void;
+  closeTxnTypesDrawer: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -29,6 +32,7 @@ export const useUIStore = create<UIStore>((set) => ({
   viewMode: 'cards',
   sidebarOpen: true,
   profileDrawerOpen: false,
+  txnTypesDrawerOpen: false,
 
   addToast: (message, type, duration = 5000) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -65,4 +69,6 @@ export const useUIStore = create<UIStore>((set) => ({
 
   openProfileDrawer: () => set({ profileDrawerOpen: true }),
   closeProfileDrawer: () => set({ profileDrawerOpen: false }),
+  openTxnTypesDrawer: () => set({ txnTypesDrawerOpen: true }),
+  closeTxnTypesDrawer: () => set({ txnTypesDrawerOpen: false }),
 }));
