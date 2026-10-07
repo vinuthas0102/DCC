@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { ProfileDrawer } from '../profile/ProfileDrawer';
 import { TransactionTypesDrawer } from './TransactionTypesDrawer';
+import { Sidebar } from './Sidebar';
 import { ROUTES } from '../../constants/routes';
 
 interface AppLayoutProps {
@@ -16,8 +17,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Sidebar />
       {showHeader && <Header />}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto md:ml-20 pb-16 md:pb-0">
         {children}
       </main>
       <ProfileDrawer />
